@@ -38,6 +38,8 @@ final class PreBreakCardModel: ObservableObject {
 
     /// Total seconds this countdown started from (for the clock hand's sweep).
     @Published var totalSeconds: Int = 60
+    /// Wall-clock moment the break arrives; the clock hand interpolates against this per frame.
+    @Published var deadline: Date = .distantFuture
     /// Length of the upcoming break, for the subtitle. 0 = unknown.
     @Published var breakDuration: TimeInterval = 0
 

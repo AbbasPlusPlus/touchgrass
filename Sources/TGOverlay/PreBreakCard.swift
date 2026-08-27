@@ -39,6 +39,7 @@ public final class PreBreakCard {
                      breakDuration: TimeInterval = 0) {
         model.kind = kind
         model.secondsLeft = secondsLeft
+        model.deadline = Date().addingTimeInterval(TimeInterval(secondsLeft))
         if !isShowing || secondsLeft > model.totalSeconds { model.totalSeconds = max(1, secondsLeft) }
         model.snoozesRemaining = snoozesRemaining
         model.compact = compact
@@ -63,6 +64,7 @@ public final class PreBreakCard {
 
     public func update(secondsLeft: Int, snoozesRemaining: Int) {
         model.secondsLeft = secondsLeft
+        model.deadline = Date().addingTimeInterval(TimeInterval(secondsLeft))
         model.snoozesRemaining = snoozesRemaining
     }
 

@@ -1,12 +1,20 @@
 // TGOverlay — the animated clock tile on the pre-break card.
-// A matcha→pollen rounded square with a dotted clock face whose minute hand sweeps in real time,
-// completing a revolution over the pre-break minute. Frozen under Reduce Motion.
+// A matcha→pollen rounded square with a dotted clock face whose hand sweeps continuously,
+// completing one revolution over the pre-break countdown. The hand interpolates against the
+// wall clock at 30 fps, so it glides instead of ticking once a second. Frozen under Reduce Motion.
 
 import SwiftUI
 
 struct ClockTile: View {
-    /// 0...1, how far through the pre-break countdown we are (drives the hand).
-    var progress: Double
+    /// When the break arrives, and how long the whole countdown is.
+    var deadline: Date
+    var total: TimeInterval
+
+    private func progress(at now: Date) -> Double {
+        guard total > 0 else { return 0 }
+        let remaining = max(0, deadline.timeIntervalSince(now))
+        return min(1, max(0, 1 - remaining / total))
+    }
 
     var body: some View {
         ZStack {
@@ -16,13 +24,19 @@ struct ClockTile: View {
                                    startPoint: .topLeading, endPoint: .bottomTrailing)
                 )
                 .shadow(color: .black.opacity(0.20), radius: 4, y: 1)
-            face
+            if OverlayMotion.reduceMotion {
+                face(progress: 0.6)
+            } else {
+                TimelineView(.animation(minimumInterval: 1.0 / 30.0)) { context in
+                    face(progress: progress(at: context.date))
+                }
+            }
         }
         .frame(width: 52, height: 52)
         .accessibilityHidden(true)
     }
 
-    private var face: some View {
+    private func face(progress: Double) -> some View {
         Canvas { context, size in
             let center = CGPoint(x: size.width / 2, y: size.height / 2)
             let radius = size.width * 0.34
@@ -37,12 +51,13 @@ struct ClockTile: View {
             }
 
             // Sweeping hand
-            let sweep = (OverlayMotion.reduceMotion ? 0.6 : progress) * 2 * .pi - .pi / 2
+            let sweep = progress * 2 * .pi - .pi / 2
             var hand = Path()
             hand.move(to: center)
             hand.addLine(to: CGPoint(x: center.x + cos(sweep) * radius * 0.72,
                                      y: center.y + sin(sweep) * radius * 0.72))
-            context.stroke(hand, with: .color(OverlayPalette.onMatcha), style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
+            context.stroke(hand, with: .color(OverlayPalette.onMatcha),
+                           style: StrokeStyle(lineWidth: 2.6, lineCap: .round))
         }
     }
 }

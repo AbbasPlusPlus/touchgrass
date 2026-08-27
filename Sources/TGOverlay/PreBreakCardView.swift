@@ -49,7 +49,7 @@ struct PreBreakCardView: View {
 
     private var header: some View {
         HStack(alignment: .center, spacing: 14) {
-            ClockTile(progress: model.clockProgress)
+            ClockTile(deadline: model.deadline, total: TimeInterval(model.totalSeconds))
 
             VStack(alignment: .leading, spacing: 1) {
                 Text(model.eyebrowLine)
