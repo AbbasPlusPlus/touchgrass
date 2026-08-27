@@ -87,7 +87,7 @@ public struct Settings: Codable, Equatable, Sendable {
     public var soundOnBreakStart: Bool = true
     public var soundOnBreakEnd: Bool = true
     public var soundOnPreBreak: Bool = false
-    public var soundStyle: SoundStyle = .bell
+    public var soundStyle: SoundStyle = .marimba
     public var volume: Double = 0.6   // 0...1
 
     // MARK: General
