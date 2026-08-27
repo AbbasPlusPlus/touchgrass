@@ -183,12 +183,12 @@ public struct BreakView: View {
     // MARK: - Controls
 
     private var controls: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            // Lock on the left, Skip on the right, anchored to an invisible fixed rail: the row
-            // hugs its content (no width is proposed to it, so nothing stretches) while the
-            // anchor keeps both targets still as the snooze segments grow rightward out of Skip.
+        VStack(alignment: .center, spacing: 12) {
+            // The rail is sized to the collapsed row and centred, so Lock + Skip read as a
+            // centred group; its contents stay leading-anchored, so when the snooze segments
+            // grow rightward out of Skip they overflow the rail without moving either target.
             ZStack(alignment: .bottomLeading) {
-                Color.clear.frame(width: 400, height: 1)
+                Color.clear.frame(width: 296, height: 1)
                 HStack(alignment: .bottom, spacing: 12) {
                     pill("lock", "Lock Screen") { model.onLockScreen() }
                     // Option D: one capsule. Hovering Skip splits it into » Skip Break | +1m | +5m
