@@ -32,8 +32,10 @@ bundle: build
 kill:
 	-pkill -x $(APP) 2>/dev/null || true
 
-run: kill bundle
-	open $(APPDIR)
+# run installs to /Applications first — launching from build.noindex would re-register
+# a second copy with Launch Services (the "several versions installed" bug).
+run: kill install
+	open /Applications/$(APP).app
 
 test:
 	$(SWIFT) test

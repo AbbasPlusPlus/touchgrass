@@ -21,6 +21,7 @@ public final class BreakOverlayController {
 
     private var screenObserver: NSObjectProtocol?
     private var rebuildWork: DispatchWorkItem?
+    private var pinToken: SpacePinning.Token?
 
     private let fadeInDuration: Double = 0.8
     private let fadeOutDuration: Double = 0.5
@@ -60,11 +61,20 @@ public final class BreakOverlayController {
         for panel in panels.values {
             OverlayMotion.fade(panel, to: 1, duration: fadeInDuration)
         }
+        repin()
+    }
+
+    /// Space swipes slide even all-Spaces windows; pinning holds the break screen truly still.
+    /// No-ops (nil token) when the SkyLight symbols are unavailable.
+    private func repin() {
+        if let token = pinToken { SpacePinning.unpin(token) }
+        pinToken = SpacePinning.pin(Array(panels.values))
     }
 
     public func hide(completion: (() -> Void)? = nil) {
         guard isShowing else { completion?(); return }
         isShowing = false
+        if let token = pinToken { SpacePinning.unpin(token); pinToken = nil }
         model.endBreak()
         rebuildWork?.cancel()
         rebuildWork = nil
@@ -159,5 +169,6 @@ public final class BreakOverlayController {
                 OverlayMotion.fade(panel, to: 1, duration: 0.35)
             }
         }
+        repin()
     }
 }
