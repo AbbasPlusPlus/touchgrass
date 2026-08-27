@@ -9,6 +9,8 @@ let package = Package(
         .target(name: "TGCore"),
         // System signal detectors (camera/mic/video/fullscreen/idle/typing) -> PauseReason / ActivityHint.
         .target(name: "TGDetection", dependencies: ["TGCore"]),
+        // Bundled fonts (Fraunces, OFL) + registrar.
+        .target(name: "TGAssets", resources: [.process("Resources")]),
         // Sounds.
         .target(name: "TGAudio", dependencies: ["TGCore"], resources: [.process("Resources")]),
         // Break overlay, pre-break card, cursor pill, wellness nudges.
@@ -20,13 +22,13 @@ let package = Package(
         // App entry + wiring.
         .executableTarget(
             name: "TouchGrass",
-            dependencies: ["TGCore", "TGDetection", "TGAudio", "TGOverlay", "TGMenuBar", "TGUpdate"]
+            dependencies: ["TGCore", "TGDetection", "TGAudio", "TGOverlay", "TGMenuBar", "TGUpdate", "TGAssets"]
         ),
         // Dev-only executables (not bundled into the app).
         .executableTarget(name: "tg-sound-demo", dependencies: ["TGCore", "TGAudio"]),
         .executableTarget(name: "tg-probe", dependencies: ["TGCore", "TGDetection"]),
-        .executableTarget(name: "tg-menubar-demo", dependencies: ["TGCore", "TGMenuBar"]),
-        .executableTarget(name: "tg-overlay-demo", dependencies: ["TGCore", "TGOverlay"]),
+        .executableTarget(name: "tg-menubar-demo", dependencies: ["TGCore", "TGMenuBar", "TGAssets"]),
+        .executableTarget(name: "tg-overlay-demo", dependencies: ["TGCore", "TGOverlay", "TGAssets"]),
         .testTarget(name: "TGCoreTests", dependencies: ["TGCore"]),
         .testTarget(name: "TGDetectionTests", dependencies: ["TGCore", "TGDetection"]),
         .testTarget(name: "TGUpdateTests", dependencies: ["TGUpdate"]),

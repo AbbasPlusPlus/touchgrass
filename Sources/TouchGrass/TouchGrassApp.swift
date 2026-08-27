@@ -6,6 +6,7 @@ import TGAudio
 import TGOverlay
 import TGMenuBar
 import TGUpdate
+import TGAssets
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -25,6 +26,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var cancellables = Set<AnyCancellable>()
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        TGAssets.registerFonts()
         store = SettingsStore()
         stats = StatsStore(settings: store.settings)
         engine = BreakEngine(settings: store.settings)

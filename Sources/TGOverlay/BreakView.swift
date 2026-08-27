@@ -186,46 +186,34 @@ public struct BreakView: View {
         VStack(alignment: .leading, spacing: 12) {
             GlassEffectContainer(spacing: 10) {
                 HStack(alignment: .bottom, spacing: 12) {
-                    // Snooze deck: collapsed, two quiet capsule slivers peek above Skip — plain
-                    // fills, no glass, no text, so nothing reads through. Hovering the deck turns
-                    // them into real pills.
-                    VStack(alignment: .leading, spacing: snoozesFanned ? 10 : 4) {
+                    // Snooze deck: the real +1/+5 buttons live stacked behind Skip like cards —
+                    // their top edges peek out (labels sit in the hidden zone; the collapsed fill
+                    // is opaque paper so nothing bleeds through the glass in front). Hovering the
+                    // deck fans them out into full pills.
+                    ZStack(alignment: .bottomLeading) {
                         if model.showsSnoozes && !model.canEndEarly {
-                            if snoozesFanned {
-                                pill("zzz", "+ 1 min") { model.onSnooze(60) }
-                                    .frame(width: Self.pillWidth)
-                                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-                                pill("zzz", "+ 5 min") { model.onSnooze(5 * 60) }
-                                    .frame(width: Self.pillWidth)
-                                    .transition(.opacity.combined(with: .move(edge: .bottom)))
-                            } else {
-                                Capsule(style: .continuous)
-                                    .fill(tone.pillBorder.opacity(0.55))
-                                    .frame(width: Self.pillWidth - 28, height: 5)
-                                    .padding(.leading, 14)
-                                Capsule(style: .continuous)
-                                    .fill(tone.pillBorder)
-                                    .frame(width: Self.pillWidth - 14, height: 5)
-                                    .padding(.leading, 7)
-                            }
+                            deckPill("zzz", "+ 1 min", depth: 2) { model.onSnooze(60) }
+                            deckPill("zzz", "+ 5 min", depth: 1) { model.onSnooze(5 * 60) }
                         }
-                        if model.canEndEarly {
-                            pill("checkmark", "End Break", tinted: true) { model.onEndEarly() }
-                                .frame(width: Self.pillWidth)
-                        } else if model.showsSkip {
-                            Button { model.onSkip() } label: {
-                                HStack(spacing: 7) {
-                                    Image(systemName: "chevron.right.2")
-                                    Text("Skip Break")
-                                    Spacer(minLength: 0)
+                        Group {
+                            if model.canEndEarly {
+                                pill("checkmark", "End Break", tinted: true) { model.onEndEarly() }
+                                    .frame(width: Self.pillWidth)
+                            } else if model.showsSkip {
+                                Button { model.onSkip() } label: {
+                                    HStack(spacing: 7) {
+                                        Image(systemName: "chevron.right.2")
+                                        Text("Skip Break")
+                                        Spacer(minLength: 0)
+                                    }
+                                    .frame(width: Self.pillWidth - 38)
                                 }
-                                .frame(width: Self.pillWidth - 38)
+                                .buttonStyle(GlassPillStyle(size: .regular,
+                                                            ringProgress: model.skipEnabled ? nil : skipRing))
+                                .disabled(!model.skipEnabled)
                             }
-                            .buttonStyle(GlassPillStyle(size: .regular,
-                                                        ringProgress: model.skipEnabled ? nil : skipRing,
-                                                        tone: tone))
-                            .disabled(!model.skipEnabled)
                         }
+                        .zIndex(3)
                     }
                     .onHover { hovering in
                         guard model.showsSnoozes, !model.canEndEarly else { return }
@@ -261,6 +249,32 @@ public struct BreakView: View {
     }
 
     private static let pillWidth: CGFloat = 176
+    /// A snooze button in the deck. Collapsed: pushed up so only its rounded top peeks above the
+    /// pill in front, slightly narrower per depth, opaque paper fill (glass would let the front
+    /// pill's content read through), label hidden. Fanned: a normal pill in a vertical stack.
+    private func deckPill(_ symbol: String, _ title: String, depth: Int,
+                          action: @escaping () -> Void) -> some View {
+        let pillHeight: CGFloat = 38
+        let peek: CGFloat = 11
+        let collapsedOffset = -CGFloat(depth) * peek
+        let fannedOffset = -CGFloat(depth) * (pillHeight + 10)
+        return Button(action: action) {
+            HStack(spacing: 7) {
+                Image(systemName: symbol)
+                    .font(.system(size: 12, weight: .semibold))
+                Text(title)
+                Spacer(minLength: 0)
+            }
+            .opacity(snoozesFanned ? 1 : 0)
+        }
+        .buttonStyle(GlassPillStyle(size: .regular, opaquePaper: !snoozesFanned))
+        .frame(width: Self.pillWidth * (snoozesFanned ? 1 : 1 - CGFloat(depth) * 0.05))
+        .offset(y: snoozesFanned ? fannedOffset : collapsedOffset)
+        .zIndex(Double(3 - depth))
+        .allowsHitTesting(snoozesFanned)
+        .accessibilityHidden(!snoozesFanned)
+    }
+
     private func pill(_ symbol: String, _ title: String,
                       tinted: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {

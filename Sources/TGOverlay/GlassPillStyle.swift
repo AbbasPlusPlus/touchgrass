@@ -41,20 +41,25 @@ public struct GlassPillStyle: ButtonStyle {
     /// Which canvas the pill sits on. The small floating surfaces follow the system appearance
     /// (`.paper`); the break screen's gradient and wallpaper backdrops pass `.dark`.
     var tone: BreakTone = .paper
+    /// Collapsed deck cards: opaque paper fill instead of glass, so a pill stacked BEHIND another
+    /// doesn't let the front pill's content read through it.
+    var opaquePaper: Bool = false
 
     public init(size: Size = .regular,
                 tinted: Bool = false,
                 ringProgress: Double? = nil,
-                tone: BreakTone = .paper) {
+                tone: BreakTone = .paper,
+                opaquePaper: Bool = false) {
         self.size = size
         self.tinted = tinted
         self.ringProgress = ringProgress
         self.tone = tone
+        self.opaquePaper = opaquePaper
     }
 
     public func makeBody(configuration: Configuration) -> some View {
         GlassPillBody(configuration: configuration, size: size, tinted: tinted,
-                      ringProgress: ringProgress, tone: tone)
+                      ringProgress: ringProgress, tone: tone, opaquePaper: opaquePaper)
     }
 }
 
@@ -66,6 +71,7 @@ private struct GlassPillBody: View {
     let tinted: Bool
     let ringProgress: Double?
     let tone: BreakTone
+    var opaquePaper: Bool = false
 
     @Environment(\.isEnabled) private var isEnabled
     @State private var hovering = false
@@ -96,7 +102,11 @@ private struct GlassPillBody: View {
 
     @ViewBuilder
     private func chrome<V: View>(_ content: V) -> some View {
-        if tinted {
+        if opaquePaper {
+            content
+                .background(tone.pillFallback, in: Capsule())
+                .overlay(Capsule().strokeBorder(tone.pillBorder, lineWidth: 1))
+        } else if tinted {
             // Prominent: a flat matcha capsule. No glass — the accent has to hold its hue, and
             // tinted glass pulls the whole scene into a separate compositing pass to do it.
             content.background(tone.primaryFill, in: Capsule())

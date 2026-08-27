@@ -15,7 +15,7 @@ enum TGType {
     // MARK: - Scale
 
     /// The one big number: the quick panel countdown.
-    static let hero = Font.system(size: 46, weight: .bold, design: .rounded).monospacedDigit()
+    static let hero = Font.custom("Fraunces", size: 48).weight(.semibold).monospacedDigit()
     /// Onboarding's per-step heading.
     static let display = Font.system(size: 28, weight: .bold, design: .rounded)
     /// The app's own name, on the About page.

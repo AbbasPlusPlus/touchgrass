@@ -15,6 +15,7 @@
 import AppKit
 import TGCore
 import TGMenuBar
+import TGAssets
 
 @MainActor
 final class DemoDelegate: NSObject, NSApplicationDelegate {
@@ -265,7 +266,7 @@ private enum Demo {
     static let delegate = DemoDelegate()
 
     static func run() -> Never {
-        let app = NSApplication.shared
+        let app = { TGAssets.registerFonts(); return NSApplication.shared }()
         app.delegate = delegate
         app.setActivationPolicy(.accessory)
         // Dev harness safety: a forgotten demo process leaves a ghost status item in the menu bar.

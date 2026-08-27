@@ -13,7 +13,7 @@ enum OverlayType {
 
     // MARK: - Base scale
 
-    static let hero = Font.system(size: 46, weight: .bold, design: .rounded).monospacedDigit()
+    static let hero = Font.custom("Fraunces", size: 46).weight(.semibold).monospacedDigit()
     static let title = Font.system(size: 17, weight: .semibold, design: .rounded)
     static let body = Font.system(size: 15, weight: .medium, design: .rounded)
     static let row = Font.system(size: 15, weight: .medium, design: .rounded)
@@ -23,13 +23,13 @@ enum OverlayType {
     // MARK: - Break screen
 
     /// "Relax those eyes" — the largest words in the app.
-    static let breakTitle = Font.system(size: 52, weight: .medium, design: .rounded)
+    static let breakTitle = Font.custom("Fraunces", size: 54).weight(.medium)
     /// The line under it. Regular weight: at 20 pt, medium starts to shout.
     static let breakSubtitle = Font.system(size: 20, weight: .regular, design: .rounded)
     /// The countdown on the screen you were looking at.
-    static let breakCountdown = Font.system(size: 100, weight: .light, design: .rounded).monospacedDigit()
+    static let breakCountdown = Font.custom("Fraunces", size: 96).weight(.light).monospacedDigit()
     /// The dimmed countdown on every other screen.
-    static let quietCountdown = Font.system(size: 68, weight: .light, design: .rounded).monospacedDigit()
+    static let quietCountdown = Font.custom("Fraunces", size: 64).weight(.light).monospacedDigit()
     /// Time of day, top-left of the break screen.
     static let clock = Font.system(size: 15, weight: .medium, design: .rounded).monospacedDigit()
     /// "Press [Esc] twice to skip".
@@ -44,7 +44,7 @@ enum OverlayType {
     /// The all-caps label above the pre-break countdown.
     static let eyebrow = Font.system(size: 11, weight: .semibold, design: .rounded)
     /// The pre-break card's countdown.
-    static let cardCountdown = Font.system(size: 34, weight: .bold, design: .rounded).monospacedDigit()
+    static let cardCountdown = Font.custom("Fraunces", size: 34).weight(.semibold).monospacedDigit()
 
     // MARK: - Small surfaces
 

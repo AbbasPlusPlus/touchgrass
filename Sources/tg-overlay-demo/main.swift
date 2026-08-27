@@ -11,6 +11,7 @@ import AppKit
 import TGCore
 import TGOverlay
 import AppKit
+import TGAssets
 
 
 @MainActor func dumpPanels(after: Double) {
@@ -292,7 +293,7 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
 var retainedDelegate: DemoDelegate?          // NSApplication.delegate is weak
 
 MainActor.assumeIsolated {
-    let app = NSApplication.shared
+    let app = { TGAssets.registerFonts(); return NSApplication.shared }()
     app.setActivationPolicy(.accessory)      // no Dock icon, no activation
     let delegate = DemoDelegate(args: Array(CommandLine.arguments.dropFirst()))
     retainedDelegate = delegate
