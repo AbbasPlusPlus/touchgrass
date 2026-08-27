@@ -136,6 +136,10 @@ extension Array where Element == EngineEvent {
     var wellnessKinds: [WellnessKind] {
         compactMap { if case .wellnessReminder(let k) = $0 { return k }; return nil }
     }
+    var customReminders: [(title: String, symbol: String)] {
+        compactMap { if case .customReminder(let t, let s) = $0 { return (t, s) }; return nil }
+    }
+    var customReminderTitles: [String] { customReminders.map(\.title) }
 }
 
 // MARK: - Common pause reasons

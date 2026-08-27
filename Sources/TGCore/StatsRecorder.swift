@@ -152,7 +152,8 @@ public final class StatsRecorder {
                 day.naturalBreakTime += awayFor
             }
 
-        case .preBreakWarning, .preBreakCountdown, .breakTick, .paused, .resumed, .wellnessReminder:
+        case .preBreakWarning, .preBreakCountdown, .breakTick, .paused, .resumed,
+             .wellnessReminder, .customReminder:
             break
         }
     }

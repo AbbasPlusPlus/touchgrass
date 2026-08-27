@@ -33,6 +33,14 @@ public final class OverlayCoordinator {
         self.engine = engine
         self.settingsStore = settingsStore
 
+        sound.customSoundURL = settingsStore.settings.customSoundURL
+        settingsStore.$settings
+            .map(\.customSoundURL)
+            .removeDuplicates()
+            .receive(on: RunLoop.main)
+            .sink { [weak self] url in self?.sound.customSoundURL = url }
+            .store(in: &cancellables)
+
         wireUserActions()
 
         engine.events
@@ -148,6 +156,13 @@ public final class OverlayCoordinator {
             wellness.show(kind,
                           dimsScreen: settings.wellnessDimsScreen,
                           mainScreenOnly: settings.wellnessMainScreenOnly)
+
+        case .customReminder(let title, let symbol):
+            guard !overlay.isShowing else { break }
+            wellness.showCustom(title: title,
+                                symbol: symbol,
+                                dimsScreen: settings.wellnessDimsScreen,
+                                mainScreenOnly: settings.wellnessMainScreenOnly)
         }
     }
 
@@ -158,10 +173,11 @@ public final class OverlayCoordinator {
 
         switch phase {
         case .waitingForActivityToStop(_, let hint):
+            let symbol = Self.symbol(for: hint)
             if pill.isShowing {
-                pill.update(symbol: "keyboard", text: hint.label)
+                pill.update(symbol: symbol, text: hint.label)
             } else {
-                pill.show(symbol: "keyboard", text: hint.label)
+                pill.show(symbol: symbol, text: hint.label)
             }
 
         case .running, .stopped:
@@ -181,6 +197,14 @@ public final class OverlayCoordinator {
 
     private static func symbol(for kind: BreakKind) -> String {
         kind == .long ? "figure.walk" : "eye"
+    }
+
+    private static func symbol(for hint: ActivityHint) -> String {
+        switch hint {
+        case .typing: return "keyboard"
+        case .dragging: return "hand.draw"
+        case .dictating: return "mic.fill"
+        }
     }
 
     private static func symbol(for reason: PauseReason) -> String {

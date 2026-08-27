@@ -221,8 +221,12 @@ public final class BreakEngine: ObservableObject {
     // MARK: - Break start / finish
 
     /// The break is due right now. Defer for an activity hint if configured, otherwise start it.
+    ///
+    /// Dictation is the exception to `deferWhileTyping`: it rides the microphone, not the keyboard,
+    /// and dropping an overlay mid-sentence loses the sentence. Turning off typing deferral is a
+    /// statement about typing, so `.dictating` always defers.
     func beginDueBreak(now: Date) {
-        if settings.deferWhileTyping, let hint = activityHint {
+        if let hint = activityHint, settings.deferWhileTyping || hint == .dictating {
             waitingForActivity = true
             waitingHint = hint
             hintClearedAt = nil

@@ -110,6 +110,8 @@ public enum EngineEvent: Sendable, Equatable {
     case resumed
     case awayDecision(resetTimer: Bool, awayFor: TimeInterval)     // for the silent toast w/ undo
     case wellnessReminder(WellnessKind)
+    /// A user-defined reminder came due (additive, post-v1). `symbol` is an SF Symbol name.
+    case customReminder(title: String, symbol: String)
 }
 
 public enum WellnessKind: String, Codable, Sendable, Hashable, CaseIterable {

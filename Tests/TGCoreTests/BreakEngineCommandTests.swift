@@ -412,3 +412,37 @@ import Testing
     h.run(50)
     #expect(h.engine.phase == .running(nextBreak: .short, remaining: 50))
 }
+
+// MARK: - Dictation deferral (mic-borne hint, not keyboard-borne)
+
+@Test @MainActor func dictationDefersTheBreakEvenWithTypingDeferralOff() {
+    // "Defer while typing" is a statement about the keyboard. Dictation rides the microphone
+    // (MeetingPolicy → ActivityHint.dictating), and an overlay mid-sentence loses the sentence.
+    var s = Settings.fast()
+    s.deferWhileTyping = false
+    s.typingBufferSeconds = 3
+    let h = Harness(s)
+    h.engine.start()
+    h.engine.updateActivityHint(.dictating)
+    h.run(100)
+    #expect(h.engine.phase == .waitingForActivityToStop(kind: .short, hint: .dictating))
+    #expect(h.events.breakStarts.isEmpty)
+
+    h.engine.updateActivityHint(nil)
+    h.run(2)
+    #expect(h.events.breakStarts.isEmpty)
+    h.run(1)
+    #expect(h.events.breakStarts.count == 1)
+}
+
+@Test @MainActor func dictationDoesNotFreezeFocusTime() {
+    // A hint delays the break; it must never behave like a pause reason.
+    var s = Settings.fast()
+    s.deferWhileTyping = true
+    let h = Harness(s)
+    h.engine.start()
+    h.engine.updateActivityHint(.dictating)
+    h.run(40)
+    #expect(h.engine.phase == .running(nextBreak: .short, remaining: 60))
+    #expect(h.engine.currentSessionFocusTime == 40)
+}

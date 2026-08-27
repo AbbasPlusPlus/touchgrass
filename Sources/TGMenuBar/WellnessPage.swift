@@ -41,6 +41,14 @@ struct WellnessPage: View {
             }
 
             Section {
+                CustomReminderListEditor(reminders: $store.settings.customReminders)
+            } header: {
+                Text("Custom reminders")
+            } footer: {
+                Text("Water, stretch, eye drops — anything you want a two-second tap on the shoulder about. Like blink and posture they run on real time: they keep counting through meetings and hold only while a break is on screen.")
+            }
+
+            Section {
                 Toggle("Dim the screen behind reminders", isOn: $store.settings.wellnessDimsScreen)
                 Toggle("Show on the main display only", isOn: $store.settings.wellnessMainScreenOnly)
                 LabeledContent("Next up", value: nextUpSummary)
@@ -51,6 +59,21 @@ struct WellnessPage: View {
             }
         }
         .formStyle(.grouped)
+        .onAppear { seedExamplesIfNeeded() }
+    }
+
+    // MARK: - First-run examples
+
+    /// Three *disabled* examples so an empty section isn't a dead end. Seeded once, ever: deleting
+    /// them is a decision, and a deleted example that comes back is a bug.
+    private static let seedDefaultsKey = "TouchGrass.didSeedCustomReminders"
+
+    private func seedExamplesIfNeeded() {
+        let defaults = UserDefaults.standard
+        guard !defaults.bool(forKey: Self.seedDefaultsKey) else { return }
+        defaults.set(true, forKey: Self.seedDefaultsKey)
+        guard store.settings.customReminders.isEmpty else { return }
+        store.settings.customReminders = ReminderSymbols.examples()
     }
 
     private var nextUpSummary: String {
@@ -60,6 +83,10 @@ struct WellnessPage: View {
         }
         if settings.postureRemindersEnabled {
             parts.append("posture every \(TGFormat.compact(settings.postureReminderInterval))")
+        }
+        let custom = settings.customReminders.filter(\.enabled).count
+        if custom > 0 {
+            parts.append("\(custom) custom \(custom == 1 ? "reminder" : "reminders")")
         }
         return parts.isEmpty ? "Nothing scheduled" : parts.joined(separator: ", ")
     }
