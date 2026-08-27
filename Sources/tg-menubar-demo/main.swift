@@ -40,6 +40,12 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
             url: directory.appendingPathComponent("stats-demo.json")
         )
         DemoStats.seed(into: stats)
+
+        // TG_DEMO_WELLNESS=<seconds> fakes a pending blink nudge so the panel's wellness fact
+        // can be reviewed; the demo doesn't run a real WellnessScheduler.
+        let wellnessSeconds = Double(ProcessInfo.processInfo.environment["TG_DEMO_WELLNESS"] ?? "")
+        if wellnessSeconds != nil { store.settings.blinkRemindersEnabled = true }
+
         engine = BreakEngine(settings: store.settings)
         statusBar = StatusBarController(
             engine: engine,
@@ -48,7 +54,8 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
             previewSound: { style, event in
                 NSLog("[demo] preview sound: %@ / %@", style.rawValue, event)
             },
-            onQuit: { NSApp.terminate(nil) }
+            onQuit: { NSApp.terminate(nil) },
+            wellnessCountdown: { wellnessSeconds }
         )
 
         // Wall-clock ticks, like the real app: the engine reads `Date`, the timer only tells
@@ -57,6 +64,7 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
         ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
             MainActor.assumeIsolated { self.engine.tick() }
         }
+        applyDemoState(ProcessInfo.processInfo.environment["TG_DEMO_STATE"])
 
         let surface = CommandLine.arguments.dropFirst().first
         open(surface)
@@ -73,6 +81,25 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
         case "light": NSApp.appearance = NSAppearance(named: .aqua)
         case "dark":  NSApp.appearance = NSAppearance(named: .darkAqua)
         default:      break
+        }
+    }
+
+    // MARK: - States
+
+    /// `TG_DEMO_STATE=meeting|paused|break|stopped` puts the engine into a state the demo would
+    /// otherwise take twenty minutes to reach, so every face of the quick panel can be reviewed.
+    private func applyDemoState(_ state: String?) {
+        switch state {
+        case "meeting":
+            engine.updatePauseReasons([.meeting(appName: "Zoom", bundleID: "us.zoom.xos")])
+        case "paused":
+            engine.pauseManually(for: nil)
+        case "break":
+            engine.startBreakNow(.short)
+        case "stopped":
+            engine.stop()
+        default:
+            break
         }
     }
 

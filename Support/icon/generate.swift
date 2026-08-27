@@ -2,19 +2,29 @@
 //
 // Run:  $(brew --prefix swift)/bin/swift Support/icon/generate.swift
 //
-// Draws the approved mark (Support/logo/touchgrass-mark.svg — five flat blades clipped to a
-// disc) on a paper squircle, emits Support/icon/AppIcon-1024.png, builds
+// Draws the approved mark on a paper squircle, emits Support/icon/AppIcon-1024.png, builds
 // Support/icon/AppIcon.iconset at every standard size, and runs `iconutil` to produce
 // Support/AppIcon.icns.
 //
-// The path data below is the SVG's, verbatim, in its 512×512 viewBox. `TGMenuBar` and
-// `TGOverlay` each carry a copy (`LogoMarkGeometry`) because a standalone script can't import
-// them. If one changes, change all three.
+// The mark is read straight out of Support/logo/touchgrass-mark.svg at run time, so the icon
+// can never drift from the file. `SVGPathParser` below is a verbatim copy of the one in
+// TGMenuBar / TGOverlay (a standalone script can't import them) — if one changes, change all.
 
 import Foundation
 import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
+
+// MARK: - Locations
+
+let fm = FileManager.default
+let scriptURL = URL(fileURLWithPath: CommandLine.arguments[0],
+                    relativeTo: URL(fileURLWithPath: fm.currentDirectoryPath)).standardizedFileURL
+let iconDir = scriptURL.deletingLastPathComponent()               // Support/icon
+let supportDir = iconDir.deletingLastPathComponent()              // Support
+let iconsetDir = iconDir.appendingPathComponent("AppIcon.iconset")
+let icnsURL = supportDir.appendingPathComponent("AppIcon.icns")
+let svgURL = supportDir.appendingPathComponent("logo/touchgrass-mark.svg")
 
 // MARK: - Colour helpers
 
@@ -68,105 +78,301 @@ func squirclePath(in rect: CGRect, cornerRadius r: CGFloat, exponent n: CGFloat 
     return path
 }
 
-// MARK: - The mark
+// MARK: - SVG path data
 
-enum Mark {
-    static let viewBox: CGFloat = 512
-    static let discCentre = CGPoint(x: 262, y: 268)
-    static let discRadius: CGFloat = 192
+/// Turns an SVG path's `d` attribute into a `CGPath`, in the SVG's own coordinate space
+/// (y down, origin top-left). Mapping into a destination rect is `LogoMarkGeometry`'s job.
+///
+/// Covers everything the designer's export uses and a little more: `M m L l H h V v C c
+/// S s Q q T t Z z`, repeated implicit commands, and the shorthand number soup real
+/// exporters emit (`.5.5` is two numbers, `1-2` is two numbers, exponents are numbers).
+/// Elliptical arcs (`A a`) are *not* supported — `parse` returns nil rather than quietly
+/// dropping them, so a future SVG that uses them fails loudly at generation time.
+///
+/// Verbatim copies live in `TGMenuBar` and `TGOverlay` (a standalone script can't import
+/// them). If one changes, change all three.
+enum SVGPathParser {
 
-    enum Command {
-        case move(CGFloat, CGFloat)
-        case line(CGFloat, CGFloat)
-        case curve(CGFloat, CGFloat, CGFloat, CGFloat, CGFloat, CGFloat)
-    }
+    // MARK: - Public
 
-    struct Blade {
-        let hex: UInt32
-        /// The two thin slits, which turn to mush below ~26 px.
-        let isSliver: Bool
-        let commands: [Command]
-    }
-
-    static let blades: [Blade] = [
-        // 1 · big light crescent along the left rim
-        Blade(hex: 0xA6C84D, isSliver: false, commands: [
-            .move(348, 82),
-            .curve(220, 96, 72, 180, 72, 300),
-            .curve(72, 400, 180, 462, 285, 462),
-            .curve(205, 428, 163, 345, 180, 258),
-            .curve(197, 170, 270, 112, 348, 82),
-        ]),
-        // 2 · second blade, fat, base flows to bottom
-        Blade(hex: 0x78AF43, isSliver: false, commands: [
-            .move(408, 150),
-            .curve(320, 180, 238, 252, 213, 342),
-            .curve(202, 400, 210, 442, 228, 462),
-            .line(372, 462),
-            .curve(320, 380, 330, 268, 408, 150),
-        ]),
-        // 3 · third blade, overlapping blade 2's base
-        Blade(hex: 0x4F8D3C, isSliver: true, commands: [
-            .move(452, 226),
-            .curve(368, 252, 296, 314, 268, 384),
-            .curve(254, 424, 258, 452, 272, 462),
-            .line(400, 462),
-            .curve(370, 390, 392, 302, 452, 226),
-        ]),
-        // 4 · dark bottom mass, spanning the whole base
-        Blade(hex: 0x27521F, isSliver: false, commands: [
-            .move(462, 302),
-            .curve(372, 314, 296, 356, 258, 408),
-            .curve(236, 430, 222, 448, 214, 462),
-            .line(470, 462),
-            .line(470, 302),
-            .curve(468, 302, 465, 302, 462, 302),
-        ]),
-        // 5 · light leaf over the dark mass, belly on the rim
-        Blade(hex: 0x93C04C, isSliver: true, commands: [
-            .move(288, 456),
-            .curve(314, 384, 376, 342, 452, 332),
-            .curve(452, 392, 424, 434, 382, 452),
-            .curve(350, 464, 314, 464, 288, 456),
-        ]),
-    ]
-
-    /// Maps the *disc* (not the viewBox) into `rect`, in CoreGraphics' bottom-left origin.
-    /// Returns scale and offsets for `point(x, y) = (dx + x·s, dy + (viewBox − y)·s)`.
-    static func mapping(discIn rect: CGRect) -> (s: CGFloat, dx: CGFloat, dy: CGFloat) {
-        let s = rect.width / (discRadius * 2)
-        let minX = discCentre.x - discRadius
-        let minYFlipped = viewBox - (discCentre.y + discRadius)
-        return (s, rect.minX - minX * s, rect.minY - minYFlipped * s)
-    }
-
-    static func path(_ commands: [Command], discIn rect: CGRect) -> CGPath {
-        let (s, dx, dy) = mapping(discIn: rect)
-        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
-            CGPoint(x: dx + x * s, y: dy + (viewBox - y) * s)
-        }
+    /// - Returns: nil if `d` contains an unsupported command or runs out of arguments.
+    static func parse(_ d: String) -> CGPath? {
+        var scanner = Scanner(d)
         let path = CGMutablePath()
-        for command in commands {
-            switch command {
-            case .move(let x, let y): path.move(to: point(x, y))
-            case .line(let x, let y): path.addLine(to: point(x, y))
-            case .curve(let a, let b, let c, let d, let x, let y):
-                path.addCurve(to: point(x, y), control1: point(a, b), control2: point(c, d))
+
+        var current = CGPoint.zero          // current point
+        var start = CGPoint.zero            // start of the current subpath, for Z
+        var lastCubicControl: CGPoint?      // second control of the previous C/S, for S
+        var lastQuadControl: CGPoint?       // control of the previous Q/T, for T
+        var command: UInt8 = 0
+
+        while true {
+            scanner.skipSeparators()
+            guard let next = scanner.peek() else { break }
+
+            var explicit = false
+            if isCommand(next) {
+                command = next
+                explicit = true
+                scanner.advance()
+            } else if command == 0 {
+                return nil                  // numbers before any command
+            } else if command == UInt8(ascii: "M") || command == UInt8(ascii: "m") {
+                // A repeated moveto's extra coordinate pairs are linetos, per the spec.
+                command = command == UInt8(ascii: "M") ? UInt8(ascii: "L") : UInt8(ascii: "l")
+            }
+
+            let relative = command >= UInt8(ascii: "a")     // lowercase == relative
+            func origin() -> CGPoint { relative ? current : .zero }
+            func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+                CGPoint(x: origin().x + x, y: origin().y + y)
+            }
+
+            switch command | 0x20 {         // lowercase the letter
+            case UInt8(ascii: "z"):
+                // Z takes no arguments, so an "implicit repeat" of it would consume nothing
+                // and spin forever. Malformed input; bail.
+                guard explicit else { return nil }
+                path.closeSubpath()
+                current = start
+                lastCubicControl = nil
+                lastQuadControl = nil
+
+            case UInt8(ascii: "m"):
+                guard let x = scanner.number(), let y = scanner.number() else { return nil }
+                current = point(x, y)
+                start = current
+                path.move(to: current)
+                lastCubicControl = nil
+                lastQuadControl = nil
+
+            case UInt8(ascii: "l"):
+                guard let x = scanner.number(), let y = scanner.number() else { return nil }
+                current = point(x, y)
+                path.addLine(to: current)
+                lastCubicControl = nil
+                lastQuadControl = nil
+
+            case UInt8(ascii: "h"):
+                guard let x = scanner.number() else { return nil }
+                current = CGPoint(x: origin().x + x, y: current.y)
+                path.addLine(to: current)
+                lastCubicControl = nil
+                lastQuadControl = nil
+
+            case UInt8(ascii: "v"):
+                guard let y = scanner.number() else { return nil }
+                current = CGPoint(x: current.x, y: origin().y + y)
+                path.addLine(to: current)
+                lastCubicControl = nil
+                lastQuadControl = nil
+
+            case UInt8(ascii: "c"):
+                guard let x1 = scanner.number(), let y1 = scanner.number(),
+                      let x2 = scanner.number(), let y2 = scanner.number(),
+                      let x = scanner.number(), let y = scanner.number() else { return nil }
+                let c1 = point(x1, y1), c2 = point(x2, y2)
+                current = point(x, y)
+                path.addCurve(to: current, control1: c1, control2: c2)
+                lastCubicControl = c2
+                lastQuadControl = nil
+
+            case UInt8(ascii: "s"):
+                guard let x2 = scanner.number(), let y2 = scanner.number(),
+                      let x = scanner.number(), let y = scanner.number() else { return nil }
+                let c1 = reflect(lastCubicControl, about: current)
+                let c2 = point(x2, y2)
+                current = point(x, y)
+                path.addCurve(to: current, control1: c1, control2: c2)
+                lastCubicControl = c2
+                lastQuadControl = nil
+
+            case UInt8(ascii: "q"):
+                guard let x1 = scanner.number(), let y1 = scanner.number(),
+                      let x = scanner.number(), let y = scanner.number() else { return nil }
+                let c = point(x1, y1)
+                current = point(x, y)
+                path.addQuadCurve(to: current, control: c)
+                lastQuadControl = c
+                lastCubicControl = nil
+
+            case UInt8(ascii: "t"):
+                guard let x = scanner.number(), let y = scanner.number() else { return nil }
+                let c = reflect(lastQuadControl, about: current)
+                current = point(x, y)
+                path.addQuadCurve(to: current, control: c)
+                lastQuadControl = c
+                lastCubicControl = nil
+
+            default:
+                return nil                  // A/a and anything else
             }
         }
-        path.closeSubpath()
-        return path
+
+        return path.isEmpty ? nil : path.copy()
     }
 
-    /// Draws the mark so its disc exactly fills `rect`.
-    static func draw(into ctx: CGContext, discIn rect: CGRect, dropSlivers: Bool) {
+    // MARK: - Helpers
+
+    /// The smooth-curve shorthand's implied control point: the previous one mirrored through
+    /// the current point, or the current point itself when there was no previous curve.
+    private static func reflect(_ control: CGPoint?, about point: CGPoint) -> CGPoint {
+        guard let control else { return point }
+        return CGPoint(x: 2 * point.x - control.x, y: 2 * point.y - control.y)
+    }
+
+    private static func isCommand(_ byte: UInt8) -> Bool {
+        switch byte | 0x20 {
+        case UInt8(ascii: "m"), UInt8(ascii: "l"), UInt8(ascii: "h"), UInt8(ascii: "v"),
+             UInt8(ascii: "c"), UInt8(ascii: "s"), UInt8(ascii: "q"), UInt8(ascii: "t"),
+             UInt8(ascii: "a"), UInt8(ascii: "z"):
+            return true
+        default:
+            return false
+        }
+    }
+
+    // MARK: - Scanner
+
+    /// A byte cursor over the `d` string. SVG path data is ASCII, so bytes are enough.
+    private struct Scanner {
+        private let bytes: [UInt8]
+        private var index = 0
+
+        init(_ string: String) { bytes = Array(string.utf8) }
+
+        func peek() -> UInt8? { index < bytes.count ? bytes[index] : nil }
+
+        mutating func advance() { index += 1 }
+
+        /// Whitespace and commas both separate numbers, in any mixture.
+        mutating func skipSeparators() {
+            while index < bytes.count {
+                switch bytes[index] {
+                case 0x20, 0x09, 0x0A, 0x0D, 0x0C, UInt8(ascii: ","):
+                    index += 1
+                default:
+                    return
+                }
+            }
+        }
+
+        /// One number, with the exporter shorthands: a leading `-`/`+` starts a new number
+        /// without a separator, and a second `.` does too (`.5.5` is 0.5 then 0.5).
+        mutating func number() -> CGFloat? {
+            skipSeparators()
+            let begin = index
+            var sawDigit = false
+            var sawDot = false
+
+            if index < bytes.count, bytes[index] == UInt8(ascii: "-") || bytes[index] == UInt8(ascii: "+") {
+                index += 1
+            }
+            loop: while index < bytes.count {
+                switch bytes[index] {
+                case UInt8(ascii: "0")...UInt8(ascii: "9"):
+                    sawDigit = true
+                    index += 1
+                case UInt8(ascii: "."):
+                    if sawDot { break loop }
+                    sawDot = true
+                    index += 1
+                default:
+                    break loop
+                }
+            }
+            guard sawDigit else {
+                index = begin
+                return nil
+            }
+            // Exponent, only when it is actually followed by digits.
+            if index < bytes.count, bytes[index] | 0x20 == UInt8(ascii: "e") {
+                var lookahead = index + 1
+                if lookahead < bytes.count,
+                   bytes[lookahead] == UInt8(ascii: "-") || bytes[lookahead] == UInt8(ascii: "+") {
+                    lookahead += 1
+                }
+                var digits = lookahead
+                while digits < bytes.count, (UInt8(ascii: "0")...UInt8(ascii: "9")).contains(bytes[digits]) {
+                    digits += 1
+                }
+                if digits > lookahead { index = digits }
+            }
+
+            guard let text = String(bytes: bytes[begin..<index], encoding: .utf8),
+                  let value = Double(text) else { return nil }
+            return CGFloat(value)
+        }
+    }
+}
+
+// MARK: - The mark
+
+/// Reads every `<path>` out of the designer SVG, in document (= paint) order.
+///
+/// The viewBox is deliberately ignored: the icon fits the artwork's own bounds to the tile,
+/// not the box the designer happened to export it in.
+final class MarkSVGReader: NSObject, XMLParserDelegate {
+    var shapes: [(d: String, colour: CGColor)] = []
+
+    func parser(_ parser: XMLParser, didStartElement element: String, namespaceURI: String?,
+                qualifiedName: String?, attributes: [String: String]) {
+        guard element == "path", let d = attributes["d"] else { return }
+        let fill = attributes["fill"] ?? "#000000"
+        guard fill.lowercased() != "none", let colour = hexColour(fill) else { return }
+        shapes.append((d, colour))
+    }
+
+    /// `#rgb` / `#rrggbb`.
+    private func hexColour(_ text: String) -> CGColor? {
+        var digits = text.trimmingCharacters(in: .whitespaces)
+        digits.removeFirst(digits.hasPrefix("#") ? 1 : 0)
+        if digits.count == 3 { digits = digits.map { "\($0)\($0)" }.joined() }
+        guard digits.count == 6, let value = UInt32(digits, radix: 16) else { return nil }
+        return rgb(value)
+    }
+}
+
+enum Mark {
+    struct Shape {
+        let path: CGPath
+        let colour: CGColor
+    }
+
+    static let shapes: [Shape] = {
+        let reader = MarkSVGReader()
+        guard let data = try? Data(contentsOf: svgURL) else {
+            fatalError("could not read \(svgURL.path)")
+        }
+        let parser = XMLParser(data: data)
+        parser.delegate = reader
+        guard parser.parse() else { fatalError("could not parse \(svgURL.lastPathComponent)") }
+
+        let parsed = reader.shapes.map { shape -> Shape in
+            guard let path = SVGPathParser.parse(shape.d) else {
+                fatalError("unsupported path data in \(svgURL.lastPathComponent): \(shape.d)")
+            }
+            return Shape(path: path, colour: shape.colour)
+        }
+        guard !parsed.isEmpty else { fatalError("no filled paths in \(svgURL.lastPathComponent)") }
+        return parsed
+    }()
+
+    /// The artwork's true extent, which is a little smaller than the viewBox.
+    static let bounds: CGRect = shapes.reduce(.null) { $0.union($1.path.boundingBoxOfPath) }
+
+    /// Draws the mark so its artwork exactly fills `rect`, in CoreGraphics' bottom-left origin.
+    static func draw(into ctx: CGContext, in rect: CGRect) {
+        let scale = min(rect.width, rect.height) / max(bounds.width, bounds.height)
+        var matrix = CGAffineTransform(a: scale, b: 0, c: 0, d: -scale,
+                                       tx: rect.midX - bounds.midX * scale,
+                                       ty: rect.midY + bounds.midY * scale)
         ctx.saveGState()
-        ctx.addEllipse(in: rect)
-        ctx.clip()
-        for blade in blades {
-            let hex = (dropSlivers && blade.isSliver) ? 0x27521F : blade.hex
-            ctx.addPath(path(blade.commands, discIn: rect))
-            ctx.setFillColor(rgb(UInt32(hex)))
+        ctx.setShouldAntialias(true)
+        for shape in shapes {
+            guard let path = shape.path.copy(using: &matrix) else { continue }
+            ctx.addPath(path)
+            ctx.setFillColor(shape.colour)
             ctx.fillPath()
         }
         ctx.restoreGState()
@@ -213,11 +419,16 @@ func drawIcon(into ctx: CGContext, size S: CGFloat) {
     ctx.restoreGState()
 
     // ---- The mark ---------------------------------------------------------
-    // 12 % margin on each side leaves the disc 76 % of the body. Below 64 px there is no room
-    // to spend an eighth of the tile on air, so the margin halves and the mark fills it.
-    let margin = body.width * (S >= 64 ? 0.12 : 0.06)
-    let disc = CGRect(x: body.minX + margin, y: body.minY + margin,
-                      width: body.width - margin * 2, height: body.height - margin * 2)
+    // 12 % margin on each side leaves the mark 76 % of the body. Below 64 px it grows a little
+    // to buy back some pixels — but not to 6 %, which puts the blade tips into the squircle's
+    // corners and leaves the tile reading as a green square instead of a disc of grass.
+    //
+    // Every one of the 46 paths is drawn at every size. Rendering 16 px and 32 px against a
+    // version with the 33 hairline seam-fillers dropped differs by at most 2/255 on 16 of the
+    // 16 px tile's subpixels, so there is nothing to gain by simplifying.
+    let margin = body.width * (S >= 64 ? 0.12 : 0.10)
+    let markRect = CGRect(x: body.minX + margin, y: body.minY + margin,
+                          width: body.width - margin * 2, height: body.height - margin * 2)
 
     ctx.saveGState()
     ctx.addPath(shape)
@@ -228,8 +439,7 @@ func drawIcon(into ctx: CGContext, size S: CGFloat) {
                       color: rgb(0x3A3A22, 0.22))
         ctx.beginTransparencyLayer(auxiliaryInfo: nil)
     }
-    // Below ~26 px of *disc* the two thin slits are sub-pixel and only dirty the silhouette.
-    Mark.draw(into: ctx, discIn: disc, dropSlivers: disc.width < 26)
+    Mark.draw(into: ctx, in: markRect)
     if S >= 64 { ctx.endTransparencyLayer() }
     ctx.restoreGState()
 
@@ -299,14 +509,6 @@ func writePNG(_ image: CGImage, to url: URL) {
     CGImageDestinationAddImage(dest, image, nil)
     guard CGImageDestinationFinalize(dest) else { fatalError("could not write \(url.path)") }
 }
-
-let fm = FileManager.default
-let scriptURL = URL(fileURLWithPath: CommandLine.arguments[0],
-                    relativeTo: URL(fileURLWithPath: fm.currentDirectoryPath)).standardizedFileURL
-let iconDir = scriptURL.deletingLastPathComponent()               // Support/icon
-let supportDir = iconDir.deletingLastPathComponent()              // Support
-let iconsetDir = iconDir.appendingPathComponent("AppIcon.iconset")
-let icnsURL = supportDir.appendingPathComponent("AppIcon.icns")
 
 // Every size is drawn natively rather than downscaled, so the mark stays crisp at 16 px.
 let master = render(size: 1024)

@@ -4,10 +4,13 @@ import SwiftUI
 
 /// A compact capsule button in two tiers, both hugging their label so the row can be centred.
 ///
-/// `.primary` is the one thing the panel wants you to do ("Start break" / "Resume"): a matcha
-/// fill with paper type, the only saturated thing on the panel. `.quiet` is for the delay pills
-/// beside it — translucent paper with a stone hairline, so they read as chrome rather than as
+/// `.primary` is the one thing the panel wants you to do ("Break now" / "Resume"): a matcha
+/// fill with paper type, the only saturated thing on the panel. `.quiet` is for the pills
+/// under it — translucent paper with a stone hairline, so they read as chrome rather than as
 /// three more decisions.
+///
+/// `fullWidth` swaps the hug for a stretch: the Now tab stacks its pills in a fixed-width
+/// column, where three capsules of three different widths would read as debris.
 struct PillButtonStyle: ButtonStyle {
 
     enum Tier {
@@ -16,6 +19,8 @@ struct PillButtonStyle: ButtonStyle {
     }
 
     var tier: Tier = .quiet
+    /// Fill the width offered instead of hugging the label.
+    var fullWidth: Bool = false
 
     @Environment(\.isEnabled) private var isEnabled
     @State private var isHovered = false
@@ -24,7 +29,9 @@ struct PillButtonStyle: ButtonStyle {
         configuration.label
             .font(tier == .primary ? TGType.pill : TGType.pillQuiet)
             .lineLimit(1)
-            .fixedSize()
+            .minimumScaleFactor(fullWidth ? 0.82 : 1)
+            .fixedSize(horizontal: !fullWidth, vertical: true)
+            .frame(maxWidth: fullWidth ? .infinity : nil)
             .padding(.vertical, 8)
             .padding(.horizontal, tier == .primary ? 15 : 12)
             .foregroundStyle(tier == .primary ? TGPalette.onMatcha : TGPalette.ink)

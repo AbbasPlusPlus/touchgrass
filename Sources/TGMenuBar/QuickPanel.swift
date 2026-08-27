@@ -24,6 +24,9 @@ public final class QuickPanel {
     private let settingsStore: SettingsStore
     private let statsStore: StatsStore?
     private let actions: MenuBarActions
+    /// Seconds to the next wellness nudge, asked for at render time. The scheduler lives in the
+    /// app, so this is a closure rather than an observed object.
+    private let wellnessCountdown: () -> TimeInterval?
 
     private let model = QuickPanelModel()
     private var window: QuickPanelWindow?
@@ -37,12 +40,14 @@ public final class QuickPanel {
         engine: BreakEngine,
         settingsStore: SettingsStore,
         statsStore: StatsStore? = nil,
-        actions: MenuBarActions
+        actions: MenuBarActions,
+        wellnessCountdown: @escaping () -> TimeInterval? = { nil }
     ) {
         self.engine = engine
         self.settingsStore = settingsStore
         self.statsStore = statsStore
         self.actions = actions
+        self.wellnessCountdown = wellnessCountdown
     }
 
     // MARK: - Presentation
@@ -130,6 +135,7 @@ public final class QuickPanel {
             stats: statsStore,
             model: model,
             actions: actions,
+            wellnessCountdown: wellnessCountdown,
             dismiss: { [weak self] in self?.close() },
             requestResize: { [weak self] in self?.requestResize() }
         )

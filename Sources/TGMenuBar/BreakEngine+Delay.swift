@@ -21,8 +21,9 @@ extension BreakEngine {
         }
     }
 
-    /// True while either snooze budget still has room. The quick panel hides its delay pills
-    /// when this goes false: running out of snoozes is the point of having a budget.
+    /// True while both snooze budgets still have room. Nothing consults it today — the panel's
+    /// "+5 min" follows `canDelayNow`, which already folds the budget in for the phases where
+    /// spending it is the only way to delay — but the rule is worth stating in one place.
     var hasSnoozeBudget: Bool {
         snoozesRemainingToday > 0 && snoozesRemainingThisSession > 0
     }

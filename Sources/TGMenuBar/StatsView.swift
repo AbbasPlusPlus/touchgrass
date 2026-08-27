@@ -16,7 +16,7 @@ struct StatsView: View {
 
     var body: some View {
         VStack(spacing: 10) {
-            chip
+            eyebrow
             statGauge(stat: day.stats, hasData: day.hasData)
                 .padding(.top, 4)
                 .padding(.bottom, 2)
@@ -27,14 +27,15 @@ struct StatsView: View {
         .padding(.top, 12)
     }
 
-    private var chip: some View {
-        Text("Today's stats")
-            .font(.system(size: 12, weight: .medium, design: .rounded))
+    /// The same uppercase label the Now tab opens with, so switching tabs doesn't switch
+    /// typographic languages. Left-aligned for the same reason.
+    private var eyebrow: some View {
+        Text("TODAY \u{B7} stats")
+            .font(TGType.eyebrow)
+            .tracking(TGType.eyebrowTracking)
             .foregroundStyle(TGPalette.ink2)
-            .padding(.vertical, 5)
-            .padding(.horizontal, 16)
-            .background(Capsule(style: .continuous).fill(TGPalette.paper2.opacity(0.45)))
-            .overlay(Capsule(style: .continuous).strokeBorder(TGPalette.stone.opacity(0.8), lineWidth: 1))
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, 4)
             .accessibilityAddTraits(.isHeader)
     }
 }

@@ -20,8 +20,8 @@ public final class StatusBarController: NSObject {
     private let previewSound: (SoundStyle, String) -> Void
     private let onQuit: () -> Void
     private let onStartStop: (() -> Void)?
-    /// Wired by the app. The Now panel no longer carries a wellness row ('s doesn't
-    /// either); this is kept so the wiring survives for the Stats surface.
+    /// Wired by the app. Feeds the Now tab's "Wellness / Blink in 4 min" fact, which only
+    /// appears when the user actually asked for nudges.
     private let wellnessCountdown: () -> TimeInterval?
 
     // MARK: - Owned objects
@@ -130,7 +130,8 @@ public final class StatusBarController: NSObject {
             engine: engine,
             settingsStore: settingsStore,
             statsStore: statsStore,
-            actions: makeActions()
+            actions: makeActions(),
+            wellnessCountdown: { [weak self] in self?.wellnessCountdown() ?? nil }
         )
     }
 

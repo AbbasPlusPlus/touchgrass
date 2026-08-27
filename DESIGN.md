@@ -46,9 +46,17 @@ Implement as a `TGPalette` (TGMenuBar) / `OverlayPalette` (TGOverlay) with dynam
 - Esc keycap hint unchanged.
 
 ## Quick panel
-- Glass tinted paper. Big countdown in ink (dark: bone), caption ink2.
-- Primary pill = matcha fill with paper text; quiet pills = paper-glass with stone border.
-- Row icons: emojis (🌱 focus, 🍃 upcoming, 💧/🧘 wellness). Rows on paper2 at 55% with stone hairline.
+Now tab = **the ledger** (option B of `Support/design/panel-layouts.html`, approved 2026-08-27).
+Everything left-aligned off one margin, no centred stack:
+- Eyebrow (12 pt, heavy, .14em tracking, ink2): `NEXT BREAK · SHORT · 30 SEC` / `PAUSED · MEETING`
+  / `ON BREAK` / `STOPPED`. The Stats tab reuses it (`TODAY · stats`).
+- The time in Fraunces 64 (`TGType.ledgerTime`) in ink; when there's nothing to count down, the
+  reason in synthesised Fraunces italic 28 (`ledgerReason`) instead.
+- Stone hairline, then facts on the left (label 13.5 ink2 over value 15 semibold ink — Focused /
+  Today / Wellness) and a vertical pill column on the right behind a 1 px stone divider.
+- Glass tinted paper. Primary pill = matcha fill with paper text; quiet pills = paper-glass with
+  stone border, stretched to the column width. Only one delay (`+5 min`) and `Skip ›` — +1/+15
+  and pausing live in the right-click menu.
 - Stats tab: gauge gradient becomes matcha→pollen (#D8B45E), stat number ink; calendar cells same.
 - Menu chip: 🌿 + minutes (unchanged behavior).
 
@@ -70,5 +78,6 @@ Every clickable surface gets a hover state: pills brighten (existing pattern), r
 at 40%, icon buttons get a circular paper wash, tiles lift 1pt shadow. 120ms easeOut.
 
 ## Emojis
-Personality: menu chip 🌿, panel rows 🌱🍃, wellness nudges (💧 water, 🧘 posture, 👁️ blink uses the
+Personality: menu chip 🌿 (the ledger's facts column carries no emoji — it's a set page),
+wellness nudges (💧 water, 🧘 posture, 👁️ blink uses the
 drawn eye animation still), toasts keep SF Symbols. Settings sidebar stays SF Symbols.
