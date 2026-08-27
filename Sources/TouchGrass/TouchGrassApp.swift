@@ -27,16 +27,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         monitor = ActivityMonitor(settings: store.settings)
         sounds = SoundPlayer()
         overlay = OverlayCoordinator(engine: engine, settingsStore: store)
-        statusBar = StatusBarController(engine: engine, settingsStore: store)
+        statusBar = StatusBarController(
+            engine: engine,
+            settingsStore: store,
+            previewSound: { [weak self] style, eventName in
+                guard let self else { return }
+                let event = SoundEvent(rawValue: eventName) ?? .breakStart
+                self.sounds.preview(style, event: event)
+            },
+            wellnessCountdown: { [weak self] in
+                guard let w = self?.wellness else { return nil }
+                return [w.nextBlinkIn, w.nextPostureIn].compactMap { $0 }.min()
+            }
+        )
 
         wireSettings()
         wireDetection()
         wireWellness()
         startTicking()
 
+        sounds.preloadAll()
         monitor.start()
         engine.start()
         wellness.start()
+        statusBar.showOnboardingIfNeeded()
     }
 
     func applicationWillTerminate(_ notification: Notification) {

@@ -148,12 +148,25 @@ public final class SettingsStore: ObservableObject {
             .appendingPathComponent("TouchGrass", isDirectory: true)
         try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
         self.url = url ?? dir.appendingPathComponent("settings.json")
-        if let data = try? Data(contentsOf: self.url),
-           let s = try? JSONDecoder().decode(Settings.self, from: data) {
-            settings = s
-        } else {
-            settings = Settings()
+        settings = Self.load(from: self.url)
+    }
+
+    /// Lenient load: overlay whatever keys the file has onto the defaults, so adding a field to
+    /// `Settings` never wipes a user's existing settings.json (synthesized Decodable would fail).
+    static func load(from url: URL) -> Settings {
+        guard let data = try? Data(contentsOf: url) else { return Settings() }
+        if let s = try? JSONDecoder().decode(Settings.self, from: data) { return s }
+        guard let defaultsData = try? JSONEncoder().encode(Settings()),
+              var merged = try? JSONSerialization.jsonObject(with: defaultsData) as? [String: Any],
+              let stored = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else {
+            return Settings()
         }
+        for (k, v) in stored { merged[k] = v }
+        guard let mergedData = try? JSONSerialization.data(withJSONObject: merged),
+              let s = try? JSONDecoder().decode(Settings.self, from: mergedData) else {
+            return Settings()
+        }
+        return s
     }
 
     private func save() {
