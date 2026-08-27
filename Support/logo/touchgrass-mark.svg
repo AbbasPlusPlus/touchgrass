@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <clipPath id="disc"><circle cx="262" cy="268" r="192"/></clipPath>
+  </defs>
+  <g clip-path="url(#disc)">
+    <!-- 1 · big light crescent along the left rim -->
+    <path fill="#A6C84D" d="M348 82
+      C 220 96, 72 180, 72 300
+      C 72 400, 180 462, 285 462
+      C 205 428, 163 345, 180 258
+      C 197 170, 270 112, 348 82 Z"/>
+    <!-- 2 · second blade, fat, base flows to bottom -->
+    <path fill="#78AF43" d="M408 150
+      C 320 180, 238 252, 213 342
+      C 202 400, 210 442, 228 462
+      L 372 462
+      C 320 380, 330 268, 408 150 Z"/>
+    <!-- 3 · third blade, overlapping blade 2's base -->
+    <path fill="#4F8D3C" d="M452 226
+      C 368 252, 296 314, 268 384
+      C 254 424, 258 452, 272 462
+      L 400 462
+      C 370 390, 392 302, 452 226 Z"/>
+    <!-- 4 · dark bottom mass, spanning the whole base -->
+    <path fill="#27521F" d="M462 302
+      C 372 314, 296 356, 258 408
+      C 236 430, 222 448, 214 462
+      L 470 462 L 470 302
+      C 468 302, 465 302, 462 302 Z"/>
+    <!-- 5 · light leaf over the dark mass, belly on the rim -->
+    <path fill="#93C04C" d="M288 456
+      C 314 384, 376 342, 452 332
+      C 452 392, 424 434, 382 452
+      C 350 464, 314 464, 288 456 Z"/>
+  </g>
+</svg>

@@ -58,8 +58,11 @@ Implement as a `TGPalette` (TGMenuBar) / `OverlayPalette` (TGOverlay) with dynam
   re-drawn with palette gradients. Onboarding hero uses paper + grass strokes, matcha primary button.
 
 ## Icon & sounds
-- App icon: re-cut with the palette (matcha blades on paper-to-matcha dusk field) via
-  Support/icon/generate.swift — keep composition, swap colors.
+- **The logo is `Support/logo/touchgrass-mark.svg`** (user-approved recreation): five flat paths
+  clipped to a disc — light crescent #A6C84D, blade #78AF43, blade #4F8D3C, dark mass #27521F,
+  leaf #93C04C. App icon: re-cut `Support/icon/generate.swift` to draw exactly these paths
+  (translate the SVG path data to CGPath) centered on a paper squircle (light paper #F2EEDE with
+  subtle grain; keep ~12% margin around the disc). The mark is also the About-screen logo.
 - Sounds unchanged for now.
 
 ## Hover audit (part of the re-skin)
