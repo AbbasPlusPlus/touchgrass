@@ -23,6 +23,7 @@ let package = Package(
         // Dev-only executables (not bundled into the app).
         .executableTarget(name: "tg-sound-demo", dependencies: ["TGCore", "TGAudio"]),
         .executableTarget(name: "tg-probe", dependencies: ["TGCore", "TGDetection"]),
+        .executableTarget(name: "tg-menubar-demo", dependencies: ["TGCore", "TGMenuBar"]),
         .testTarget(name: "TGCoreTests", dependencies: ["TGCore"]),
         .testTarget(name: "TGDetectionTests", dependencies: ["TGCore", "TGDetection"]),
     ],
