@@ -184,7 +184,10 @@ public struct BreakView: View {
 
     private var controls: some View {
         VStack(alignment: .leading, spacing: 12) {
+            // Lock on the left, Skip on the right; the row is a fixed-width, leading-aligned box
+            // so the snooze segments grow rightward out of Skip without moving either target.
             HStack(alignment: .bottom, spacing: 12) {
+                    pill("lock", "Lock Screen") { model.onLockScreen() }
                     // Option D: one capsule. Hovering Skip splits it into » Skip Break | +1m | +5m
                     // segments — a single object stretching, nothing popping in from nowhere.
                     // Hardcore has no Skip, so the base segment becomes the zzz glyph instead.
@@ -193,8 +196,8 @@ public struct BreakView: View {
                     } else if model.showsSkip || model.showsSnoozes {
                         splitCapsule
                     }
-                    pill("lock", "Lock Screen") { model.onLockScreen() }
                 }
+            .frame(width: 400, alignment: .leading)
 
             if let action = model.escHintAction {
                 HStack(spacing: 5) {
