@@ -24,6 +24,7 @@ public struct BreakView: View {
 
     @State private var appeared = false
     @State private var skipRing: Double = 0
+    @State private var snoozesFanned = false
 
     public init(model: BreakViewModel, role: Role, wallpaperURL: URL?, topInset: CGFloat) {
         self.model = model
@@ -160,29 +161,42 @@ public struct BreakView: View {
     // MARK: - Controls
 
     private var controls: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             GlassEffectContainer(spacing: 10) {
-                VStack(alignment: .leading, spacing: 10) {
-                    if model.showsSnoozes {
-                        pill("zzz", "+ 1 min", size: .regular) { model.onSnooze(60) }
-                        pill("zzz", "+ 5 min", size: .regular) { model.onSnooze(5 * 60) }
-                    }
-                    HStack(spacing: 12) {
+                HStack(alignment: .bottom, spacing: 12) {
+                    // -style deck: snooze pills live stacked behind Skip, peeking a few
+                    // points above it, and fan out upward on hover.
+                    VStack(alignment: .leading, spacing: snoozesFanned ? 10 : -pillOverlap) {
+                        if model.showsSnoozes && !model.canEndEarly {
+                            stackedPill("zzz", "+ 1 min", depth: 2) { model.onSnooze(60) }
+                            stackedPill("zzz", "+ 5 min", depth: 1) { model.onSnooze(5 * 60) }
+                        }
                         if model.canEndEarly {
-                            pill("checkmark", "End Break", size: .regular, tinted: true) { model.onEndEarly() }
+                            pill("checkmark", "End Break", tinted: true) { model.onEndEarly() }
+                                .frame(width: Self.pillWidth)
                         } else if model.showsSkip {
                             Button { model.onSkip() } label: {
                                 HStack(spacing: 7) {
                                     Image(systemName: "chevron.right.2")
                                     Text("Skip Break")
+                                    Spacer(minLength: 0)
                                 }
+                                .frame(width: Self.pillWidth - 38)
                             }
                             .buttonStyle(GlassPillStyle(size: .regular,
                                                         ringProgress: model.skipEnabled ? nil : skipRing))
                             .disabled(!model.skipEnabled)
+                            .zIndex(3)
                         }
-                        pill("lock", "Lock Screen", size: .regular) { model.onLockScreen() }
                     }
+                    .onHover { hovering in
+                        guard model.showsSnoozes, !model.canEndEarly else { return }
+                        withAnimation(OverlayMotion.softSpring(response: 0.4, damping: 0.85)) {
+                            snoozesFanned = hovering
+                        }
+                    }
+
+                    pill("lock", "Lock Screen") { model.onLockScreen() }
                 }
             }
 
@@ -201,24 +215,42 @@ public struct BreakView: View {
                 }
                 .font(.system(size: 11.5, weight: .medium, design: .rounded))
                 .foregroundStyle(.white.opacity(0.55))
-                .frame(maxWidth: .infinity)
             }
         }
-        .fixedSize(horizontal: true, vertical: false)
+        .fixedSize()
         .animation(OverlayMotion.ease(0.35), value: model.canEndEarly)
         .animation(OverlayMotion.ease(0.35), value: model.skipEnabled)
     }
 
-    private func pill(_ symbol: String, _ title: String, size: GlassPillStyle.Size,
+    private static let pillWidth: CGFloat = 150
+    /// How much of each stacked snooze pill hides behind the one in front of it when collapsed:
+    /// pill height minus the visible peek.
+    private var pillOverlap: CGFloat { 30 }
+
+    /// A snooze pill in the deck. `depth` 1 sits just behind Skip, 2 behind that. When collapsed,
+    /// rear pills are slightly narrower and dimmer so the deck reads as a stack of cards.
+    private func stackedPill(_ symbol: String, _ title: String, depth: Int,
+                             action: @escaping () -> Void) -> some View {
+        pill(symbol, title, action: action)
+            .frame(width: Self.pillWidth)
+            .scaleEffect(snoozesFanned ? 1 : 1 - CGFloat(depth) * 0.04, anchor: .top)
+            .opacity(snoozesFanned ? 1 : 0.55 - Double(depth) * 0.08)
+            .allowsHitTesting(snoozesFanned)
+            .zIndex(Double(3 - depth))
+            .accessibilityHidden(!snoozesFanned)
+    }
+
+    private func pill(_ symbol: String, _ title: String,
                       tinted: Bool = false, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 7) {
                 Image(systemName: symbol)
                     .font(.system(size: 12, weight: .semibold))
                 Text(title)
+                Spacer(minLength: 0)
             }
         }
-        .buttonStyle(GlassPillStyle(size: size, tinted: tinted))
+        .buttonStyle(GlassPillStyle(size: .regular, tinted: tinted))
     }
 
     /// Balanced enforcement draws a hairline arc closing around the Skip pill over the delay.
