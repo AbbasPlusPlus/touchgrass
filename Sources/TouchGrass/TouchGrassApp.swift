@@ -9,6 +9,8 @@ import TGMenuBar
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var store: SettingsStore!
+    private var stats: StatsStore!
+    private var statsRecorder: StatsRecorder!
     private var engine: BreakEngine!
     private var wellness: WellnessScheduler!
     private var monitor: ActivityMonitor!
@@ -22,7 +24,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         store = SettingsStore()
+        stats = StatsStore(settings: store.settings)
         engine = BreakEngine(settings: store.settings)
+        statsRecorder = StatsRecorder(engine: engine, store: stats)
         wellness = WellnessScheduler(settings: store.settings)
         monitor = ActivityMonitor(settings: store.settings)
         sounds = SoundPlayer()
@@ -30,6 +34,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusBar = StatusBarController(
             engine: engine,
             settingsStore: store,
+            statsStore: stats,
             previewSound: { [weak self] style, eventName in
                 guard let self else { return }
                 let event = SoundEvent(rawValue: eventName) ?? .breakStart
@@ -49,12 +54,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         sounds.preloadAll()
         monitor.start()
         engine.start()
+        statsRecorder.start()
         wellness.start()
         statusBar.showOnboardingIfNeeded()
     }
 
     func applicationWillTerminate(_ notification: Notification) {
         tickTimer?.invalidate()
+        // Closes the open session and writes stats.json now rather than on the save debounce.
+        statsRecorder.stop()
         monitor.stop()
         if let token = activityToken { ProcessInfo.processInfo.endActivity(token) }
     }
@@ -71,6 +79,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.engine.settings = s
                 self.wellness.settings = s
                 self.monitor.settings = s
+                self.stats.settings = s
             }
             .store(in: &cancellables)
     }
@@ -144,6 +153,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             Task { @MainActor [weak self] in
                 guard let self else { return }
                 self.engine.tick()
+                // After the engine, so the phase the recorder banks time against is current.
+                self.statsRecorder.tick()
                 self.wellness.tick(isInBreak: self.engine.phase.isInBreak)
             }
         }

@@ -2,7 +2,8 @@
 import SwiftUI
 import TGCore
 
-/// "Now" at a glance: one number, one obvious action, and two facts underneath.
+/// Two tabs behind one header. "Now" is the glance — one number, one obvious action, two facts.
+/// "Stats" is the look back — today's stats and, behind the calendar button, the month.
 ///
 /// Deliberately sparse. Everything that isn't the countdown — pausing, quitting, the snooze
 /// budget — lives in the right-click menu, so the thing you open twenty times a day stays a
@@ -11,31 +12,41 @@ struct QuickPanelView: View {
 
     @ObservedObject var engine: BreakEngine
     @ObservedObject var store: SettingsStore
+    /// `nil` when the host didn't wire a stats store: the header falls back to the plain "Now"
+    /// chip rather than offering a tab that leads nowhere.
+    let stats: StatsStore?
+    /// Navigation lives in the model, not in `@State`, so the host can open the panel onto a
+    /// given tab and so the choice outlives a close/reopen.
+    @ObservedObject var model: QuickPanelModel
 
     let actions: MenuBarActions
     let dismiss: () -> Void
+    /// The panel grows and shrinks between tabs; the window has to be told to re-measure.
+    var requestResize: () -> Void = {}
 
     /// "+1m / +5m / +15m", in minutes.
     private static let delayOptions = [1, 5, 15]
-    private static let gearWidth: CGFloat = 20
+    private static let sideWidth: CGFloat = 20
 
     var body: some View {
         VStack(spacing: 0) {
             topBar
-            countdown
-                .padding(.top, 16)
-            actionPills
-                .padding(.top, 18)
-            summaryList
-                .padding(.top, 18)
+            switch model.tab {
+            case .now:
+                nowTab
+            case .stats:
+                statsTab
+            }
         }
         .padding(.horizontal, 14)
         .padding(.top, 12)
         .padding(.bottom, 14)
         // Width is fixed; height is whatever the current state needs. `QuickPanel` reads the
-        // fitting size when it shows the window, so the panel never has dead space at the
-        // bottom just because there is nothing to count down.
+        // fitting size when it shows the window — and again whenever the tab changes — so the
+        // panel never has dead space at the bottom just because there is nothing to count down.
         .frame(width: QuickPanel.width, alignment: .top)
+        .onChange(of: model.tab) { _, _ in requestResize() }
+        .onChange(of: model.showingCalendar) { _, _ in requestResize() }
     }
 
     private var presentation: StatusPresentation {
@@ -44,16 +55,26 @@ struct QuickPanelView: View {
 
     // MARK: - Top bar
 
-    /// A single "Now" chip, centred, with the gear tucked into the trailing corner. 
-    /// puts a Now/Stats segmented control here; we have no Stats surface yet, so the chip is
-    /// a label rather than a control that pretends to switch something.
+    /// The Now/Stats control, centred, with the gear in the trailing corner and — on the Stats
+    /// tab — the calendar toggle in the leading one.
     private var topBar: some View {
         HStack(spacing: 0) {
-            // A mirror of the gear's width, so the chip sits optically centred without a
-            // ZStack — which sizes to its largest child and quietly drops the trailing button.
-            Color.clear.frame(width: Self.gearWidth, height: 1)
+            // A fixed leading slot mirrors the gear's width, so the control sits optically
+            // centred without a ZStack — which sizes to its largest child and quietly drops
+            // the trailing button.
+            leadingSlot
+                .frame(width: Self.sideWidth, alignment: .leading)
             Spacer(minLength: 8)
+            tabControl
+            Spacer(minLength: 8)
+            settingsButton
+                .frame(width: Self.sideWidth, alignment: .trailing)
+        }
+    }
 
+    @ViewBuilder
+    private var tabControl: some View {
+        if stats == nil {
             Text("Now")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(.primary)
@@ -61,21 +82,75 @@ struct QuickPanelView: View {
                 .padding(.horizontal, 18)
                 .background(Capsule(style: .continuous).fill(Color.primary.opacity(0.13)))
                 .accessibilityAddTraits(.isHeader)
+        } else {
+            QuickPanelTabControl(tab: $model.tab)
+        }
+    }
 
-            Spacer(minLength: 8)
-            Button {
-                dismiss()
-                actions.openSettings()
-            } label: {
-                Image(systemName: "gearshape.fill")
-                    .font(.system(size: 13.5))
-                    .foregroundStyle(.secondary)
-                    .frame(width: Self.gearWidth, alignment: .trailing)
-                    .contentShape(Rectangle())
+    @ViewBuilder
+    private var leadingSlot: some View {
+        if model.tab == .stats, model.showingCalendar {
+            iconButton(symbol: "arrow.left", label: "Back to today", size: 13) {
+                model.showingCalendar = false
             }
-            .buttonStyle(.plain)
-            .help("Settings…")
-            .accessibilityLabel("Settings")
+        } else if model.tab == .stats {
+            iconButton(symbol: "calendar", label: "Show the month", size: 13) {
+                model.showingCalendar = true
+            }
+        } else {
+            Color.clear.frame(width: Self.sideWidth, height: 1)
+        }
+    }
+
+    private var settingsButton: some View {
+        iconButton(symbol: "gearshape.fill", label: "Settings", size: 13.5, help: "Settings…") {
+            dismiss()
+            actions.openSettings()
+        }
+    }
+
+    private func iconButton(
+        symbol: String,
+        label: String,
+        size: CGFloat,
+        help: String? = nil,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Image(systemName: symbol)
+                .font(.system(size: size))
+                .foregroundStyle(.secondary)
+                .frame(width: Self.sideWidth, height: 18)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .help(help ?? label)
+        .accessibilityLabel(label)
+    }
+
+    // MARK: - Now tab
+
+    private var nowTab: some View {
+        VStack(spacing: 0) {
+            countdown
+                .padding(.top, 16)
+            actionPills
+                .padding(.top, 18)
+            summaryList
+                .padding(.top, 18)
+        }
+    }
+
+    // MARK: - Stats tab
+
+    @ViewBuilder
+    private var statsTab: some View {
+        if let stats {
+            if model.showingCalendar {
+                StatsCalendarView(stats: stats)
+            } else {
+                StatsView(stats: stats, settingsStore: store)
+            }
         }
     }
 
