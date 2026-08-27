@@ -73,6 +73,12 @@ public final class StatusBarController: NSObject {
 
     // MARK: - Public surface
 
+    /// Set by the app once a verified update is staged (the display version, "0.2.0 (3)").
+    /// Adds a "Restart to update" item to the right-click menu; `nil` hides it again.
+    public var updateAvailableVersion: String?
+    /// What that item does. The app points it at the updater's install-and-relaunch.
+    public var onInstallUpdate: (() -> Void)?
+
     /// Shows the settings window, flipping the app to `.regular` for the duration.
     public func showSettings(selecting section: SettingsSection? = nil) {
         let controller = settingsWindow ?? makeSettingsWindow()
@@ -258,6 +264,11 @@ public final class StatusBarController: NSObject {
         menu.addItem(.separator())
         add(to: menu, isStopped ? "Start TouchGrass" : "Stop TouchGrass", #selector(menuStartStop))
 
+        if let version = updateAvailableVersion {
+            menu.addItem(.separator())
+            add(to: menu, "Update available (\(version)) — Restart to update", #selector(menuInstallUpdate))
+        }
+
         menu.addItem(.separator())
         add(to: menu, "About…", #selector(menuAbout))
         add(to: menu, "Settings…", #selector(menuSettings), keyEquivalent: ",")
@@ -403,6 +414,7 @@ public final class StatusBarController: NSObject {
         engine.pauseManually(for: (sender.representedObject as? NSNumber)?.doubleValue)
     }
 
+    @objc private func menuInstallUpdate() { onInstallUpdate?() }
     @objc private func menuAbout() { showSettings(selecting: .about) }
     @objc private func menuSettings() { showSettings() }
     @objc private func menuStartStop() { toggleRunning() }

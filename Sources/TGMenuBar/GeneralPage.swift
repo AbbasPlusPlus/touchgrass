@@ -2,6 +2,7 @@
 import AppKit
 import SwiftUI
 import TGCore
+import TGUpdate
 
 struct GeneralPage: View {
 
@@ -39,6 +40,8 @@ struct GeneralPage: View {
             } footer: {
                 Text(store.settings.menuBarStyle.settingsFootnote)
             }
+
+            UpdatesSection(store: store, updates: UpdateChecker.shared)
 
             Section("Getting started") {
                 LabeledContent("Setup") {

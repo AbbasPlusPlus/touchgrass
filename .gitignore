@@ -8,3 +8,4 @@ DerivedData/
 *.xcworkspace
 Package.resolved.bak
 Support/icon/AppIcon.iconset/
+dist/
