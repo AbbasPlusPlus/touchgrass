@@ -25,6 +25,28 @@ final class PreBreakCardModel: ObservableObject {
 
     var eyebrow: String { kind == .long ? "Long break in" : "Break in" }
 
+    /// Total seconds this countdown started from (for the clock hand's sweep).
+    @Published var totalSeconds: Int = 60
+    /// Length of the upcoming break, for the subtitle. 0 = unknown.
+    @Published var breakDuration: TimeInterval = 0
+
+    /// "Almost time. Short break · 1 min"
+    var subtitle: String {
+        let name = kind == .long ? "Long break" : "Short break"
+        var line = "Almost time. \(name)"
+        if breakDuration > 0 {
+            let secs = Int(breakDuration)
+            line += secs < 60 ? " · \(secs) sec" : " · \(secs / 60) min"
+        }
+        return line
+    }
+
+    /// 0 at the start of the countdown → 1 as the break arrives.
+    var clockProgress: Double {
+        guard totalSeconds > 0 else { return 0 }
+        return 1 - Double(secondsLeft) / Double(totalSeconds)
+    }
+
     static func randomCopy(for kind: BreakKind) -> String {
         let short = [
             "Almost time. Your eyes will appreciate this.",

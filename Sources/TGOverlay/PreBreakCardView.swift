@@ -47,25 +47,23 @@ struct PreBreakCardView: View {
     // MARK: - Header
 
     private var header: some View {
-        HStack(alignment: .center, spacing: 16) {
-            VStack(alignment: .leading, spacing: 0) {
-                Text(model.eyebrow.uppercased())
-                    .font(OverlayType.eyebrow)
-                    .kerning(1.2)
-                    .foregroundStyle(.white.opacity(OverlayType.tertiaryOpacity))
+        HStack(alignment: .center, spacing: 14) {
+            ClockTile(progress: model.clockProgress)
+
+            VStack(alignment: .leading, spacing: 1) {
                 Text(model.countdownText)
                     .font(OverlayType.cardCountdown)
                     .foregroundStyle(.white.opacity(0.96))
+                    .contentTransition(.numericText(countsDown: true))
+                    .animation(OverlayMotion.reduceMotion ? nil : .easeOut(duration: 0.3),
+                               value: model.secondsLeft)
+                Text(model.subtitle)
+                    .font(OverlayType.body)
+                    .foregroundStyle(.white.opacity(OverlayType.secondaryOpacity))
+                    .lineLimit(1)
             }
-            .fixedSize()
-
-            Text(model.copy)
-                .font(OverlayType.body)
-                .foregroundStyle(.white.opacity(OverlayType.secondaryOpacity))
-                .lineSpacing(3)
-                .lineLimit(2)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(.trailing, 18)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.trailing, 18)
         }
     }
 

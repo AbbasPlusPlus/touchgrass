@@ -35,11 +35,14 @@ public final class PreBreakCard {
                      secondsLeft: Int,
                      snoozesRemaining: Int,
                      visibleSeconds: TimeInterval,
-                     compact: Bool = false) {
+                     compact: Bool = false,
+                     breakDuration: TimeInterval = 0) {
         model.kind = kind
         model.secondsLeft = secondsLeft
+        if !isShowing || secondsLeft > model.totalSeconds { model.totalSeconds = max(1, secondsLeft) }
         model.snoozesRemaining = snoozesRemaining
         model.compact = compact
+        if breakDuration > 0 { model.breakDuration = breakDuration }
         if !isShowing { model.copy = PreBreakCardModel.randomCopy(for: kind) }
 
         let panel = existingOrNewPanel()

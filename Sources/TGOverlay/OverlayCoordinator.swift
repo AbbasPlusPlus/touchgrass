@@ -74,7 +74,9 @@ public final class OverlayCoordinator {
             card.show(kind: kind,
                       secondsLeft: Int(startsIn.rounded()),
                       snoozesRemaining: snoozesRemaining,
-                      visibleSeconds: settings.preBreakCardVisibleSeconds)
+                      visibleSeconds: settings.preBreakCardVisibleSeconds,
+                      breakDuration: kind == .long ? settings.longBreakDuration
+                                                   : settings.shortBreakDuration)
             if settings.soundOnPreBreak {
                 sound.play(settings.soundStyle, event: .preBreak, volume: settings.volume)
             }
