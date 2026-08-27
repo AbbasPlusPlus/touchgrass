@@ -20,6 +20,8 @@ let package = Package(
             name: "TouchGrass",
             dependencies: ["TGCore", "TGDetection", "TGAudio", "TGOverlay", "TGMenuBar"]
         ),
+        // Demo harness: shows any overlay surface standalone, without the engine.
+        .executableTarget(name: "tg-overlay-demo", dependencies: ["TGCore", "TGOverlay"]),
         .testTarget(name: "TGCoreTests", dependencies: ["TGCore"]),
     ],
 )
