@@ -100,21 +100,21 @@ struct PreBreakCardView: View {
     // MARK: - Actions
 
     private var actions: some View {
-        GlassEffectContainer(spacing: 10) {
-            HStack(spacing: 8) {
-                Button(action: model.onStart) {
-                    Text("Start break now").lineLimit(1).fixedSize()
-                }
-                .buttonStyle(GlassPillStyle(size: .regular, tinted: true))
-
-                Spacer(minLength: 4)
-
-                if model.snoozesRemaining > 0 {
-                    snooze("+1m", 60)
-                    snooze("+5m", 5 * 60)
-                    snooze("+15m", 15 * 60)
-                }
+        // No GlassEffectContainer: it rasterizes the labels and they render soft (same fix as
+        // the break-screen controls). Primary action lives at the right end of the card.
+        HStack(spacing: 8) {
+            if model.snoozesRemaining > 0 {
+                snooze("+1m", 60)
+                snooze("+5m", 5 * 60)
+                snooze("+15m", 15 * 60)
             }
+
+            Spacer(minLength: 4)
+
+            Button(action: model.onStart) {
+                Text("Start break now").lineLimit(1).fixedSize()
+            }
+            .buttonStyle(GlassPillStyle(size: .regular, tinted: true))
         }
     }
 
