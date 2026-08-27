@@ -27,8 +27,8 @@ struct PostureNudgeView: View {
             .frame(height: 108)
 
             Text("Sit up")
-                .font(.system(size: 17, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.86))
+                .font(OverlayType.nudge)
+                .foregroundStyle(.white.opacity(0.92))
                 .kerning(0.4)
         }
         .frame(width: Self.size.width, height: Self.size.height)

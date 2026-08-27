@@ -17,7 +17,7 @@ struct QuickPanelView: View {
 
     /// "+1m / +5m / +15m", in minutes.
     private static let delayOptions = [1, 5, 15]
-    private static let gearWidth: CGFloat = 20
+    private static let gearWidth: CGFloat = 22
 
     var body: some View {
         VStack(spacing: 0) {
@@ -55,10 +55,10 @@ struct QuickPanelView: View {
             Spacer(minLength: 8)
 
             Text("Now")
-                .font(.system(size: 12, weight: .semibold))
+                .font(TGType.caption)
                 .foregroundStyle(.primary)
-                .padding(.vertical, 4)
-                .padding(.horizontal, 18)
+                .padding(.vertical, 5)
+                .padding(.horizontal, 20)
                 .background(Capsule(style: .continuous).fill(Color.primary.opacity(0.13)))
                 .accessibilityAddTraits(.isHeader)
 
@@ -68,7 +68,7 @@ struct QuickPanelView: View {
                 actions.openSettings()
             } label: {
                 Image(systemName: "gearshape.fill")
-                    .font(.system(size: 13.5))
+                    .font(.system(size: 15))
                     .foregroundStyle(.secondary)
                     .frame(width: Self.gearWidth, alignment: .trailing)
                     .contentShape(Rectangle())
@@ -82,26 +82,25 @@ struct QuickPanelView: View {
     // MARK: - Countdown
 
     private var countdown: some View {
-        VStack(spacing: 5) {
+        VStack(spacing: 6) {
             Image(systemName: presentation.symbol)
-                .font(.system(size: 15, weight: .regular))
+                .font(.system(size: 17, weight: .regular))
                 .foregroundStyle(.secondary)
             Text(presentation.headline)
-                .font(.system(size: 12))
+                .font(TGType.body)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
 
             if presentation.value.isEmpty {
                 Text(presentation.detail)
-                    .font(.system(size: 17, weight: .semibold))
+                    .font(TGType.title)
                     .foregroundStyle(.primary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 3)
             } else {
                 Text(presentation.value)
-                    .font(.system(size: 44, weight: .bold))
-                    .monospacedDigit()
+                    .font(TGType.hero)
                     .foregroundStyle(.primary)
                     .padding(.top, -2)
             }
@@ -166,7 +165,7 @@ struct QuickPanelView: View {
     // MARK: - Summary
 
     private var summaryList: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: 7) {
             QuickPanelRow(
                 symbol: "bolt.fill",
                 tint: .yellow,

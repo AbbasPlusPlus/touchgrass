@@ -31,8 +31,8 @@ struct BlinkNudgeView: View {
             .frame(height: 156)
 
             Text("Blink")
-                .font(.system(size: 17, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.86))
+                .font(OverlayType.nudge)
+                .foregroundStyle(.white.opacity(0.92))
                 .kerning(0.4)
         }
         .frame(width: Self.size.width, height: Self.size.height)

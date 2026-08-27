@@ -13,7 +13,7 @@ struct BackgroundTile: View {
         Button(action: action) {
             VStack(spacing: 4) {
                 content()
-                    .frame(width: 64, height: 40)
+                    .frame(width: 78, height: 48)
                     .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                     .overlay(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
@@ -21,7 +21,7 @@ struct BackgroundTile: View {
                                           lineWidth: isSelected ? 2.5 : 1)
                     )
                 Text(caption)
-                    .font(.system(size: 10))
+                    .font(TGType.footnote)
                     .foregroundStyle(isSelected ? Color.accentColor : .secondary)
                     .lineLimit(1)
             }

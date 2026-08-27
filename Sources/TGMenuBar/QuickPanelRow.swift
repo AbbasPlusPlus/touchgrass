@@ -13,30 +13,32 @@ struct QuickPanelRow: View {
     let value: String
 
     var body: some View {
-        HStack(spacing: 9) {
-            SettingsIcon(symbol: symbol, tint: tint, size: 19)
+        HStack(spacing: 10) {
+            SettingsIcon(symbol: symbol, tint: tint, size: 22)
             Text(title)
-                .font(.system(size: 12.5))
+                .font(TGType.row)
                 .foregroundStyle(.primary)
+                .lineLimit(1)
             Spacer(minLength: 8)
             if let accent {
                 Text(accent)
-                    .font(.system(size: 12.5, weight: .medium))
+                    .font(TGType.rowEmphasis)
                     .foregroundStyle(.primary)
                 Text("·")
-                    .font(.system(size: 12.5))
+                    .font(TGType.row)
                     .foregroundStyle(.secondary)
             }
             Text(value)
-                .font(.system(size: 12.5))
+                .font(TGType.row)
                 .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.tail)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 9)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .frame(minHeight: TGType.rowHeight)
         .background(
-            RoundedRectangle(cornerRadius: 9, style: .continuous)
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
                 .fill(Color.primary.opacity(0.06))
         )
     }

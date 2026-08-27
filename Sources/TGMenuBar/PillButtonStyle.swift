@@ -19,11 +19,11 @@ struct PillButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 12, weight: tier == .primary ? .semibold : .medium))
+            .font(tier == .primary ? TGType.pill : TGType.pillQuiet)
             .lineLimit(1)
             .fixedSize()
-            .padding(.vertical, 6)
-            .padding(.horizontal, tier == .primary ? 13 : 11)
+            .padding(.vertical, 8)
+            .padding(.horizontal, tier == .primary ? 15 : 12)
             .foregroundStyle(Color.primary)
             .background(
                 Capsule(style: .continuous)
@@ -33,7 +33,7 @@ struct PillButtonStyle: ButtonStyle {
                 Capsule(style: .continuous)
                     .strokeBorder(Color.primary.opacity(tier == .primary ? 0 : 0.10), lineWidth: 1)
             )
-            .opacity(isEnabled ? 1 : 0.4)
+            .opacity(isEnabled ? 1 : 0.45)
             .contentShape(Capsule(style: .continuous))
     }
 

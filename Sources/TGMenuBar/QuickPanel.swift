@@ -12,7 +12,8 @@ import TGCore
 public final class QuickPanel {
 
     /// Fixed width; the height comes from the SwiftUI layout, clamped to a sane range.
-    public static let width: CGFloat = 340
+    /// Sized so a 15 pt summary row fits its label and its value without either truncating.
+    public static let width: CGFloat = 376
     private static let heightRange: ClosedRange<CGFloat> = 200...460
 
     private let engine: BreakEngine

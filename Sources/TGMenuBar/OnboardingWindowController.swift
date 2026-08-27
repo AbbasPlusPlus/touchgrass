@@ -18,7 +18,7 @@ import TGCore
 @MainActor
 public final class OnboardingWindowController: NSObject, NSWindowDelegate {
 
-    private static let size = NSSize(width: 560, height: 480)
+    private static let size = NSSize(width: 620, height: 520)
     /// Matches the corner macOS 26 gives a window this size. Being a point or two off is
     /// harmless now that nothing is drawn behind it — there is no square edge left to reveal.
     private static let cornerRadius: CGFloat = 16
@@ -40,12 +40,12 @@ public final class OnboardingWindowController: NSObject, NSWindowDelegate {
             onFinish: { [weak self] in self?.window.close() }
         )
         // An `NSHostingView` rather than an `NSHostingController`: the controller keeps forcing
-        // the window to its fitting size, which fights the fixed 560×480 onboarding layout.
+        // the window to its fitting size, which fights the fixed 620×520 onboarding layout.
         let hosting = NSHostingView(rootView: root)
         hosting.frame = NSRect(origin: .zero, size: Self.size)
         hosting.autoresizingMask = [.width, .height]
         // Stop SwiftUI's intrinsic size from driving the window: the onboarding window is a
-        // fixed 560×480 and the layout should fit itself into that, not the other way round.
+        // fixed 620×520 and the layout should fit itself into that, not the other way round.
         hosting.sizingOptions = []
         // The content view's layer carries the whole window shape — see the note above.
         hosting.wantsLayer = true

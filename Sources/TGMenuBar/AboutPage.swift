@@ -11,12 +11,12 @@ struct AboutPage: View {
                     appIcon
                     VStack(alignment: .leading, spacing: 3) {
                         Text("TouchGrass")
-                            .font(.system(size: 20, weight: .semibold))
+                            .font(TGType.heading)
                         Text(Self.versionLine)
-                            .font(.system(size: 11))
+                            .font(TGType.footnote)
                             .foregroundStyle(.secondary)
                         Text("Breaks that never become the interruption.")
-                            .font(.system(size: 12))
+                            .font(TGType.caption)
                             .foregroundStyle(.secondary)
                     }
                     Spacer(minLength: 0)
@@ -74,7 +74,7 @@ struct AboutPage: View {
         } label: {
             HStack(spacing: 8) {
                 Image(systemName: symbol)
-                    .font(.system(size: 12))
+                    .font(.system(size: 13))
                     .foregroundStyle(.secondary)
                     .frame(width: 16)
                 Text(title)

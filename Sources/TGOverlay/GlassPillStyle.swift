@@ -11,23 +11,23 @@ public struct GlassPillStyle: ButtonStyle {
 
         var font: Font {
             switch self {
-            case .small:     return .system(size: 12, weight: .medium, design: .rounded)
-            case .regular:   return .system(size: 13.5, weight: .medium, design: .rounded)
-            case .prominent: return .system(size: 15, weight: .semibold, design: .rounded)
+            case .small:     return .system(size: 13, weight: .semibold, design: .rounded)
+            case .regular:   return .system(size: 15, weight: .semibold, design: .rounded)
+            case .prominent: return .system(size: 17, weight: .semibold, design: .rounded)
             }
         }
         var hPadding: CGFloat {
             switch self {
-            case .small: return 12
-            case .regular: return 19
-            case .prominent: return 24
+            case .small: return 14
+            case .regular: return 22
+            case .prominent: return 28
             }
         }
         var vPadding: CGFloat {
             switch self {
-            case .small: return 7
-            case .regular: return 10
-            case .prominent: return 11
+            case .small: return 8
+            case .regular: return 12
+            case .prominent: return 13
             }
         }
     }
@@ -63,7 +63,7 @@ private struct GlassPillBody: View {
         let content = configuration.label
             .font(size.font)
             .kerning(0.2)
-            .foregroundStyle(.white.opacity(isEnabled ? 0.94 : 0.42))
+            .foregroundStyle(.white.opacity(isEnabled ? 0.95 : 0.70))
             .padding(.horizontal, size.hPadding)
             .padding(.vertical, size.vPadding)
             .contentShape(Capsule())
@@ -71,7 +71,7 @@ private struct GlassPillBody: View {
         return chrome(content)
             .overlay(hoverWash)
             .overlay(ring)
-            .opacity(isEnabled ? 1 : 0.55)
+            .opacity(isEnabled ? 1 : 0.88)
             .scaleEffect(configuration.isPressed && isEnabled ? 0.97 : 1)
             .animation(OverlayMotion.ease(0.18), value: configuration.isPressed)
             .animation(OverlayMotion.ease(0.22), value: hovering)

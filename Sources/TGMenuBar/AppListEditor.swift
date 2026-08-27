@@ -13,12 +13,12 @@ struct AppListEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(title)
-                .font(.system(size: 12, weight: .medium))
+                .font(TGType.caption)
 
             VStack(spacing: 0) {
                 if bundleIDs.isEmpty {
                     Text(emptyMessage)
-                        .font(.system(size: 11))
+                        .font(TGType.footnote)
                         .foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 10)
@@ -45,7 +45,7 @@ struct AppListEditor: View {
 
             if let footnote {
                 Text(footnote)
-                    .font(.system(size: 11))
+                    .font(TGType.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -58,34 +58,34 @@ struct AppListEditor: View {
         HStack(spacing: 8) {
             Image(nsImage: AppInfo.icon(for: bundleID))
                 .resizable()
-                .frame(width: 18, height: 18)
+                .frame(width: 20, height: 20)
             VStack(alignment: .leading, spacing: 0) {
                 Text(AppInfo.name(for: bundleID))
-                    .font(.system(size: 12))
+                    .font(TGType.caption)
                 if !AppInfo.isInstalled(bundleID) {
                     Text("Not installed")
-                        .font(.system(size: 10))
-                        .foregroundStyle(.tertiary)
+                        .font(TGType.footnote)
+                        .foregroundStyle(.secondary)
                 }
             }
             Spacer(minLength: 6)
             Text(bundleID)
-                .font(.system(size: 10))
-                .foregroundStyle(.tertiary)
+                .font(TGType.footnote)
+                .foregroundStyle(.secondary)
                 .lineLimit(1)
                 .truncationMode(.head)
             Button {
                 bundleIDs.removeAll { $0 == bundleID }
             } label: {
                 Image(systemName: "minus.circle")
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
             .help("Remove \(AppInfo.name(for: bundleID))")
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
     }
 
     private var controls: some View {
@@ -104,7 +104,7 @@ struct AppListEditor: View {
 
             Spacer()
         }
-        .font(.system(size: 11, weight: .medium))
+        .font(TGType.footnote)
         .foregroundStyle(.secondary)
         .padding(.horizontal, 4)
         .padding(.vertical, 2)

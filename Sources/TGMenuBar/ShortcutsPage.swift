@@ -15,13 +15,13 @@ struct ShortcutsPage: View {
                     } label: {
                         HStack(spacing: 8) {
                             Image(systemName: action.symbolName)
-                                .font(.system(size: 12))
+                                .font(.system(size: 13))
                                 .foregroundStyle(.secondary)
                                 .frame(width: 16)
                             VStack(alignment: .leading, spacing: 0) {
                                 Text(action.title)
                                 Text(action.subtitle)
-                                    .font(.system(size: 11))
+                                    .font(TGType.footnote)
                                     .foregroundStyle(.secondary)
                             }
                         }

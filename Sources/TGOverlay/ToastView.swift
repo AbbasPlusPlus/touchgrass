@@ -7,7 +7,7 @@ struct ToastView: View {
     @ObservedObject var model: ToastModel
 
     static let margin: CGFloat = 16
-    static let height: CGFloat = 46
+    static let height: CGFloat = 50
     static let inset: CGFloat = 34
 
     var body: some View {
@@ -25,12 +25,12 @@ struct ToastView: View {
     private var pill: some View {
         HStack(spacing: 10) {
             Image(systemName: model.symbol)
-                .font(.system(size: 13, weight: .medium))
-                .foregroundStyle(.white.opacity(0.72))
+                .font(.system(size: 14, weight: .medium, design: .rounded))
+                .foregroundStyle(.white.opacity(0.78))
 
             Text(model.text)
-                .font(.system(size: 13, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.92))
+                .font(OverlayType.toast)
+                .foregroundStyle(.white.opacity(0.95))
                 .lineLimit(1)
                 .fixedSize()
 
@@ -40,9 +40,9 @@ struct ToastView: View {
                     .padding(.leading, 2)
             }
         }
-        .padding(.leading, 18)
-        .padding(.trailing, model.undoTitle == nil ? 18 : 14)
-        .padding(.vertical, model.undoTitle == nil ? 12 : 8)
+        .padding(.leading, 20)
+        .padding(.trailing, model.undoTitle == nil ? 20 : 15)
+        .padding(.vertical, model.undoTitle == nil ? 13 : 9)
         .glassSurface(Capsule(), shadowRadius: 18, shadowY: 7)
         .fixedSize()
     }
