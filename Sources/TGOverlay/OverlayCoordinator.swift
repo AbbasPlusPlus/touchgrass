@@ -52,6 +52,7 @@ public final class OverlayCoordinator {
         overlay.model.onSkip = { [weak self] in self?.engine.skipBreak() }
         overlay.model.onSnooze = { [weak self] seconds in self?.engine.snooze(seconds) }
         overlay.model.onEndEarly = { [weak self] in self?.engine.endBreakEarly() }
+        overlay.model.onLockScreen = { Self.lockScreenNow() }
 
         card.onStart = { [weak self] in
             guard let self else { return }
@@ -194,7 +195,9 @@ public final class OverlayCoordinator {
     private static func toastableReason(in reasons: Set<PauseReason>) -> PauseReason? {
         let ranked = reasons.filter {
             switch $0 {
-            case .meeting, .video, .fullscreenApp, .deepFocusApp: return true
+            // Fullscreen/deep-focus pauses are silent too: the menu bar already says
+            // "Paused · Fullscreen", and the user found the toasts noisy.
+            case .meeting, .video: return true
             default: return false
             }
         }
@@ -223,12 +226,16 @@ public final class OverlayCoordinator {
     private func scheduleScreenLock() {
         let delay = OverlayMotion.duration(0.9) + 0.1
         DispatchQueue.main.asyncAfter(deadline: .now() + delay) {
-            let tool = "/System/Library/CoreServices/Menu Extras/User.menu/Contents/Resources/CGSession"
-            guard FileManager.default.isExecutableFile(atPath: tool) else { return }
-            let process = Process()
-            process.executableURL = URL(fileURLWithPath: tool)
-            process.arguments = ["-suspend"]
-            try? process.run()
+            Self.lockScreenNow()
         }
+    }
+
+    static func lockScreenNow() {
+        let tool = "/System/Library/CoreServices/Menu Extras/User.menu/Contents/Resources/CGSession"
+        guard FileManager.default.isExecutableFile(atPath: tool) else { return }
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: tool)
+        process.arguments = ["-suspend"]
+        try? process.run()
     }
 }

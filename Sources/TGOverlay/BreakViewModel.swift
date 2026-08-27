@@ -38,6 +38,7 @@ public final class BreakViewModel: ObservableObject {
     public var onSkip: () -> Void = {}
     public var onSnooze: (TimeInterval) -> Void = { _ in }
     public var onEndEarly: () -> Void = {}
+    public var onLockScreen: () -> Void = {}
 
     // MARK: - Derived
 
@@ -57,6 +58,16 @@ public final class BreakViewModel: ObservableObject {
     public var snoozeCaption: String? {
         guard snoozesRemaining > 0 else { return nil }
         return snoozesRemaining == 1 ? "1 snooze left" : "\(snoozesRemaining) snoozes left"
+    }
+
+    /// What double-Escape does right now, for the keycap hint. Nil when Esc does nothing.
+    public var escHintAction: String? {
+        if settings.doubleEscapeSkips {
+            guard enforcement != .hardcore else { return nil }
+            return "skip the break"
+        }
+        guard snoozesRemaining > 0 else { return nil }
+        return "snooze the break"
     }
 
     // MARK: - Private state

@@ -160,37 +160,65 @@ public struct BreakView: View {
     // MARK: - Controls
 
     private var controls: some View {
-        VStack(spacing: 14) {
-            GlassEffectContainer(spacing: 12) {
-                HStack(spacing: 12) {
-                    if model.canEndEarly {
-                        Button("End break") { model.onEndEarly() }
-                            .buttonStyle(GlassPillStyle(size: .regular, tinted: true))
-                    } else if model.showsSkip {
-                        Button("Skip") { model.onSkip() }
+        VStack(alignment: .leading, spacing: 10) {
+            GlassEffectContainer(spacing: 10) {
+                VStack(alignment: .leading, spacing: 10) {
+                    if model.showsSnoozes {
+                        pill("zzz", "+ 1 min", size: .regular) { model.onSnooze(60) }
+                        pill("zzz", "+ 5 min", size: .regular) { model.onSnooze(5 * 60) }
+                    }
+                    HStack(spacing: 12) {
+                        if model.canEndEarly {
+                            pill("checkmark", "End Break", size: .regular, tinted: true) { model.onEndEarly() }
+                        } else if model.showsSkip {
+                            Button { model.onSkip() } label: {
+                                HStack(spacing: 7) {
+                                    Image(systemName: "chevron.right.2")
+                                    Text("Skip Break")
+                                }
+                            }
                             .buttonStyle(GlassPillStyle(size: .regular,
                                                         ringProgress: model.skipEnabled ? nil : skipRing))
                             .disabled(!model.skipEnabled)
-                    }
-
-                    if model.showsSnoozes {
-                        Button("+1m") { model.onSnooze(60) }
-                            .buttonStyle(GlassPillStyle(size: .small))
-                        Button("+5m") { model.onSnooze(5 * 60) }
-                            .buttonStyle(GlassPillStyle(size: .small))
+                        }
+                        pill("lock", "Lock Screen", size: .regular) { model.onLockScreen() }
                     }
                 }
             }
 
-            if let caption = model.snoozeCaption {
-                Text(caption)
-                    .font(.system(size: 11, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.50))
-                    .kerning(0.3)
+            if let action = model.escHintAction {
+                HStack(spacing: 5) {
+                    Text("Press")
+                    Text("Esc")
+                        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
+                        .padding(.horizontal, 6)
+                        .padding(.vertical, 2.5)
+                        .background(
+                            RoundedRectangle(cornerRadius: 5, style: .continuous)
+                                .fill(.white.opacity(0.14))
+                        )
+                    Text("twice to \(action)")
+                }
+                .font(.system(size: 11.5, weight: .medium, design: .rounded))
+                .foregroundStyle(.white.opacity(0.55))
+                .frame(maxWidth: .infinity)
             }
         }
+        .fixedSize(horizontal: true, vertical: false)
         .animation(OverlayMotion.ease(0.35), value: model.canEndEarly)
         .animation(OverlayMotion.ease(0.35), value: model.skipEnabled)
+    }
+
+    private func pill(_ symbol: String, _ title: String, size: GlassPillStyle.Size,
+                      tinted: Bool = false, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 7) {
+                Image(systemName: symbol)
+                    .font(.system(size: 12, weight: .semibold))
+                Text(title)
+            }
+        }
+        .buttonStyle(GlassPillStyle(size: size, tinted: tinted))
     }
 
     /// Balanced enforcement draws a hairline arc closing around the Skip pill over the delay.
