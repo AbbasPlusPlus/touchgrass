@@ -268,7 +268,10 @@ private enum Demo {
         let app = NSApplication.shared
         app.delegate = delegate
         app.setActivationPolicy(.accessory)
-        app.run()
+        // Dev harness safety: a forgotten demo process leaves a ghost status item in the menu bar.
+let lifetime = Double(ProcessInfo.processInfo.environment["TG_DEMO_LIFETIME"] ?? "") ?? 300
+DispatchQueue.main.asyncAfter(deadline: .now() + lifetime) { NSApp.terminate(nil) }
+app.run()
         exit(0)
     }
 }

@@ -20,3 +20,4 @@ Native macOS 26 menu-bar break reminder (-style). SwiftPM only, **no Xcode**. Sw
 - **Never use `#Preview` or `PreviewProvider`** — the previews macro plugin only ships with Xcode and breaks the build. No third-party SwiftPM deps without asking (same reason).
 - Code style: small files, one type per file, `// MARK:` sections, no force-unwraps of system results.
 - Before reporting done: `make build` must succeed with zero warnings from your target, and `make test` green.
+- After running tg-*-demo executables, kill any demo processes you started (`pkill -f tg-menubar-demo` etc.) — orphans leave ghost menu bar icons.
