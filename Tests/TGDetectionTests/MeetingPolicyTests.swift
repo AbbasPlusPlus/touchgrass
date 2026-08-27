@@ -179,3 +179,38 @@ private func setMic(_ policy: MeetingPolicy, _ users: [MicrophoneUser]) {
     #expect(!FullscreenGeometry.isApproximately(CGRect(x: 0, y: 39, width: 1800, height: 800), display))
     #expect(!FullscreenGeometry.isApproximately(CGRect(x: 100, y: 200, width: 900, height: 600), display))
 }
+
+// MARK: - Dictation-aware deferral: the merge ActivityMonitor publishes to the engine
+
+@Test @MainActor func dictationHintIsReportedEvenWhenInputDetectionIsDisarmed() {
+    // The typing/dragging detector only runs in the last seconds before a break, so `input` is nil
+    // most of the time. Dictation comes from the mic instead and must survive that.
+    #expect(ActivityMonitor.mergedHint(meeting: .dictating, input: nil, deferWhileTyping: true) == .dictating)
+    #expect(ActivityMonitor.mergedHint(meeting: .dictating, input: nil, deferWhileTyping: false) == .dictating)
+}
+
+@Test @MainActor func typingHintOnlySurvivesWhileTypingDeferralIsOn() {
+    #expect(ActivityMonitor.mergedHint(meeting: nil, input: .typing, deferWhileTyping: true) == .typing)
+    #expect(ActivityMonitor.mergedHint(meeting: nil, input: .typing, deferWhileTyping: false) == nil)
+    #expect(ActivityMonitor.mergedHint(meeting: nil, input: nil, deferWhileTyping: true) == nil)
+}
+
+@Test @MainActor func dictationOutranksTyping() {
+    // Dictation apps type *for* you; the mic-borne hint is the more informative label.
+    #expect(ActivityMonitor.mergedHint(meeting: .dictating, input: .typing, deferWhileTyping: true) == .dictating)
+}
+
+@Test @MainActor func dictationHintIsIndependentOfEveryPauseSwitch() {
+    // pauseOnMeeting off, meetingUsesMicrophone off: neither is about dictation.
+    let (policy, clock) = makePolicy {
+        $0.pauseOnMeeting = false
+        $0.meetingUsesMicrophone = false
+        $0.deferWhileTyping = false
+    }
+    setMic(policy, [micUser("com.electron.wispr-flow.accessibility-mac-app", name: "Wispr Flow")])
+    clock.advance(MeetingPolicy.micDebounce + 1)
+    policy.reevaluate()
+    #expect(policy.reason == nil)
+    #expect(policy.hint == .dictating)
+    #expect(ActivityMonitor.mergedHint(meeting: policy.hint, input: nil, deferWhileTyping: false) == .dictating)
+}

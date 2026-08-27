@@ -107,6 +107,24 @@ public struct Settings: Codable, Equatable, Sendable {
         let parts = s.split(separator: "|", maxSplits: 1).map { String($0).trimmingCharacters(in: .whitespaces) }
         return (parts.first ?? "", parts.count > 1 ? parts[1] : nil)
     }
+
+    // MARK: Custom reminders
+    // (Additive block — appended after v1. Everything above is unchanged.)
+
+    /// User-defined wellness reminders: water, stretch, eye drops, anything.
+    /// Empty by default; the Wellness page seeds three *disabled* examples on first run.
+    public var customReminders: [CustomReminder] = []
+
+    /// Absolute path of a user-supplied sound file. While set it replaces the bundled
+    /// assets for every event; `SoundStyle.none` still silences everything.
+    public var customSoundPath: String? = nil
+
+    /// `customSoundPath` as a file URL, or nil when unset/blank.
+    public var customSoundURL: URL? {
+        guard let path = customSoundPath?.trimmingCharacters(in: .whitespacesAndNewlines),
+              !path.isEmpty else { return nil }
+        return URL(fileURLWithPath: path)
+    }
 }
 
 public enum DeepFocusMode: String, Codable, Sendable, Hashable, CaseIterable {

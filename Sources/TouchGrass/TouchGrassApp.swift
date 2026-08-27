@@ -44,7 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             },
             wellnessCountdown: { [weak self] in
                 guard let w = self?.wellness else { return nil }
-                return [w.nextBlinkIn, w.nextPostureIn].compactMap { $0 }.min()
+                return [w.nextBlinkIn, w.nextPostureIn, w.nextCustomIn].compactMap { $0 }.min()
             }
         )
 
@@ -54,6 +54,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         wireUpdates()
         startTicking()
 
+        sounds.customSoundURL = store.settings.customSoundURL
         sounds.preloadAll()
         monitor.start()
         engine.start()
@@ -84,6 +85,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.monitor.settings = s
                 self.updates.automaticChecksEnabled = s.autoUpdateEnabled
                 self.stats.settings = s
+                // A user-supplied sound file replaces the bundled assets for previews too.
+                self.sounds.customSoundURL = s.customSoundURL
             }
             .store(in: &cancellables)
     }

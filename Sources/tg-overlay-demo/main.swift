@@ -2,7 +2,7 @@
 //
 //   tg-overlay-demo break [short|long] [seconds] [casual|balanced|hardcore]
 //                         [wallpaper|gradient:<name>|animated:<name>]
-//   tg-overlay-demo card | pill | blink | posture | toast
+//   tg-overlay-demo card | pill | blink | posture | custom [title] [symbol] | toast
 //
 // Prints the frontmost application before and after presenting, so it is easy to verify that
 // nothing here ever steals focus.
@@ -67,6 +67,7 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
         case "pill":     runPill()
         case "blink":    runWellness(.blink)
         case "posture":  runWellness(.posture)
+        case "custom":   runCustomReminder()
         case "toast":    runToast()
         default:
             print("unknown surface: \(args.first ?? "")")
@@ -170,6 +171,16 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
 
     private func runWellness(_ kind: WellnessKind) {
         wellness.show(kind, dimsScreen: true, mainScreenOnly: false)
+        quit(after: 5)
+    }
+
+    /// `tg-overlay-demo custom "Drink water" drop.fill`
+    private func runCustomReminder() {
+        let arguments = Array(CommandLine.arguments.dropFirst(2))
+        wellness.showCustom(title: arguments.first ?? "Drink water",
+                            symbol: arguments.dropFirst().first ?? "drop.fill",
+                            dimsScreen: true,
+                            mainScreenOnly: false)
         quit(after: 5)
     }
 

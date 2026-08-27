@@ -1,4 +1,5 @@
-// TGOverlay — blink and posture nudges: small, centred, self-dismissing, never focus-stealing.
+// TGOverlay — blink, posture and custom reminder nudges: small, centred, self-dismissing,
+// never focus-stealing.
 // Optionally dims the screen behind them so the eye is drawn to the middle.
 
 import AppKit
@@ -16,9 +17,43 @@ public final class WellnessNudgeController {
 
     public init() {}
 
+    // MARK: - Nudge kinds
+
+    /// What is on screen. Custom reminders carry their own copy; the built-ins draw themselves.
+    @MainActor
+    private enum Nudge {
+        case wellness(WellnessKind)
+        case custom(title: String, symbol: String)
+
+        var size: CGSize {
+            switch self {
+            case .wellness(.blink): return BlinkNudgeView.size
+            case .wellness(.posture): return PostureNudgeView.size
+            case .custom: return CustomNudgeView.size
+            }
+        }
+
+        /// Blink is the quickest read; posture and custom reminders need a beat longer.
+        var lifetime: TimeInterval {
+            switch self {
+            case .wellness(.blink): return 2.9
+            case .wellness(.posture), .custom: return 3.6
+            }
+        }
+    }
+
     // MARK: - Show
 
     public func show(_ kind: WellnessKind, dimsScreen: Bool, mainScreenOnly: Bool) {
+        show(.wellness(kind), dimsScreen: dimsScreen, mainScreenOnly: mainScreenOnly)
+    }
+
+    /// A user-defined reminder: an SF Symbol and a line of text, otherwise identical to posture.
+    public func showCustom(title: String, symbol: String, dimsScreen: Bool, mainScreenOnly: Bool) {
+        show(.custom(title: title, symbol: symbol), dimsScreen: dimsScreen, mainScreenOnly: mainScreenOnly)
+    }
+
+    private func show(_ nudge: Nudge, dimsScreen: Bool, mainScreenOnly: Bool) {
         hide(animated: false)
 
         let screens: [NSScreen]
@@ -47,20 +82,20 @@ public final class WellnessNudgeController {
 
         for screen in screens {
             let id = ScreenID.uuid(for: screen)
-            let size = kind == .blink ? BlinkNudgeView.size : PostureNudgeView.size
+            let size = nudge.size
             let padded = CGSize(width: size.width + 60, height: size.height + 60)
             let frame = NSRect(x: screen.frame.midX - padded.width / 2,
                                y: screen.frame.midY - padded.height / 2,
                                width: padded.width, height: padded.height)
             let panel = OverlayPanel(contentRect: frame, level: .floating,
                                      becomesKey: false, clickThrough: true)
-            panel.contentView = Self.host(for: kind, size: padded)
+            panel.contentView = Self.host(for: nudge, size: padded)
             panel.alphaValue = 1        // the view springs itself in; the window does not fade
             panel.present(takingKey: false)
             nudgePanels[id] = panel
         }
 
-        let lifetime: TimeInterval = kind == .blink ? 2.9 : 3.6
+        let lifetime = nudge.lifetime
         dismissTask?.cancel()
         dismissTask = Task { [weak self] in
             try? await Task.sleep(nanoseconds: UInt64(lifetime * 1_000_000_000))
@@ -90,11 +125,15 @@ public final class WellnessNudgeController {
 
     // MARK: - Hosting
 
-    private static func host(for kind: WellnessKind, size: CGSize) -> NSView {
+    private static func host(for nudge: Nudge, size: CGSize) -> NSView {
         let container: NSHostingView<AnyView>
-        switch kind {
-        case .blink:   container = NSHostingView(rootView: AnyView(centred(BlinkNudgeView())))
-        case .posture: container = NSHostingView(rootView: AnyView(centred(PostureNudgeView())))
+        switch nudge {
+        case .wellness(.blink):
+            container = NSHostingView(rootView: AnyView(centred(BlinkNudgeView())))
+        case .wellness(.posture):
+            container = NSHostingView(rootView: AnyView(centred(PostureNudgeView())))
+        case .custom(let title, let symbol):
+            container = NSHostingView(rootView: AnyView(centred(CustomNudgeView(symbol: symbol, title: title))))
         }
         container.frame = NSRect(origin: .zero, size: size)
         container.autoresizingMask = [.width, .height]

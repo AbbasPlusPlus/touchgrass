@@ -180,7 +180,9 @@ public final class ActivityMonitor: ObservableObject {
         if systemStateSaysLocked { reasons.insert(.screenLocked) }
 
         // Dictation is a hint, never a pause; typing/dragging only exist while armed.
-        let hint: ActivityHint? = meeting.hint ?? (settings.deferWhileTyping ? input.hint : nil)
+        let hint = Self.mergedHint(meeting: meeting.hint,
+                                   input: input.hint,
+                                   deferWhileTyping: settings.deferWhileTyping)
 
         let newIdle = idle.idleSeconds
         let newSystemState = system.state
@@ -196,6 +198,17 @@ public final class ActivityMonitor: ObservableObject {
 
         // Only the merged pause/hint output is worth waking the app for; idle has its own publisher.
         if outputChanged { onChange?(reasons, hint) }
+    }
+
+    /// The single rule that decides what the engine sees, pulled out so it can be tested directly.
+    ///
+    /// Dictation rides the microphone (`MeetingPolicy`), so it is reported whatever the state of
+    /// the keyboard/drag detector — which only runs while armed, in the last seconds before a
+    /// break — and whatever `deferWhileTyping` says, because that switch is about typing.
+    static func mergedHint(meeting: ActivityHint?,
+                           input: ActivityHint?,
+                           deferWhileTyping: Bool) -> ActivityHint? {
+        meeting ?? (deferWhileTyping ? input : nil)
     }
 
     private var systemStateSaysLocked: Bool {
