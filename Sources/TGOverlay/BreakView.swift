@@ -184,8 +184,7 @@ public struct BreakView: View {
 
     private var controls: some View {
         VStack(alignment: .leading, spacing: 12) {
-            GlassEffectContainer(spacing: 10) {
-                HStack(alignment: .bottom, spacing: 12) {
+            HStack(alignment: .bottom, spacing: 12) {
                     // Option D: one capsule. Hovering Skip splits it into » Skip Break | +1m | +5m
                     // segments — a single object stretching, nothing popping in from nowhere.
                     // Hardcore has no Skip, so the base segment becomes the zzz glyph instead.
@@ -196,7 +195,6 @@ public struct BreakView: View {
                     }
                     pill("lock", "Lock Screen") { model.onLockScreen() }
                 }
-            }
 
             if let action = model.escHintAction {
                 HStack(spacing: 5) {

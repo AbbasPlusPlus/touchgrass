@@ -22,6 +22,7 @@ public final class BreakOverlayController {
     private var screenObserver: NSObjectProtocol?
     private var rebuildWork: DispatchWorkItem?
     private var pinToken: SpacePinning.Token?
+    private var isSuspended = false
 
     private let fadeInDuration: Double = 0.8
     private let fadeOutDuration: Double = 0.5
@@ -71,9 +72,29 @@ public final class BreakOverlayController {
         pinToken = SpacePinning.pin(Array(panels.values))
     }
 
+    /// Hides the panels without ending the break (screen locked): loginwindow must be able to
+    /// draw over us, and our pinned space otherwise sits above it. `resume()` brings them back.
+    public func suspend() {
+        guard isShowing, !isSuspended else { return }
+        isSuspended = true
+        if let token = pinToken { SpacePinning.unpin(token); pinToken = nil }
+        for panel in panels.values { panel.orderOut(nil) }
+    }
+
+    public func resume() {
+        guard isShowing, isSuspended else { return }
+        isSuspended = false
+        for (id, panel) in panels {
+            panel.alphaValue = 1
+            panel.present(takingKey: id == primaryScreenID)
+        }
+        repin()
+    }
+
     public func hide(completion: (() -> Void)? = nil) {
         guard isShowing else { completion?(); return }
         isShowing = false
+        isSuspended = false
         if let token = pinToken { SpacePinning.unpin(token); pinToken = nil }
         model.endBreak()
         rebuildWork?.cancel()

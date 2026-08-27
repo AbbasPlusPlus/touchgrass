@@ -61,6 +61,7 @@ public final class OverlayCoordinator {
         overlay.model.onSnooze = { [weak self] seconds in self?.engine.snooze(seconds) }
         overlay.model.onEndEarly = { [weak self] in self?.engine.endBreakEarly() }
         overlay.model.onLockScreen = { Self.lockScreenNow() }
+        installLockObservers()
 
         card.onStart = { [weak self] in
             guard let self else { return }
@@ -219,6 +220,23 @@ public final class OverlayCoordinator {
     }
 
     // MARK: - Lock screen
+
+    /// While the screen is locked the break overlay steps aside (its pinned space would otherwise
+    /// cover loginwindow); it returns on unlock if the break is still running.
+    private func installLockObservers() {
+        let center = DistributedNotificationCenter.default()
+        center.addObserver(forName: Notification.Name("com.apple.screenIsLocked"), object: nil,
+                           queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated { self?.overlay.suspend() }
+        }
+        center.addObserver(forName: Notification.Name("com.apple.screenIsUnlocked"), object: nil,
+                           queue: .main) { [weak self] _ in
+            MainActor.assumeIsolated {
+                guard let self, self.engine.phase.isInBreak else { return }
+                self.overlay.resume()
+            }
+        }
+    }
 
     /// Locks the Mac once the overlay has finished fading in, so the fade is not cut in half.
     private func scheduleScreenLock() {
