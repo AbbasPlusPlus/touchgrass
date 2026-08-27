@@ -59,7 +59,6 @@ public struct BreakView: View {
             base
             BreakBackgroundView(background: model.background, wallpaperURL: wallpaperURL)
             vignette
-            grass
 
             if showsFullComposition {
                 fullComposition
@@ -90,15 +89,6 @@ public struct BreakView: View {
         RadialGradient(colors: [.clear, tone.vignette],
                        center: .center, startRadius: 260, endRadius: 1100)
             .ignoresSafeArea()
-            .allowsHitTesting(false)
-    }
-
-    /// Two faint blades, bottom-right. The only illustration on the screen, and static —
-    /// nothing here should move except the countdown.
-    private var grass: some View {
-        GrassStrokes(color: tone.grass)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
-            .padding(.trailing, 64)
             .allowsHitTesting(false)
     }
 
