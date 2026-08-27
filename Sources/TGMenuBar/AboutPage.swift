@@ -25,19 +25,6 @@ struct AboutPage: View {
                 .padding(.vertical, 6)
             }
 
-            Section("Links") {
-                link("Source code", "https://github.com/AbbasPlusPlus/touchgrass", symbol: "chevron.left.forwardslash.chevron.right")
-                link("Report an issue", "https://github.com/AbbasPlusPlus/touchgrass/issues", symbol: "exclamationmark.bubble")
-            }
-
-            Section {
-                LabeledContent("Permissions", value: "None required")
-                LabeledContent("Copyright", value: Self.copyright)
-            } header: {
-                Text("Details")
-            } footer: {
-                Text("TouchGrass never asks for Screen Recording or Accessibility, and it doesn't read your camera or microphone — only whether something else is using them.")
-            }
         }
         .formStyle(.grouped)
     }

@@ -24,7 +24,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT"
 
 DIST="$ROOT/dist"
-APPDIR="$ROOT/build/$APP.app"
+APPDIR="$ROOT/build.noindex/$APP.app"
 PLIST="$APPDIR/Contents/Info.plist"
 ZIP="$DIST/$APP.zip"
 APPCAST="$DIST/appcast.json"
