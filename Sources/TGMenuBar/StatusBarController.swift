@@ -15,6 +15,8 @@ public final class StatusBarController: NSObject {
 
     private let engine: BreakEngine
     private let settingsStore: SettingsStore
+    /// Optional: without it the quick panel drops the Now/Stats control and shows only "Now".
+    private let statsStore: StatsStore?
     private let previewSound: (SoundStyle, String) -> Void
     private let onQuit: () -> Void
     private let onStartStop: (() -> Void)?
@@ -43,6 +45,7 @@ public final class StatusBarController: NSObject {
     // MARK: - Init
 
     /// - Parameters:
+    ///   - statsStore: backs the quick panel's Stats tab. `nil` hides the tab entirely.
     ///   - previewSound: plays a sample for the Sounds page. Injected so TGMenuBar never has
     ///     to depend on TGAudio. The `String` is the event name ("start" / "end" / "preBreak").
     ///   - onQuit: what the ⌘Q / Quit item does. Defaults to `NSApp.terminate`.
@@ -51,6 +54,7 @@ public final class StatusBarController: NSObject {
     public init(
         engine: BreakEngine,
         settingsStore: SettingsStore,
+        statsStore: StatsStore? = nil,
         previewSound: @escaping (SoundStyle, String) -> Void = { _, _ in },
         onQuit: (() -> Void)? = nil,
         onStartStop: (() -> Void)? = nil,
@@ -58,6 +62,7 @@ public final class StatusBarController: NSObject {
     ) {
         self.engine = engine
         self.settingsStore = settingsStore
+        self.statsStore = statsStore
         self.previewSound = previewSound
         self.onQuit = onQuit ?? { NSApp.terminate(nil) }
         self.onStartStop = onStartStop
@@ -99,9 +104,9 @@ public final class StatusBarController: NSObject {
         showOnboarding()
     }
 
-    /// Drops the quick panel under the status item.
-    public func showQuickPanel() {
-        quickPanel?.show(relativeTo: statusItem.button)
+    /// Drops the quick panel under the status item, optionally onto a particular tab.
+    public func showQuickPanel(selecting tab: QuickPanelTab? = nil, showingCalendar: Bool = false) {
+        quickPanel?.show(relativeTo: statusItem.button, selecting: tab, showingCalendar: showingCalendar)
     }
 
     public func closeQuickPanel() { quickPanel?.close() }
@@ -124,6 +129,7 @@ public final class StatusBarController: NSObject {
         quickPanel = QuickPanel(
             engine: engine,
             settingsStore: settingsStore,
+            statsStore: statsStore,
             actions: makeActions()
         )
     }
@@ -143,6 +149,8 @@ public final class StatusBarController: NSObject {
                 // Hand edited settings to the engine. This is an assignment, not a command, so
                 // it's safe at any time; the engine picks the new values up on its next tick.
                 self.engine.settings = settings
+                // The statr judges sessions against the interval, so it needs the live value.
+                self.statsStore?.settings = settings
                 self.render(phase: self.engine.phase, force: true)
             }
             .store(in: &cancellables)

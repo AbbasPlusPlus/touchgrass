@@ -13,13 +13,16 @@ public final class QuickPanel {
 
     /// Fixed width; the height comes from the SwiftUI layout, clamped to a sane range.
     /// Sized so a 15 pt summary row fits its label and its value without either truncating.
+    /// The height upper bound has to clear the Stats calendar — the tallest thing the panel shows.
     public static let width: CGFloat = 376
-    private static let heightRange: ClosedRange<CGFloat> = 200...460
+    private static let heightRange: ClosedRange<CGFloat> = 200...700
 
     private let engine: BreakEngine
     private let settingsStore: SettingsStore
+    private let statsStore: StatsStore?
     private let actions: MenuBarActions
 
+    private let model = QuickPanelModel()
     private var window: QuickPanelWindow?
     private var hosting: NSHostingView<QuickPanelView>?
     private var globalMonitor: Any?
@@ -30,10 +33,12 @@ public final class QuickPanel {
     public init(
         engine: BreakEngine,
         settingsStore: SettingsStore,
+        statsStore: StatsStore? = nil,
         actions: MenuBarActions
     ) {
         self.engine = engine
         self.settingsStore = settingsStore
+        self.statsStore = statsStore
         self.actions = actions
     }
 
@@ -45,15 +50,22 @@ public final class QuickPanel {
         isVisible ? close() : show(relativeTo: button)
     }
 
-    public func show(relativeTo button: NSStatusBarButton?) {
+    /// - Parameters:
+    ///   - tab: opens onto this tab instead of whichever was last used. `nil` leaves it alone.
+    ///   - showingCalendar: on the Stats tab, opens straight onto the month grid.
+    public func show(
+        relativeTo button: NSStatusBarButton?,
+        selecting tab: QuickPanelTab? = nil,
+        showingCalendar: Bool = false
+    ) {
+        if let tab {
+            model.tab = tab
+            model.showingCalendar = showingCalendar
+        }
         let panel = window ?? makeWindow()
         window = panel
 
-        let size = NSSize(
-            width: Self.width,
-            height: min(max(hosting?.fittingSize.height ?? 0, Self.heightRange.lowerBound),
-                        Self.heightRange.upperBound)
-        )
+        let size = fittingSize()
         panel.setContentSize(size)
 
         anchorRect = button.flatMap(Self.screenRect(of:)) ?? .zero
@@ -67,6 +79,41 @@ public final class QuickPanel {
         window?.orderOut(nil)
     }
 
+    // MARK: - Sizing
+
+    /// Re-measure the SwiftUI content and resize around the panel's *top* edge, so switching to
+    /// a taller tab grows the panel downwards instead of sliding it up over the menu bar.
+    public func resizeToFit() {
+        guard let panel = window, panel.isVisible else { return }
+        hosting?.invalidateIntrinsicContentSize()
+        hosting?.layoutSubtreeIfNeeded()
+        let top = panel.frame.maxY
+
+        var frame = panel.frame
+        frame.size = panel.frameRect(forContentRect: NSRect(origin: .zero, size: fittingSize())).size
+        frame.origin.y = top - frame.height
+        if let visible = panel.screen?.visibleFrame, frame.minY < visible.minY + 8 {
+            frame.origin.y = visible.minY + 8
+        }
+        panel.setFrame(frame, display: true, animate: false)
+    }
+
+    /// Asks for a resize on the next run-loop turn: SwiftUI hasn't laid the new tab out yet at
+    /// the moment the state changes, so measuring now would measure the old tab.
+    private func requestResize() {
+        DispatchQueue.main.async { [weak self] in
+            MainActor.assumeIsolated { self?.resizeToFit() }
+        }
+    }
+
+    private func fittingSize() -> NSSize {
+        NSSize(
+            width: Self.width,
+            height: min(max(hosting?.fittingSize.height ?? 0, Self.heightRange.lowerBound),
+                        Self.heightRange.upperBound)
+        )
+    }
+
     // MARK: - Window
 
     private func makeWindow() -> QuickPanelWindow {
@@ -77,8 +124,11 @@ public final class QuickPanel {
         let root = QuickPanelView(
             engine: engine,
             store: settingsStore,
+            stats: statsStore,
+            model: model,
             actions: actions,
-            dismiss: { [weak self] in self?.close() }
+            dismiss: { [weak self] in self?.close() },
+            requestResize: { [weak self] in self?.requestResize() }
         )
         let hostingView = NSHostingView(rootView: root)
         hosting = hostingView

@@ -1,7 +1,9 @@
 // tg-menubar-demo — boots just the TGMenuBar surfaces so they can be run and looked at.
 //
 //   swift run tg-menubar-demo            # status item only
-//   swift run tg-menubar-demo panel      # + quick panel
+//   swift run tg-menubar-demo panel      # + quick panel (Now)
+//   swift run tg-menubar-demo stats      # + quick panel (Stats), seeded with a fake month
+//   swift run tg-menubar-demo calendar   # + quick panel (Stats → month grid)
 //   swift run tg-menubar-demo settings   # + settings window
 //   swift run tg-menubar-demo onboarding # + first-run flow
 //
@@ -18,6 +20,7 @@ import TGMenuBar
 final class DemoDelegate: NSObject, NSApplicationDelegate {
 
     private var store: SettingsStore!
+    private var stats: StatsStore!
     private var engine: BreakEngine!
     private var statusBar: StatusBarController!
     private var ticker: Timer?
@@ -29,10 +32,16 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
         try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
 
         store = SettingsStore(url: directory.appendingPathComponent("settings-demo.json"))
+        stats = StatsStore(
+            settings: store.settings,
+            url: directory.appendingPathComponent("stats-demo.json")
+        )
+        DemoStats.seed(into: stats)
         engine = BreakEngine(settings: store.settings)
         statusBar = StatusBarController(
             engine: engine,
             settingsStore: store,
+            statsStore: stats,
             previewSound: { style, event in
                 NSLog("[demo] preview sound: %@ / %@", style.rawValue, event)
             },
@@ -62,10 +71,12 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
             statusBar.showSettings()
         case "onboarding":
             statusBar.showOnboarding()
-        case "panel":
+        case "panel", "stats", "calendar":
+            let tab: QuickPanelTab = surface == "panel" ? .now : .stats
+            let calendar = surface == "calendar"
             // Give the status item a run-loop turn to land in the menu bar first.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-                self?.statusBar.showQuickPanel()
+                self?.statusBar.showQuickPanel(selecting: tab, showingCalendar: calendar)
             }
         default:
             break
