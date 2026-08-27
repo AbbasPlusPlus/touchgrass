@@ -51,10 +51,12 @@ extension BreakEngine {
 
     // MARK: - Skip
 
-    /// Drop this break entirely. Gated by `canSkipNow` (enforcement level + how long the break has run).
+    /// Drop this break entirely. Gated by `canSkipNow` (enforcement level, how long the break has
+    /// run, and the daily skip budget when `Settings.skipsPerDay` sets one).
     /// Skipping does *not* advance the long-break cadence: a skipped long break is still owed.
     public func skipBreak() {
         guard started, canSkipNow else { return }
+        skipsUsedToday += 1
         let kind = breakKind ?? nextKind
         if breakKind != nil {
             emit(.breakEnded(kind: kind, completed: false))

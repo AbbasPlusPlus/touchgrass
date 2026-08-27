@@ -125,7 +125,9 @@ public struct StatusPresentation: Equatable {
         case .fullscreenApp: return 4
         case .screenLocked: return 5
         case .focusMode: return 6
-        case .idle: return 7
+        // Off hours outranks idle: at 7pm "Off hours" explains the state, "Away" merely restates it.
+        case .outsideOfficeHours: return 7
+        case .idle: return 8
         }
     }
 }
