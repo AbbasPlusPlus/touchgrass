@@ -10,7 +10,16 @@
 import AppKit
 import TGCore
 import TGOverlay
+import AppKit
 
+
+@MainActor func dumpPanels(after: Double) {
+    DispatchQueue.main.asyncAfter(deadline: .now() + after) {
+        for w in NSApp.windows where w is OverlayPanel {
+            print("PANEL level=\(w.level.rawValue) behavior=\(w.collectionBehavior.rawValue) key=\(w.isKeyWindow) visible=\(w.isVisible)")
+        }
+    }
+}
 // MARK: - Argument parsing
 
 func parseBackground(_ raw: String?) -> BreakBackground {
@@ -105,6 +114,7 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
     // MARK: Break
 
     private func runBreak() {
+    dumpPanels(after: 2.5)
         let kind: BreakKind = args.count > 1 && args[1] == "long" ? .long : .short
         let seconds = TimeInterval(args.count > 2 ? (Double(args[2]) ?? 20) : 20)
         let enforcement = Enforcement(rawValue: args.count > 3 ? args[3] : "balanced") ?? .balanced
