@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<!-- Not sandboxed (direct distribution). Focus status needs these two if/when we add it. -->
+	<key>com.apple.developer.focus-status</key><true/>
+	<key>com.apple.developer.usernotifications.communication</key><true/>
+</dict>
+</plist>
