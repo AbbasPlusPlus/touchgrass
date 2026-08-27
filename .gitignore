@@ -7,3 +7,4 @@ DerivedData/
 *.xcodeproj
 *.xcworkspace
 Package.resolved.bak
+Support/icon/AppIcon.iconset/
