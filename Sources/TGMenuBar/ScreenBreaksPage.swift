@@ -67,6 +67,10 @@ struct ScreenBreaksPage: View {
                 Text(enforcementFootnote)
             }
 
+            OfficeHoursSection(store: store)
+
+            SkipLimitsSection(store: store)
+
             Section {
                 counter("Snoozes per day", value: $store.settings.snoozesPerDay, range: 0...50)
                 counter("Snoozes per session", value: $store.settings.snoozesPerSession, range: 0...20)

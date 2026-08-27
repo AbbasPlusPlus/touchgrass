@@ -32,6 +32,10 @@ public final class BreakEngine: ObservableObject {
     /// Snoozes used today / this session (session = since last completed break).
     @Published public internal(set) var snoozesUsedToday: Int = 0
     @Published public internal(set) var snoozesUsedThisSession: Int = 0
+    /// Ordinary skips used today (capped by `Settings.skipsPerDay` when it's non-zero).
+    @Published public internal(set) var skipsUsedToday: Int = 0
+    /// Advance skips used today (capped by `Settings.advanceSkipsPerDay`).
+    @Published public internal(set) var advanceSkipsUsedToday: Int = 0
     /// Focus time accumulated in the current session (seconds of unpaused screen time).
     @Published public internal(set) var currentSessionFocusTime: TimeInterval = 0
     /// Short breaks completed since the last long break (drives "every Nth is long").
@@ -111,12 +115,15 @@ public final class BreakEngine: ObservableObject {
         clearPreBreakFlags()
         clearActivityWait()
         clearAwayTracking()
+        engineReasons.remove(.outsideOfficeHours)
+        syncOfficeHours(now: now)
         syncPhase()
     }
 
     public func stop() {
         started = false
         lastTickAt = nil
+        engineReasons.remove(.outsideOfficeHours)
         clearBreakState()
         clearPreBreakFlags()
         clearActivityWait()
@@ -128,7 +135,7 @@ public final class BreakEngine: ObservableObject {
     /// Advance the machine. Uses `clock.now()` so it's robust to sleep (wall-clock deltas, not tick counts).
     public func tick() {
         let now = clock.now()
-        let dt = max(0, now.timeIntervalSince(lastTickAt ?? now))
+        var dt = max(0, now.timeIntervalSince(lastTickAt ?? now))
         lastTickAt = now
 
         handleDayRollover(now: now)
@@ -136,6 +143,9 @@ public final class BreakEngine: ObservableObject {
         // advanced by this tick's delta, so remember what we were doing beforehand.
         let wasInBreak = breakKind != nil
         expireManualPause(now: now)
+        // A tick that crosses an office-hours boundary belongs to neither side cleanly, so its
+        // delta is dropped rather than credited to the side that happens to be current after it.
+        if syncOfficeHours(now: now) { dt = 0 }
 
         guard started, dt > 0 else { syncPhase(); return }
 
@@ -280,6 +290,8 @@ public final class BreakEngine: ObservableObject {
         }
         currentDay = today
         snoozesUsedToday = 0
+        skipsUsedToday = 0
+        advanceSkipsUsedToday = 0
         shortBreaksSinceLong = 0
         if breakKind == nil { nextKind = computeNextKind() }
     }
@@ -297,6 +309,12 @@ public final class BreakEngine: ObservableObject {
         }
         if old.longBreaksEnabled != settings.longBreaksEnabled || old.longBreakEvery != settings.longBreakEvery {
             if breakKind == nil { nextKind = computeNextKind() }
+        }
+        if old.officeHoursEnabled != settings.officeHoursEnabled
+            || old.officeHoursStart != settings.officeHoursStart
+            || old.officeHoursEnd != settings.officeHoursEnd
+            || old.officeDays != settings.officeDays {
+            syncOfficeHours(now: clock.now())
         }
         syncPhase()
     }
@@ -357,6 +375,7 @@ public final class BreakEngine: ObservableObject {
     // MARK: - Derived / read-only surface for UI
 
     public var canSkipNow: Bool {
+        guard hasSkipBudgetToday else { return false }
         switch settings.enforcement {
         case .hardcore:
             return false

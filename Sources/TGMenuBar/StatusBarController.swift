@@ -223,6 +223,12 @@ public final class StatusBarController: NSObject {
 
         add(to: menu, "Start this break now", #selector(menuStartThisBreak), enabled: !isStopped)
 
+        // Only while it would actually do something: advance skips on, allowance left, timer
+        // counting. A permanently greyed-out row is just clutter in a menu this short.
+        if engine.canAdvanceSkip {
+            add(to: menu, "Skip next break", #selector(menuSkipNextBreak))
+        }
+
         addSubmenu(to: menu, "Delay break", enabled: engine.canDelayNow) { submenu in
             for minutes in [1, 5, 15] {
                 let item = NSMenuItem(
@@ -415,6 +421,8 @@ public final class StatusBarController: NSObject {
         guard let seconds = (sender.representedObject as? NSNumber)?.doubleValue else { return }
         engine.startCustomBreak(duration: seconds)
     }
+
+    @objc private func menuSkipNextBreak() { engine.skipNextBreak() }
 
     @objc private func menuResume() { engine.resumeManually() }
 

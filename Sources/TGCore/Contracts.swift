@@ -25,6 +25,8 @@ public enum PauseReason: Codable, Sendable, Hashable {
     case manual(until: Date?)       // user-initiated pause; nil = indefinite
     case focusMode                  // macOS Focus active (optional feature)
     case screenLocked
+    /// Now is outside the user's configured office hours (Settings.officeHours*). Engine-owned.
+    case outsideOfficeHours
 
     /// Short label for the menu bar: "Paused · Meeting".
     public var shortLabel: String {
@@ -37,6 +39,7 @@ public enum PauseReason: Codable, Sendable, Hashable {
         case .manual: return "Paused"
         case .focusMode: return "Focus"
         case .screenLocked: return "Locked"
+        case .outsideOfficeHours: return "Off hours"
         }
     }
 
@@ -51,6 +54,7 @@ public enum PauseReason: Codable, Sendable, Hashable {
         case .manual: return "Paused"
         case .focusMode: return "Focus mode is on"
         case .screenLocked: return "Screen locked"
+        case .outsideOfficeHours: return "Outside office hours"
         }
     }
 }

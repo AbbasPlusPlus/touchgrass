@@ -100,6 +100,22 @@ public struct Settings: Codable, Equatable, Sendable {
     /// Empty by default — nothing is registered until the user records a shortcut.
     public var hotkeys: [String: Hotkey] = [:]
 
+    // MARK: Office hours & skips
+    /// When true, breaks only happen inside the window below; outside it the engine sits paused.
+    public var officeHoursEnabled: Bool = false
+    /// Start of the working window, in minutes from midnight (9 * 60 = 09:00).
+    public var officeHoursStart: Int = 9 * 60
+    /// End of the working window, in minutes from midnight. May be *less* than the start, which
+    /// means the window runs past midnight (07:00 → 00:30) and is anchored to the day it starts on.
+    public var officeHoursEnd: Int = 18 * 60
+    /// Working days as `Calendar` weekday numbers (Sunday = 1). Default: Monday–Friday.
+    public var officeDays: Set<Int> = [2, 3, 4, 5, 6]
+    /// Allow skipping the *upcoming* break before it appears ("advance skips").
+    public var advanceSkipsEnabled: Bool = false
+    public var advanceSkipsPerDay: Int = 2
+    /// Cap on ordinary skips per day. 0 = unlimited.
+    public var skipsPerDay: Int = 0
+
     public init() {}
 
     /// "Title|Subtitle" → (title, subtitle?)

@@ -213,7 +213,7 @@ struct QuickPanelView: View {
             Button("End break") { actions.skipOrEnd(); dismiss() }
                 .buttonStyle(PillButtonStyle(tier: .primary))
                 .disabled(!engine.canSkipNow)
-                .help(engine.canSkipNow ? "End this break" : skipBlockedReason)
+                .help(engine.canSkipNow ? skipHelp : skipBlockedReason)
         } else if engine.phase == .stopped {
             Button("Start TouchGrass") { actions.toggleRunning(); dismiss() }
                 .buttonStyle(PillButtonStyle(tier: .primary))
@@ -229,7 +229,14 @@ struct QuickPanelView: View {
         engine.canDelayNow && engine.hasSnoozeBudget
     }
 
+    /// Says how much budget is left when there is one, so the last skip of the day isn't a surprise.
+    private var skipHelp: String {
+        guard let left = engine.skipsRemainingToday else { return "End this break" }
+        return "\(left) skip\(left == 1 ? "" : "s") left today"
+    }
+
     private var skipBlockedReason: String {
+        if engine.skipsRemainingToday == 0 { return "No skips left today" }
         switch store.settings.enforcement {
         case .hardcore: return "Hardcore mode doesn't allow skipping"
         case .balanced: return "Skipping unlocks a few seconds into the break"
