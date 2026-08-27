@@ -13,6 +13,11 @@ struct PreBreakCardView: View {
     static let inset: CGFloat = 30          // room for the drop shadow inside the panel
 
     @State private var hovering = false
+
+    private static func mmss(_ t: TimeInterval) -> String {
+        let s = Int(t.rounded(.up))
+        return String(format: "%02d:%02d", s / 60, s % 60)
+    }
     @State private var closeHovering = false
 
     private var expanded: Bool { !model.compact || hovering }
@@ -30,14 +35,14 @@ struct PreBreakCardView: View {
     }
 
     private var card: some View {
-        VStack(alignment: .leading, spacing: expanded ? 14 : 0) {
+        VStack(alignment: .leading, spacing: expanded ? 10 : 0) {
             header
             if expanded {
                 actions.transition(.opacity.combined(with: .move(edge: .top)))
             }
         }
         .padding(.horizontal, 20)
-        .padding(.vertical, 18)
+        .padding(.vertical, 13)
         .frame(width: Self.width, alignment: .leading)
         .overlay(alignment: .topTrailing) { closeButton.padding(12) }
         .glassSurface(RoundedRectangle(cornerRadius: 20, style: .continuous))
@@ -58,7 +63,9 @@ struct PreBreakCardView: View {
                     .kerning(0.7)
                     .foregroundStyle(OverlayPalette.matcha)
                     .lineLimit(1)
-                Text(model.countdownText)
+                TimelineView(.periodic(from: .now, by: 1)) { context in
+                    Text(Self.mmss(max(0, model.deadline.timeIntervalSince(context.date))))
+                }
                     .font(OverlayType.cardCountdown)
                     .foregroundStyle(OverlayPalette.ink)
                     .contentTransition(.numericText(countsDown: true))

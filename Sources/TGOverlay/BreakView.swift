@@ -184,9 +184,12 @@ public struct BreakView: View {
 
     private var controls: some View {
         VStack(alignment: .leading, spacing: 12) {
-            // Lock on the left, Skip on the right; the row is a fixed-width, leading-aligned box
-            // so the snooze segments grow rightward out of Skip without moving either target.
-            HStack(alignment: .bottom, spacing: 12) {
+            // Lock on the left, Skip on the right, anchored to an invisible fixed rail: the row
+            // hugs its content (no width is proposed to it, so nothing stretches) while the
+            // anchor keeps both targets still as the snooze segments grow rightward out of Skip.
+            ZStack(alignment: .bottomLeading) {
+                Color.clear.frame(width: 400, height: 1)
+                HStack(alignment: .bottom, spacing: 12) {
                     pill("lock", "Lock Screen") { model.onLockScreen() }
                     // Option D: one capsule. Hovering Skip splits it into » Skip Break | +1m | +5m
                     // segments — a single object stretching, nothing popping in from nowhere.
@@ -197,7 +200,7 @@ public struct BreakView: View {
                         splitCapsule
                     }
                 }
-            .frame(width: 400, alignment: .leading)
+            }
 
             if let action = model.escHintAction {
                 HStack(spacing: 5) {
@@ -318,10 +321,12 @@ public struct BreakView: View {
                 Image(systemName: symbol)
                     .font(.system(size: 13, weight: .semibold, design: .rounded))
                 Text(title)
-                Spacer(minLength: 0)
             }
+            .lineLimit(1)
+            .fixedSize()
         }
         .buttonStyle(GlassPillStyle(size: .regular, tinted: tinted, tone: tone))
+        .fixedSize()
     }
 
     /// Balanced enforcement draws a hairline arc closing around the Skip pill over the delay.
