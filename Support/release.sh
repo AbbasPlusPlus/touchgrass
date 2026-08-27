@@ -155,7 +155,8 @@ fi
 
 step "Tagging $TAG"
 git add Support/Info.plist
-git commit -m "Release $VERSION (build $BUILD)"
+# The stamp may already be committed from a previous attempt — a no-op commit must not abort.
+git diff --cached --quiet || git commit -m "Release $VERSION (build $BUILD)"
 git tag -a "$TAG" -m "$APP $VERSION"
 git push origin HEAD
 git push origin "$TAG"
