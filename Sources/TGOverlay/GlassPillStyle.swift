@@ -115,9 +115,14 @@ private struct GlassPillBody: View {
                 .background(tone.pillFallback, in: Capsule())
                 .overlay(Capsule().strokeBorder(tone.pillBorder, lineWidth: 1))
         } else {
+            // Glass on the background shape only — wrapping the label in the glass effect
+            // refracts the text through the material and it renders soft on screen.
             content
-                .background(tone.pillWash, in: Capsule())
-                .glassEffect(.regular.interactive(), in: Capsule())
+                .background {
+                    Capsule(style: .continuous)
+                        .fill(tone.pillWash)
+                        .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+                }
                 .overlay(Capsule().strokeBorder(tone.pillBorder, lineWidth: 1))
         }
     }

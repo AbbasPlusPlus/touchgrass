@@ -81,11 +81,16 @@ enum LogoMarkGeometry {
     static func templateImage(size: CGFloat, alpha: CGFloat = 1) -> NSImage {
         let img = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
             guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
-            for piece in pieces(in: rect, flipped: false) {
-                ctx.addPath(piece.path)
-                ctx.setFillColor(CGColor(gray: 0, alpha: alpha))
-                ctx.fillPath()
+            // One combined path, one fill: filling the 46 pieces separately leaves antialiased
+            // seams between adjacent shapes when they're all the same colour. (`flipped: true`
+            // to match `draw(in:)` — SVG y grows downward, this context grows upward.)
+            let combined = CGMutablePath()
+            for piece in pieces(in: rect, flipped: true) {
+                combined.addPath(piece.path)
             }
+            ctx.setFillColor(CGColor(gray: 0, alpha: alpha))
+            ctx.addPath(combined)
+            ctx.fillPath(using: .winding)
             return true
         }
         img.isTemplate = true

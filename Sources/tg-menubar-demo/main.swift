@@ -293,7 +293,25 @@ private enum Demo {
     static let delegate = DemoDelegate()
 
     static func run() -> Never {
-        let app = { TGAssets.registerFonts(); return NSApplication.shared }()
+        // Writes the status-bar icon variants to /tmp for visual verification, then exits.
+if CommandLine.arguments.contains("icon-dump") {
+    for (name, dimmed) in [("normal", false), ("dimmed", true)] {
+        let img = StatusBarIcon.grass(dimmed: dimmed)
+        let big = NSImage(size: NSSize(width: 144, height: 144), flipped: false) { rect in
+            NSColor.white.setFill(); rect.fill()
+            img.isTemplate = false
+            img.draw(in: rect.insetBy(dx: 12, dy: 12))
+            return true
+        }
+        if let tiff = big.tiffRepresentation, let rep = NSBitmapImageRep(data: tiff),
+           let png = rep.representation(using: .png, properties: [:]) {
+            try? png.write(to: URL(fileURLWithPath: "/tmp/tg-icon-\(name).png"))
+        }
+    }
+    exit(0)
+}
+
+let app = { TGAssets.registerFonts(); return NSApplication.shared }()
         app.delegate = delegate
         app.setActivationPolicy(.accessory)
         // Dev harness safety: a forgotten demo process leaves a ghost status item in the menu bar.

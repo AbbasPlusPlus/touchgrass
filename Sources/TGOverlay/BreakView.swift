@@ -294,8 +294,8 @@ public struct BreakView: View {
         if OverlayMotion.reduceTransparency {
             Capsule(style: .continuous).fill(tone.pillFallback)
         } else {
-            Color.clear
-                .background(tone.pillWash, in: Capsule(style: .continuous))
+            Capsule(style: .continuous)
+                .fill(tone.pillWash)
                 .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
         }
     }
