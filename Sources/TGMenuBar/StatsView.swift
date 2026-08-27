@@ -23,6 +23,11 @@ struct StatsView: View {
             StatsInsightRow(day: day, interval: settingsStore.settings.shortBreakInterval)
             StatsExplainer()
             BreakStatsCard(day: day)
+            // Hidden entirely when the user turned tracking off — an empty card would still be
+            // a claim that we're watching.
+            if settingsStore.settings.trackAppUsage {
+                AppUsageCard(day: day)
+            }
         }
         .padding(.top, 12)
     }

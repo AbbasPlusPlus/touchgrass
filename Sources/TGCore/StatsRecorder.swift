@@ -7,6 +7,9 @@
 //   1. Clock screen time. Seconds accrue while the engine is `.running` / `.preBreak` /
 //      `.waitingForActivityToStop` and stop dead while it's paused, in a break, or stopped.
 //   2. Count breaks — completed, skipped, natural (an away-reset), and snoozes.
+//   3. Attribute those seconds to whichever app was in front (`noteFrontmostApp`), when the
+//      user leaves `Settings.trackAppUsage` on. The frontmost app is public information, so
+//      this costs no permission and no poll — the host pushes changes as they happen.
 //
 // A *session* is the stretch between rests. Pausing for a meeting doesn't end one — a call is
 // not a rest for your eyes — so a paused stretch merely stops the clock. Sessions end when a
@@ -44,6 +47,10 @@ public final class StatsRecorder {
     private var sessionAccrued: TimeInterval = 0
     /// When the break on screen began, so its real length can be recorded when it ends.
     private var breakStartedAt: Date?
+    /// The app currently in front, as last reported by the host. `nil` means "nobody we can
+    /// name" — those seconds still count as screen time, they just belong to no app.
+    private var frontmostBundleID: String?
+    private var frontmostName: String?
 
     // MARK: - Init
 
@@ -88,6 +95,20 @@ public final class StatsRecorder {
     /// Called by the app's 1 Hz heartbeat, right after `BreakEngine.tick()`.
     public func tick() {
         accrue(upTo: clock.now())
+    }
+
+    // MARK: - Frontmost app
+
+    /// Tells the recorder which app is in front. Pushed by the host (`ActivityMonitor`) on
+    /// `NSWorkspace.didActivateApplicationNotification`; nothing polls.
+    ///
+    /// The seconds banked so far are credited to the *outgoing* app before the switch, so an
+    /// app that was in front for a fraction of a tick doesn't collect the whole tick.
+    public func noteFrontmostApp(bundleID: String?, name: String?) {
+        guard bundleID != frontmostBundleID || name != frontmostName else { return }
+        if running { accrue(upTo: clock.now()) }
+        frontmostBundleID = bundleID
+        frontmostName = name
     }
 
     // MARK: - Phase
@@ -184,14 +205,27 @@ public final class StatsRecorder {
             sessionAccrued += delta
             let start = sessionStart ?? cursor
             let accrued = sessionAccrued
+            // Whoever is in front gets this chunk. Because the chunking is what splits the
+            // accrual at midnight, per-app time lands on the right day for free.
+            let app = trackedApp
             store.mutate(cursor) { day in
                 day.totalScreenTime += delta
                 day.longestSession = max(day.longestSession, accrued)
                 day.updateSession(start: start, duration: accrued)
+                if let app {
+                    day.addAppUsage(bundleID: app.bundleID, name: app.name, seconds: delta)
+                }
             }
 
             cursor = chunkEnd
         }
+    }
+
+    /// The app this accrual should be credited to, or `nil` when there is nobody to credit —
+    /// either nothing nameable is in front, or the user turned app tracking off.
+    private var trackedApp: (bundleID: String, name: String)? {
+        guard store.settings.trackAppUsage, let bundleID = frontmostBundleID, !bundleID.isEmpty else { return nil }
+        return (bundleID, frontmostName ?? bundleID)
     }
 
     // MARK: - Sessions

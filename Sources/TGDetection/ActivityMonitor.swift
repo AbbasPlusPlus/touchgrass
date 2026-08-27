@@ -21,6 +21,11 @@ public final class ActivityMonitor: ObservableObject {
     /// Lock / screensaver / sleep / session state.
     @Published public private(set) var systemState = SystemState()
 
+    /// The app in front, or `nil` when it is TouchGrass itself (or nothing nameable). Pushed
+    /// by `NSWorkspace`, never polled — the app feeds it to `StatsRecorder` so the Stats tab
+    /// can say where the day went.
+    @Published public private(set) var frontmostApp: FrontmostApp?
+
     /// Split idle times — the engine uses these to tell "away" from "reading".
     public var keyboardIdleSeconds: TimeInterval { idle.keyboardIdleSeconds }
     public var mouseIdleSeconds: TimeInterval { mouseIdleSecondsStorage }
@@ -46,6 +51,7 @@ public final class ActivityMonitor: ObservableObject {
     public let idle = IdleDetector()
     public let input = InputActivityDetector()
     public let system = SystemStateObserver()
+    public let frontmost = FrontmostTracker()
 
     private var isRunning = false
     private var mouseIdleSecondsStorage: TimeInterval = 0
@@ -94,6 +100,9 @@ public final class ActivityMonitor: ObservableObject {
             self?.idle.resetAndRefresh()
             self?.refreshAll()
         }
+        // Nothing to recompute: the frontmost app is an output of its own, not an input to
+        // the pause/hint merge.
+        frontmost.onChange = { [weak self] app in self?.frontmostApp = app }
     }
 
     // MARK: Lifecycle
@@ -109,6 +118,7 @@ public final class ActivityMonitor: ObservableObject {
         fullscreen.start()
         deepFocus.start()
         idle.start()
+        frontmost.start()
         meeting.update(camera: camera)
         meeting.update(microphone: microphone)
         recompute()
@@ -125,6 +135,7 @@ public final class ActivityMonitor: ObservableObject {
         fullscreen.stop()
         deepFocus.stop()
         idle.stop()
+        frontmost.stop()
         input.disarm()
         system.stop()
         pauseReasons = []
@@ -140,6 +151,7 @@ public final class ActivityMonitor: ObservableObject {
         fullscreen.refresh()
         deepFocus.refresh()
         idle.refresh()
+        frontmost.refresh()
         recompute()
     }
 
@@ -236,6 +248,7 @@ public final class ActivityMonitor: ObservableObject {
         lines.append(deepFocus.debugDescription())
         lines.append(idle.debugDescription())
         lines.append(input.debugDescription())
+        lines.append(frontmost.debugDescription())
         lines.append("settings: meeting=\(settings.pauseOnMeeting)(cam=\(settings.meetingUsesCamera),mic=\(settings.meetingUsesMicrophone))"
                      + " video=\(settings.pauseOnVideo) fullscreen=\(settings.pauseOnFullscreen)"
                      + " deferWhileTyping=\(settings.deferWhileTyping)"

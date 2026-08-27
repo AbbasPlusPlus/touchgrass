@@ -137,6 +137,11 @@ public struct Settings: Codable, Equatable, Sendable {
     /// assets for every event; `SoundStyle.none` still silences everything.
     public var customSoundPath: String? = nil
 
+    /// Record which app was in front while screen time accrues, so the Stats tab can show
+    /// where the day went. Only the frontmost app's bundle ID and name — never window titles,
+    /// never URLs — and it never leaves this Mac.
+    public var trackAppUsage: Bool = true
+
     /// `customSoundPath` as a file URL, or nil when unset/blank.
     public var customSoundURL: URL? {
         guard let path = customSoundPath?.trimmingCharacters(in: .whitespacesAndNewlines),

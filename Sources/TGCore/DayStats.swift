@@ -64,10 +64,37 @@ public struct DayStats: Codable, Equatable, Sendable {
     /// calendar can draw a whole month without re-running the statr per cell per frame.
     public var stats: Int = Stats.perfect
 
+    // MARK: Apps
+    /// bundle ID → how long that app was frontmost today. Empty unless `Settings.trackAppUsage`
+    /// is on. See `AppUsage.swift` for the bookkeeping.
+    public var appUsage: [String: AppUsage] = [:]
+
     // MARK: - Init
 
     public init(dayKey: String) {
         self.dayKey = dayKey
+    }
+
+    // MARK: - Codable
+
+    /// Hand-written, because the synthesized initialiser treats every non-optional property as
+    /// *required* whether it has a default or not — so a single counter added in a new build
+    /// would throw on an older `stats.json` and take the user's whole history with it. Every
+    /// key here is optional at read time and falls back to the property's default.
+    public init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+        dayKey = (try? c.decode(String.self, forKey: .dayKey)) ?? ""
+        totalScreenTime = (try? c.decode(TimeInterval.self, forKey: .totalScreenTime)) ?? 0
+        longestSession = (try? c.decode(TimeInterval.self, forKey: .longestSession)) ?? 0
+        sessions = (try? c.decode([SessionRecord].self, forKey: .sessions)) ?? []
+        breaksCompleted = (try? c.decode(Int.self, forKey: .breaksCompleted)) ?? 0
+        breakTime = (try? c.decode(TimeInterval.self, forKey: .breakTime)) ?? 0
+        breaksSkipped = (try? c.decode(Int.self, forKey: .breaksSkipped)) ?? 0
+        breaksNatural = (try? c.decode(Int.self, forKey: .breaksNatural)) ?? 0
+        naturalBreakTime = (try? c.decode(TimeInterval.self, forKey: .naturalBreakTime)) ?? 0
+        snoozesUsed = (try? c.decode(Int.self, forKey: .snoozesUsed)) ?? 0
+        stats = (try? c.decode(Int.self, forKey: .stats)) ?? Stats.perfect
+        appUsage = (try? c.decode([String: AppUsage].self, forKey: .appUsage)) ?? [:]
     }
 
     // MARK: - Derived

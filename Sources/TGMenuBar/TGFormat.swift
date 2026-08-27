@@ -58,6 +58,19 @@ public enum TGFormat {
         return rest == 0 ? base : "\(base) \(rest) \(rest == 1 ? "min" : "mins")"
     }
 
+    /// Time already spent, compact enough for a column: `1h 12m`, `8m`, `<1m`.
+    ///
+    /// Rounds *down* like `elapsed`, and says `<1m` rather than `0m` — an app you glanced at
+    /// for twenty seconds should read as a glance, not as a measurement or as a whole minute.
+    public static func compactElapsed(_ seconds: TimeInterval) -> String {
+        let total = max(0, Int(seconds)) / 60
+        if total == 0 { return "<1m" }
+        if total < 60 { return "\(total)m" }
+        let hours = total / 60
+        let rest = total % 60
+        return rest == 0 ? "\(hours)h" : "\(hours)h \(rest)m"
+    }
+
     // MARK: - Configured durations
 
     /// Human duration for summary rows: `30 secs`, `3 mins`, `1 hr`, `1 hr 30 mins`.

@@ -112,6 +112,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             .sink { [weak self] s in self?.engine.updateIdleSeconds(s) }
             .store(in: &cancellables)
 
+        // Per-app screen time. The tracker only fires when the frontmost app actually changes,
+        // and the recorder decides whether any of it is worth recording.
+        monitor.$frontmostApp
+            .removeDuplicates()
+            .sink { [weak self] app in
+                self?.statsRecorder.noteFrontmostApp(bundleID: app?.bundleID, name: app?.name)
+            }
+            .store(in: &cancellables)
+
         monitor.system.onLock = { [weak self] in self?.engine.screenDidLock() }
         monitor.system.onUnlock = { [weak self] in self?.engine.screenDidUnlock() }
         monitor.system.onWake = { [weak self] in

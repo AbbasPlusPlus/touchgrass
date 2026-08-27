@@ -36,6 +36,11 @@ enum DemoStats {
             stats.longestSession = max(stats.longestSession, duration)
             start = start.addingTimeInterval(duration + 240)
         }
+        // Eight apps so the card shows its top five and a "+3 more" line, and so both the
+        // real-icon and the missing-icon paths are on screen.
+        for (bundleID, name, seconds) in demoApps {
+            stats.addAppUsage(bundleID: bundleID, name: name, seconds: seconds)
+        }
         stats.breaksCompleted = 3
         stats.breakTime = 240
         stats.breaksNatural = 1
@@ -44,6 +49,20 @@ enum DemoStats {
         stats.snoozesUsed = 2
         return stats
     }
+
+    /// Bundle IDs that ship with macOS wherever possible, so the icons resolve on any machine.
+    /// The totals add up to a little under the day's 7,700 seconds of screen time — which is
+    /// honest: time with nothing nameable in front belongs to no app.
+    private static let demoApps: [(String, String, TimeInterval)] = [
+        ("com.apple.Safari", "Safari", 4_350),
+        ("com.apple.dt.Xcode", "Xcode", 1_620),
+        ("com.apple.Terminal", "Terminal", 940),
+        ("com.tinyspeck.slackmacgap", "Slack", 520),
+        ("com.apple.mail", "Mail", 310),
+        ("com.apple.Notes", "Notes", 180),
+        ("com.apple.Music", "Music", 95),
+        ("com.apple.Preview", "Preview", 40),
+    ]
 
     // MARK: - History
 

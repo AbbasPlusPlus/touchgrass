@@ -41,6 +41,14 @@ struct GeneralPage: View {
                 Text(store.settings.menuBarStyle.settingsFootnote)
             }
 
+            Section {
+                Toggle("Track app usage", isOn: $store.settings.trackAppUsage)
+            } header: {
+                Text("Stats")
+            } footer: {
+                Text("Only the app in front is recorded, never window titles or web pages. Stays on this Mac.")
+            }
+
             UpdatesSection(store: store, updates: UpdateChecker.shared)
 
             Section("Getting started") {

@@ -283,6 +283,140 @@ private func settings(interval: TimeInterval) -> Settings {
     #expect(secondDay.longestSession == 3600)
 }
 
+// MARK: - Recorder: app usage
+
+@Test @MainActor func appUsageAccruesOnlyWhileScreenTimeDoes() {
+    let h = StatsHarness()
+    h.start()
+    h.recorder.noteFrontmostApp(bundleID: "com.apple.Safari", name: "Safari")
+    h.run(40)
+    #expect(h.today.appUsage["com.apple.Safari"]?.seconds == 40)
+    #expect(h.today.appUsage["com.apple.Safari"]?.name == "Safari")
+
+    // A meeting stops the clock on the app just as it stops it on the day.
+    h.engine.updatePauseReasons([.zoomMeeting])
+    h.run(30)
+    #expect(h.today.appUsage["com.apple.Safari"]?.seconds == 40)
+
+    h.engine.updatePauseReasons([])
+    h.run(10)
+    #expect(h.today.appUsage["com.apple.Safari"]?.seconds == 50)
+    #expect(h.today.totalScreenTime == 50)
+}
+
+@Test @MainActor func timeInABreakBelongsToNoApp() {
+    let h = StatsHarness()   // .fast(): 100 s interval, 10 s short break
+    h.start()
+    h.recorder.noteFrontmostApp(bundleID: "com.apple.dt.Xcode", name: "Xcode")
+    h.run(100)               // the break fires here
+    h.run(10)                // the whole break
+    #expect(h.today.appUsage["com.apple.dt.Xcode"]?.seconds == 100)
+    #expect(h.today.breaksCompleted == 1)
+}
+
+@Test @MainActor func switchingAppsSplitsTheTimeBetweenThem() {
+    let h = StatsHarness()
+    h.start()
+    h.recorder.noteFrontmostApp(bundleID: "com.apple.Safari", name: "Safari")
+    h.run(30)
+    h.recorder.noteFrontmostApp(bundleID: "com.apple.mail", name: "Mail")
+    h.run(20)
+    #expect(h.today.appUsage["com.apple.Safari"]?.seconds == 30)
+    #expect(h.today.appUsage["com.apple.mail"]?.seconds == 20)
+    #expect(h.today.attributedAppTime == h.today.totalScreenTime)
+
+    // Nobody in front: the seconds are still screen time, they just belong to no app.
+    h.recorder.noteFrontmostApp(bundleID: nil, name: nil)
+    h.run(15)
+    #expect(h.today.totalScreenTime == 65)
+    #expect(h.today.attributedAppTime == 50)
+}
+
+@Test @MainActor func switchingAppsMidTickCreditsTheOutgoingApp() {
+    let h = StatsHarness()
+    h.start()
+    h.recorder.noteFrontmostApp(bundleID: "com.apple.Safari", name: "Safari")
+    h.clock.advance(4)
+    // No tick yet — the switch itself has to bank Safari's four seconds.
+    h.recorder.noteFrontmostApp(bundleID: "com.apple.mail", name: "Mail")
+    h.run(6)
+    #expect(h.today.appUsage["com.apple.Safari"]?.seconds == 4)
+    #expect(h.today.appUsage["com.apple.mail"]?.seconds == 6)
+}
+
+@Test @MainActor func appUsageSplitsAtMidnight() {
+    var s = Settings()
+    s.shortBreakInterval = 100_000   // nothing may interrupt the run
+    s.deferWhileTyping = false
+    let elevenPM = Calendar.current
+        .startOfDay(for: Date(timeIntervalSince1970: 1_756_000_000))
+        .addingTimeInterval(23 * 3600)
+    let h = StatsHarness(s, clock: FakeClock(elevenPM))
+    h.start()
+    h.recorder.noteFrontmostApp(bundleID: "com.apple.Safari", name: "Safari")
+    h.run(2 * 3600, step: 60)
+
+    let firstDay = h.store.stats(for: elevenPM)
+    let secondDay = h.store.stats(for: elevenPM.addingTimeInterval(2 * 3600))
+    #expect(firstDay.appUsage["com.apple.Safari"]?.seconds == 3600)
+    #expect(secondDay.appUsage["com.apple.Safari"]?.seconds == 3600)
+}
+
+@Test @MainActor func appUsageIsNotRecordedWhenTheUserTurnsItOff() {
+    var s = Settings.fast()
+    s.trackAppUsage = false
+    let h = StatsHarness(s)
+    h.start()
+    h.recorder.noteFrontmostApp(bundleID: "com.apple.Safari", name: "Safari")
+    h.run(40)
+    #expect(h.today.totalScreenTime == 40)
+    #expect(h.today.appUsage.isEmpty)
+}
+
+// MARK: - App usage: the map itself
+
+@Test @MainActor func theAppMapIsCappedAndDropsTheSmallest() {
+    var stats = DayStats(dayKey: "2026-01-01")
+    for i in 0...(DayStats.maxTrackedApps + 20) {
+        stats.addAppUsage(bundleID: "app.\(i)", name: "App \(i)", seconds: TimeInterval(i + 1))
+    }
+    #expect(stats.appUsage.count == DayStats.maxTrackedApps)
+    // The longest-used apps — the only ones the card ever draws — are the survivors.
+    #expect(stats.appUsage["app.\(DayStats.maxTrackedApps + 20)"] != nil)
+    #expect(stats.appUsage["app.0"] == nil)
+}
+
+@Test @MainActor func appUsageIsRankedLongestFirst() {
+    var stats = DayStats(dayKey: "2026-01-01")
+    stats.addAppUsage(bundleID: "com.apple.mail", name: "Mail", seconds: 60)
+    stats.addAppUsage(bundleID: "com.apple.Safari", name: "Safari", seconds: 120)
+    stats.addAppUsage(bundleID: "com.apple.Safari", name: "Safari", seconds: 30)
+    let ranked = stats.rankedAppUsage()
+    #expect(ranked.map(\.name) == ["Safari", "Mail"])
+    #expect(ranked.first?.seconds == 150)
+    #expect(stats.rankedAppUsage(limit: 1).count == 1)
+    #expect(stats.attributedAppTime == 210)
+}
+
+@Test @MainActor func aDayWrittenBeforeAppTrackingStillDecodes() {
+    // Exactly what an older build wrote: no `appUsage` key at all.
+    let json = #"{"version":1,"days":{"2026-01-01":{"dayKey":"2026-01-01","#
+        + #""totalScreenTime":1200,"longestSession":1200,"sessions":[],"breaksCompleted":2,"#
+        + #""breakTime":90,"breaksSkipped":1,"breaksNatural":0,"naturalBreakTime":0,"#
+        + #""snoozesUsed":0,"stats":88}}}"#
+    let directory = FileManager.default.temporaryDirectory
+        .appendingPathComponent("tg-stats-legacy-\(UUID().uuidString)", isDirectory: true)
+    try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
+    let url = directory.appendingPathComponent("stats.json")
+    try? Data(json.utf8).write(to: url)
+
+    let store = StatsStore(settings: .fast(), url: url)
+    let day = store.days["2026-01-01"]
+    #expect(day?.totalScreenTime == 1200)
+    #expect(day?.breaksCompleted == 2)
+    #expect(day?.appUsage.isEmpty == true)
+}
+
 // MARK: - Recorder: breaks
 
 @Test @MainActor func skipsAreCountedOnceEvenThoughTheEngineAlsoEndsTheBreak() {

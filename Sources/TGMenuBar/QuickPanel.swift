@@ -13,9 +13,10 @@ public final class QuickPanel {
 
     /// Fixed width; the height comes from the SwiftUI layout, clamped to a sane range.
     /// Sized so a 15 pt summary row fits its label and its value without either truncating.
-    /// The height upper bound has to clear the Stats calendar — the tallest thing the panel shows.
+    /// The height upper bound has to clear the Stats tab with every card open — the tallest
+    /// thing the panel shows — and is clamped again to whatever the screen actually offers.
     public static let width: CGFloat = 376
-    private static let heightRange: ClosedRange<CGFloat> = 200...700
+    private static let heightRange: ClosedRange<CGFloat> = 200...790
     /// The panel's visible shape. The glass and the content view's mask must agree — see
     /// `makeWindow()` for why the mask exists at all.
     private static let cornerRadius: CGFloat = 16
@@ -115,10 +116,14 @@ public final class QuickPanel {
     }
 
     private func fittingSize() -> NSSize {
-        NSSize(
+        // A panel taller than the screen would hang off the bottom with its content cut, so the
+        // upper bound is whichever is smaller: the design cap, or the display minus its margins.
+        let available = (window?.screen ?? NSScreen.main)?.visibleFrame.height
+        let cap = max(Self.heightRange.lowerBound,
+                      min(Self.heightRange.upperBound, (available ?? .greatestFiniteMagnitude) - 24))
+        return NSSize(
             width: Self.width,
-            height: min(max(hosting?.fittingSize.height ?? 0, Self.heightRange.lowerBound),
-                        Self.heightRange.upperBound)
+            height: min(max(hosting?.fittingSize.height ?? 0, Self.heightRange.lowerBound), cap)
         )
     }
 
