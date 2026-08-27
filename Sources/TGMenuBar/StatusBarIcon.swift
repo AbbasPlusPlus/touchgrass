@@ -17,6 +17,6 @@ public enum StatusBarIcon {
     /// - Parameter dimmed: renders at reduced alpha for the paused / stopped states, which
     ///   reads as "not running" against both a light and a dark menu bar.
     public static func grass(dimmed: Bool = false) -> NSImage {
-        LogoMarkGeometry.templateImage(size: size, alpha: dimmed ? 0.45 : 1.0)
+        LogoMarkGeometry.image(size: size, alpha: dimmed ? 0.45 : 1.0)
     }
 }
