@@ -142,6 +142,8 @@ public enum Enforcement: String, Codable, Sendable, Hashable, CaseIterable {
 // MARK: - Overlay appearance
 
 public enum BreakBackground: Codable, Sendable, Hashable {
+    /// Frosts whatever is actually on screen (window-server behind-window blur, no capture).
+    case screenBlur
     case wallpaper                 // the user's real desktop picture per screen, blurred
     case gradient(GradientPreset)
     case animated(AnimatedPreset)

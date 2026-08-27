@@ -66,7 +66,7 @@ public struct Settings: Codable, Equatable, Sendable {
     public var wellnessMainScreenOnly: Bool = true
 
     // MARK: Appearance
-    public var background: BreakBackground = .wallpaper
+    public var background: BreakBackground = .screenBlur
     public var showTitle: Bool = true
     public var showSubtitle: Bool = true
     public var showClock: Bool = true

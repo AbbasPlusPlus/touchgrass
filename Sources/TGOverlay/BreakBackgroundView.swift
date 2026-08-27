@@ -13,6 +13,8 @@ struct BreakBackgroundView: View {
 
     var body: some View {
         switch background {
+        case .screenBlur:
+            FrostBackgroundView()
         case .wallpaper:
             WallpaperBackgroundView(url: wallpaperURL, fallback: Self.fallback)
         case .gradient(let preset):

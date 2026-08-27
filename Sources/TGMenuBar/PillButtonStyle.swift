@@ -16,6 +16,7 @@ struct PillButtonStyle: ButtonStyle {
     var tier: Tier = .quiet
 
     @Environment(\.isEnabled) private var isEnabled
+    @State private var isHovered = false
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
@@ -35,12 +36,15 @@ struct PillButtonStyle: ButtonStyle {
             )
             .opacity(isEnabled ? 1 : 0.45)
             .contentShape(Capsule(style: .continuous))
+            .onHover { hovering in
+                withAnimation(.easeOut(duration: 0.12)) { isHovered = hovering && isEnabled }
+            }
     }
 
     private func fill(pressed: Bool) -> Color {
         switch tier {
-        case .primary: return Color.primary.opacity(pressed ? 0.27 : 0.18)
-        case .quiet:   return Color.primary.opacity(pressed ? 0.15 : 0.07)
+        case .primary: return Color.primary.opacity(pressed ? 0.27 : (isHovered ? 0.23 : 0.18))
+        case .quiet:   return Color.primary.opacity(pressed ? 0.15 : (isHovered ? 0.11 : 0.07))
         }
     }
 }

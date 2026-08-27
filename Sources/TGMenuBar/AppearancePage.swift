@@ -46,6 +46,7 @@ struct AppearancePage: View {
 
     private var backgroundSummary: String {
         switch settings.background {
+        case .screenBlur: return "Softly blurs whatever you were doing."
         case .wallpaper: return "Your own desktop picture, blurred, on every display."
         case .gradient(let preset): return "\(PresetPalette.title(preset)) gradient."
         case .animated(let preset): return "\(PresetPalette.title(preset)), animated on the main display."

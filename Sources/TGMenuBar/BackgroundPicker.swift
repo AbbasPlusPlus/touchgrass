@@ -14,6 +14,18 @@ struct BackgroundPicker: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
             group("Your desktop") {
+                BackgroundTile(caption: "Screen blur", isSelected: background == .screenBlur) {
+                    background = .screenBlur
+                } content: {
+                    AnyView(
+                        LinearGradient(colors: [Color(white: 0.55), Color(white: 0.35)],
+                                       startPoint: .top, endPoint: .bottom)
+                            .overlay(Image(systemName: "circle.lefthalf.filled.inverse")
+                                .font(.system(size: 15))
+                                .foregroundStyle(.white.opacity(0.7)))
+                            .blur(radius: 1.5)
+                    )
+                }
                 BackgroundTile(caption: "Wallpaper", isSelected: background == .wallpaper) {
                     background = .wallpaper
                 } content: {
