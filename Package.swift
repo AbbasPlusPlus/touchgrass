@@ -20,8 +20,10 @@ let package = Package(
             name: "TouchGrass",
             dependencies: ["TGCore", "TGDetection", "TGAudio", "TGOverlay", "TGMenuBar"]
         ),
-        // Plays every bundled sound in sequence: `swift run tg-sound-demo`.
+        // Dev-only executables (not bundled into the app).
         .executableTarget(name: "tg-sound-demo", dependencies: ["TGCore", "TGAudio"]),
+        .executableTarget(name: "tg-probe", dependencies: ["TGCore", "TGDetection"]),
         .testTarget(name: "TGCoreTests", dependencies: ["TGCore"]),
+        .testTarget(name: "TGDetectionTests", dependencies: ["TGCore", "TGDetection"]),
     ],
 )
