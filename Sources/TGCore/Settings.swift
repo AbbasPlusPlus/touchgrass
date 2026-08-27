@@ -90,6 +90,8 @@ public struct Settings: Codable, Equatable, Sendable {
 
     // MARK: General
     public var launchAtLogin: Bool = false
+    /// Poll the appcast on launch and once a day. Manual "Check Now" works either way.
+    public var autoUpdateEnabled: Bool = true
     public var menuBarStyle: MenuBarStyle = .iconAndTime
     public var hasCompletedOnboarding: Bool = false
 

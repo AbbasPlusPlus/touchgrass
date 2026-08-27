@@ -7,7 +7,7 @@ BIN      := $(BUILD)/$(CONFIG)/$(APP)
 APPDIR   := build/$(APP).app
 CONTENTS := $(APPDIR)/Contents
 
-.PHONY: all build bundle run test clean debug kill install
+.PHONY: all build bundle run test clean debug kill install release release-dry
 
 all: bundle
 
@@ -42,5 +42,15 @@ install: bundle
 	cp -R $(APPDIR) /Applications/$(APP).app
 	@echo "Installed to /Applications/$(APP).app"
 
+# Cuts a release: stamps VERSION into the bundle, zips it, publishes the GitHub release and
+# pushes the appcast. `make release-dry VERSION=x.y.z` stops after the local zip + appcast.
+release:
+	@[ -n "$(VERSION)" ] || { echo "usage: make release VERSION=x.y.z" >&2; exit 1; }
+	bash Support/release.sh $(VERSION)
+
+release-dry:
+	@[ -n "$(VERSION)" ] || { echo "usage: make release-dry VERSION=x.y.z" >&2; exit 1; }
+	DRY_RUN=1 bash Support/release.sh $(VERSION)
+
 clean:
-	rm -rf $(BUILD) build
+	rm -rf $(BUILD) build dist

@@ -5,6 +5,7 @@ import TGDetection
 import TGAudio
 import TGOverlay
 import TGMenuBar
+import TGUpdate
 
 @MainActor
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -15,6 +16,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var sounds: SoundPlayer!
     private var overlay: OverlayCoordinator!
     private var statusBar: StatusBarController!
+    private var updates: UpdateChecker!
 
     private var tickTimer: Timer?
     private var activityToken: NSObjectProtocol?
@@ -44,6 +46,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         wireSettings()
         wireDetection()
         wireWellness()
+        wireUpdates()
         startTicking()
 
         sounds.preloadAll()
@@ -71,6 +74,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self.engine.settings = s
                 self.wellness.settings = s
                 self.monitor.settings = s
+                self.updates.automaticChecksEnabled = s.autoUpdateEnabled
             }
             .store(in: &cancellables)
     }
@@ -115,6 +119,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 armed ? self?.monitor.armActivityHints() : self?.monitor.disarmActivityHints()
             }
             .store(in: &cancellables)
+    }
+
+    /// The updater checks 10 s after launch and once a day, downloads and verifies in the
+    /// background, then waits — the swap only happens when the user picks "Restart to update".
+    private func wireUpdates() {
+        updates = UpdateChecker.shared
+        updates.automaticChecksEnabled = store.settings.autoUpdateEnabled
+        updates.onUpdateAvailable = { [weak self] version in
+            self?.statusBar.updateAvailableVersion = version
+        }
+        statusBar.onInstallUpdate = { [weak self] in self?.updates.installAndRelaunch() }
+        updates.start()
     }
 
     /// Wellness reminders ride on the engine's event stream so the overlay sees one source.

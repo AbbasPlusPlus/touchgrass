@@ -13,12 +13,14 @@ let package = Package(
         .target(name: "TGAudio", dependencies: ["TGCore"], resources: [.process("Resources")]),
         // Break overlay, pre-break card, cursor pill, wellness nudges.
         .target(name: "TGOverlay", dependencies: ["TGCore", "TGAudio"]),
+        // Self-update: appcast poll, download + SHA-256 verify, bundle swap, relaunch.
+        .target(name: "TGUpdate", dependencies: ["TGCore"]),
         // Status item, quick panel, settings window.
-        .target(name: "TGMenuBar", dependencies: ["TGCore"]),
+        .target(name: "TGMenuBar", dependencies: ["TGCore", "TGUpdate"]),
         // App entry + wiring.
         .executableTarget(
             name: "TouchGrass",
-            dependencies: ["TGCore", "TGDetection", "TGAudio", "TGOverlay", "TGMenuBar"]
+            dependencies: ["TGCore", "TGDetection", "TGAudio", "TGOverlay", "TGMenuBar", "TGUpdate"]
         ),
         // Dev-only executables (not bundled into the app).
         .executableTarget(name: "tg-sound-demo", dependencies: ["TGCore", "TGAudio"]),
@@ -27,5 +29,6 @@ let package = Package(
         .executableTarget(name: "tg-overlay-demo", dependencies: ["TGCore", "TGOverlay"]),
         .testTarget(name: "TGCoreTests", dependencies: ["TGCore"]),
         .testTarget(name: "TGDetectionTests", dependencies: ["TGCore", "TGDetection"]),
+        .testTarget(name: "TGUpdateTests", dependencies: ["TGUpdate"]),
     ],
 )
