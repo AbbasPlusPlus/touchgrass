@@ -181,5 +181,21 @@ else
   git -C "$WORK/repo" push
 fi
 
+step "Bumping the Homebrew cask"
+TAP_WORK="$(mktemp -d /tmp/touchgrass-tap.XXXXXX)"
+gh repo clone AbbasPlusPlus/homebrew-touchgrass "$TAP_WORK/tap" -- --depth 1
+CASK="$TAP_WORK/tap/Casks/touchgrass.rb"
+SHA256="$(python3 -c "import json;print(json.load(open('$APPCAST'))['sha256'])")"
+sed -i '' "s|^  version \".*\"|  version \"$VERSION\"|" "$CASK"
+sed -i '' "s|^  sha256 \".*\"|  sha256 \"$SHA256\"|" "$CASK"
+git -C "$TAP_WORK/tap" add Casks/touchgrass.rb
+if git -C "$TAP_WORK/tap" diff --cached --quiet; then
+  step "cask unchanged"
+else
+  git -C "$TAP_WORK/tap" commit -m "touchgrass $VERSION"
+  git -C "$TAP_WORK/tap" push
+fi
+rm -rf "$TAP_WORK"
+
 step "Released $APP $VERSION"
 printf 'Clients will see it within 24 h, or immediately via Settings ▸ General ▸ Check Now.\n'
