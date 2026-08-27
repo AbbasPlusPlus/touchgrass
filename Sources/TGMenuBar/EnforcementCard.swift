@@ -14,12 +14,12 @@ struct EnforcementCard: View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 7) {
                 thumbnail
-                VStack(alignment: .leading, spacing: 1) {
+                VStack(alignment: .leading, spacing: 2) {
                     Text(enforcement.title)
-                        .font(.system(size: 12, weight: .semibold))
+                        .font(TGType.caption)
                         .foregroundStyle(.primary)
                     Text(enforcement.subtitle)
-                        .font(.system(size: 10.5))
+                        .font(TGType.footnote)
                         .foregroundStyle(.secondary)
                         .lineLimit(2, reservesSpace: true)
                         .multilineTextAlignment(.leading)

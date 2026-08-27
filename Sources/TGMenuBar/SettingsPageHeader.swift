@@ -8,12 +8,12 @@ struct SettingsPageHeader: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            SettingsIcon(symbol: section.symbol, tint: section.tint, size: 26)
-            VStack(alignment: .leading, spacing: 1) {
+            SettingsIcon(symbol: section.symbol, tint: section.tint, size: 28)
+            VStack(alignment: .leading, spacing: 2) {
                 Text(section.title)
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(TGType.title)
                 Text(subtitle)
-                    .font(.system(size: 11.5))
+                    .font(TGType.caption)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)

@@ -82,7 +82,7 @@ struct SmartPausePage: View {
         Section {
             Toggle("Pause during fullscreen games", isOn: $store.settings.pauseOnFullscreen)
             Text("Detected automatically. To pause for other fullscreen apps, add them to Deep Focus Apps.")
-                .font(.system(size: 11))
+                .font(TGType.footnote)
                 .foregroundStyle(.secondary)
                 .fixedSize(horizontal: false, vertical: true)
             Toggle("Pause while a macOS Focus is on", isOn: $store.settings.pauseOnFocusMode)

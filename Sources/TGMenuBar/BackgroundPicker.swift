@@ -9,7 +9,7 @@ struct BackgroundPicker: View {
 
     @Binding var background: BreakBackground
 
-    private let columns = [GridItem(.adaptive(minimum: 64, maximum: 74), spacing: 10, alignment: .top)]
+    private let columns = [GridItem(.adaptive(minimum: 78, maximum: 88), spacing: 10, alignment: .top)]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
@@ -59,7 +59,7 @@ struct BackgroundPicker: View {
     private func group<Content: View>(_ header: String, @ViewBuilder content: () -> Content) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(header)
-                .font(.system(size: 11, weight: .medium))
+                .font(TGType.caption)
                 .foregroundStyle(.secondary)
             LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
                 content()

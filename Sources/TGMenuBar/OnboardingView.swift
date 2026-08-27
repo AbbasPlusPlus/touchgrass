@@ -16,17 +16,19 @@ struct OnboardingView: View {
             hero
             VStack(alignment: .leading, spacing: 10) {
                 Text(step.title)
-                    .font(.system(size: 21, weight: .semibold))
+                    .font(TGType.display)
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(step.body)
-                    .font(.system(size: 12.5))
+                    .font(TGType.body)
                     .foregroundStyle(.secondary)
+                    .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
                 control
                     .padding(.top, 4)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(.horizontal, 34)
-            .padding(.top, 20)
+            .padding(.horizontal, 30)
+            .padding(.top, 18)
 
             Spacer(minLength: 12)
             footer
@@ -55,17 +57,17 @@ struct OnboardingView: View {
                 heroText(icon: "eye", caption: "Blink. Sit up. Carry on.")
             }
         }
-        .frame(height: 168)
+        .frame(height: 178)
     }
 
     private func heroText(icon: String, caption: String) -> some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
-                .font(.system(size: 34, weight: .light))
+                .font(.system(size: 38, weight: .light, design: .rounded))
                 .foregroundStyle(.white)
             Text(caption)
-                .font(.system(size: 12.5, weight: .medium))
-                .foregroundStyle(.white.opacity(0.9))
+                .font(TGType.body)
+                .foregroundStyle(.white.opacity(0.92))
         }
     }
 
@@ -73,15 +75,14 @@ struct OnboardingView: View {
     private var breakPreview: some View {
         VStack(spacing: 5) {
             Text("Relax those eyes")
-                .font(.system(size: 12, weight: .medium))
-                .foregroundStyle(.white.opacity(0.85))
+                .font(TGType.caption)
+                .foregroundStyle(.white.opacity(0.88))
             Text(TGFormat.clock(store.settings.shortBreakDuration))
-                .font(.system(size: 40, weight: .semibold))
-                .monospacedDigit()
+                .font(TGType.hero)
                 .foregroundStyle(.white)
             Text("Find a distant spot to rest your eyes on")
-                .font(.system(size: 10))
-                .foregroundStyle(.white.opacity(0.7))
+                .font(TGType.footnote)
+                .foregroundStyle(.white.opacity(0.78))
         }
     }
 
@@ -116,7 +117,7 @@ struct OnboardingView: View {
                 Toggle("Launch TouchGrass at login", isOn: launchAtLoginBinding)
                 if let error = loginItems.lastError {
                     Text(error)
-                        .font(.system(size: 10.5))
+                        .font(TGType.footnote)
                         .foregroundStyle(.secondary)
                         .fixedSize(horizontal: false, vertical: true)
                 }

@@ -39,10 +39,10 @@ struct OnboardingDurationField: View {
     private func chip(_ title: String, selected: Bool, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             Text(title)
-                .font(.system(size: 12, weight: selected ? .semibold : .regular))
+                .font(selected ? TGType.pill : TGType.pillQuiet)
                 .lineLimit(1)
-                .padding(.vertical, 5)
-                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .padding(.horizontal, 12)
                 .foregroundStyle(selected ? Color.white : Color.primary)
                 .background(
                     Capsule(style: .continuous)
@@ -69,13 +69,13 @@ struct OnboardingDurationField: View {
             Stepper("", value: units, in: bounds, step: unit.step)
                 .labelsHidden()
             Text(unit.suffix)
-                .font(.system(size: 12))
+                .font(TGType.body)
                 .foregroundStyle(.secondary)
 
             // A rest of 150 sec is easier to picture as "2 min 30 sec".
             if unit == .seconds, value >= 60 {
                 Text("· \(TGFormat.compact(value))")
-                    .font(.system(size: 11))
+                    .font(TGType.footnote)
                     .foregroundStyle(.secondary)
             }
             Spacer(minLength: 0)

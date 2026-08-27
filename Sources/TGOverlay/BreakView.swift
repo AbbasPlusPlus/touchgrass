@@ -86,8 +86,8 @@ public struct BreakView: View {
 
     private var quietCountdown: some View {
         Text(model.countdownText)
-            .font(.system(size: 64, weight: .light, design: .rounded).monospacedDigit())
-            .foregroundStyle(.white.opacity(0.26))
+            .font(OverlayType.quietCountdown)
+            .foregroundStyle(.white.opacity(0.34))
             .kerning(1)
             .rise(index: 1, appeared: appeared)
     }
@@ -98,8 +98,8 @@ public struct BreakView: View {
         VStack(spacing: 0) {
             if model.showTitle {
                 Text(model.title)
-                    .font(.system(size: 44, weight: .medium, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.96))
+                    .font(OverlayType.breakTitle)
+                    .foregroundStyle(.white.opacity(0.97))
                     .kerning(-0.3)
                     .multilineTextAlignment(.center)
                     .shadow(color: .black.opacity(0.30), radius: 16, y: 4)
@@ -108,12 +108,12 @@ public struct BreakView: View {
 
             if model.showSubtitle, let subtitle = model.subtitle, !subtitle.isEmpty {
                 Text(subtitle)
-                    .font(.system(.title3, design: .rounded))
-                    .foregroundStyle(.white.opacity(0.75))
+                    .font(OverlayType.breakSubtitle)
+                    .foregroundStyle(.white.opacity(0.80))
                     .multilineTextAlignment(.center)
-                    .lineSpacing(3)
-                    .frame(maxWidth: 560)
-                    .padding(.top, 14)
+                    .lineSpacing(5)
+                    .frame(maxWidth: 640)
+                    .padding(.top, 16)
                     .shadow(color: .black.opacity(0.25), radius: 12, y: 3)
                     .rise(index: 2, appeared: appeared)
             }
@@ -123,8 +123,8 @@ public struct BreakView: View {
                 .rise(index: 3, appeared: appeared)
 
             Text(model.countdownText)
-                .font(.system(size: 96, weight: .light, design: .rounded).monospacedDigit())
-                .foregroundStyle(.white.opacity(0.93))
+                .font(OverlayType.breakCountdown)
+                .foregroundStyle(.white.opacity(0.95))
                 .kerning(1.5)
                 .shadow(color: .black.opacity(0.35), radius: 24, y: 8)
                 .padding(.top, 26)
@@ -145,8 +145,8 @@ public struct BreakView: View {
     private var clock: some View {
         TimelineView(.everyMinute) { context in
             Text(Self.clockFormatter.string(from: context.date))
-                .font(.system(size: 14, weight: .medium, design: .rounded).monospacedDigit())
-                .foregroundStyle(.white.opacity(0.70))
+                .font(OverlayType.clock)
+                .foregroundStyle(.white.opacity(0.78))
                 .kerning(1.2)
                 .shadow(color: .black.opacity(0.30), radius: 10, y: 2)
         }
@@ -181,7 +181,7 @@ public struct BreakView: View {
                                     Text("Skip Break")
                                     Spacer(minLength: 0)
                                 }
-                                .frame(width: Self.pillWidth - 38)
+                                .frame(width: Self.pillWidth - GlassPillStyle.Size.regular.hPadding * 2)
                             }
                             .buttonStyle(GlassPillStyle(size: .regular,
                                                         ringProgress: model.skipEnabled ? nil : skipRing))
@@ -204,17 +204,17 @@ public struct BreakView: View {
                 HStack(spacing: 5) {
                     Text("Press")
                     Text("Esc")
-                        .font(.system(size: 10.5, weight: .semibold, design: .rounded))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2.5)
+                        .font(OverlayType.keycap)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
                         .background(
-                            RoundedRectangle(cornerRadius: 5, style: .continuous)
-                                .fill(.white.opacity(0.14))
+                            RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                .fill(.white.opacity(0.16))
                         )
                     Text("twice to \(action)")
                 }
-                .font(.system(size: 11.5, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.55))
+                .font(OverlayType.hint)
+                .foregroundStyle(.white.opacity(OverlayType.tertiaryOpacity))
             }
         }
         .fixedSize()
@@ -222,10 +222,10 @@ public struct BreakView: View {
         .animation(OverlayMotion.ease(0.35), value: model.skipEnabled)
     }
 
-    private static let pillWidth: CGFloat = 150
+    private static let pillWidth: CGFloat = 176
     /// How much of each stacked snooze pill hides behind the one in front of it when collapsed:
     /// pill height minus the visible peek.
-    private var pillOverlap: CGFloat { 30 }
+    private var pillOverlap: CGFloat { 36 }
 
     /// A snooze pill in the deck. `depth` 1 sits just behind Skip, 2 behind that. When collapsed,
     /// rear pills are slightly narrower and dimmer so the deck reads as a stack of cards.
@@ -245,7 +245,7 @@ public struct BreakView: View {
         Button(action: action) {
             HStack(spacing: 7) {
                 Image(systemName: symbol)
-                    .font(.system(size: 12, weight: .semibold))
+                    .font(.system(size: 13, weight: .semibold, design: .rounded))
                 Text(title)
                 Spacer(minLength: 0)
             }

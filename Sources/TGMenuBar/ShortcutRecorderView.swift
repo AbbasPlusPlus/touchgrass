@@ -24,12 +24,12 @@ public struct ShortcutRecorderView: View {
         HStack(spacing: 6) {
             Button(action: toggleRecording) {
                 Text(label)
-                    .font(.system(size: 12, weight: .medium))
+                    .font(TGType.caption)
                     .monospacedDigit()
                     .foregroundStyle(labelColor)
-                    .frame(minWidth: 92)
-                    .padding(.vertical, 4)
-                    .padding(.horizontal, 10)
+                    .frame(minWidth: 100)
+                    .padding(.vertical, 5)
+                    .padding(.horizontal, 11)
                     .background(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
                             .fill(background)

@@ -13,10 +13,10 @@ struct MessageListEditor: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack {
-                Text(title).font(.system(size: 12, weight: .medium))
+                Text(title).font(TGType.caption)
                 Spacer()
                 Text("\(messages.count) \(messages.count == 1 ? "message" : "messages")")
-                    .font(.system(size: 11))
+                    .font(TGType.footnote)
                     .foregroundStyle(.secondary)
             }
 
@@ -38,7 +38,7 @@ struct MessageListEditor: View {
 
             if let footnote {
                 Text(footnote)
-                    .font(.system(size: 11))
+                    .font(TGType.footnote)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -51,25 +51,25 @@ struct MessageListEditor: View {
         HStack(spacing: 6) {
             TextField("Title", text: part(index, .title))
                 .textFieldStyle(.plain)
-                .font(.system(size: 12, weight: .medium))
-            Divider().frame(height: 14)
+                .font(TGType.caption)
+            Divider().frame(height: 16)
             TextField("Subtitle", text: part(index, .subtitle))
                 .textFieldStyle(.plain)
-                .font(.system(size: 12))
+                .font(TGType.caption)
                 .foregroundStyle(.secondary)
             Button {
                 guard messages.indices.contains(index) else { return }
                 messages.remove(at: index)
             } label: {
                 Image(systemName: "minus.circle")
-                    .font(.system(size: 11))
+                    .font(.system(size: 12))
                     .foregroundStyle(.secondary)
             }
             .buttonStyle(.plain)
             .help("Remove this message")
         }
-        .padding(.horizontal, 8)
-        .padding(.vertical, 5)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 6)
     }
 
     private var addButton: some View {
@@ -88,7 +88,7 @@ struct MessageListEditor: View {
             .buttonStyle(.plain)
             Spacer()
         }
-        .font(.system(size: 11, weight: .medium))
+        .font(TGType.footnote)
         .foregroundStyle(.secondary)
         .padding(.horizontal, 4)
         .padding(.vertical, 2)

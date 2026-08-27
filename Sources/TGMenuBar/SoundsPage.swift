@@ -35,10 +35,10 @@ struct SoundsPage: View {
                             .frame(width: 150)
                         Image(systemName: "speaker.wave.3").foregroundStyle(.secondary)
                         Text("\(Int(settings.volume * 100))%")
-                            .font(.system(size: 11))
+                            .font(TGType.footnote)
                             .monospacedDigit()
                             .foregroundStyle(.secondary)
-                            .frame(width: 34, alignment: .trailing)
+                            .frame(width: 40, alignment: .trailing)
                     }
                 }
             } header: {
@@ -58,8 +58,8 @@ struct SoundsPage: View {
                 previewSound(settings.soundStyle, event)
             } label: {
                 Image(systemName: "play.fill")
-                    .font(.system(size: 9))
-                    .frame(width: 20, height: 16)
+                    .font(.system(size: 11))
+                    .frame(width: 22, height: 18)
                     .contentShape(Rectangle())
             }
             .buttonStyle(.borderless)

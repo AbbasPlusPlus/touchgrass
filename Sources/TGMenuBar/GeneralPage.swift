@@ -18,7 +18,7 @@ struct GeneralPage: View {
                 LabeledContent("Login item", value: loginItems.statusDescription)
                 if let error = loginItems.lastError {
                     Text(error)
-                        .font(.system(size: 11))
+                        .font(TGType.footnote)
                         .foregroundStyle(.red)
                         .fixedSize(horizontal: false, vertical: true)
                 }

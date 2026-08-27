@@ -5,22 +5,22 @@ import SwiftUI
 struct CursorPillView: View {
     @ObservedObject var model: CursorPillModel
 
-    static let size = CGSize(width: 176, height: 30)
+    static let size = CGSize(width: 210, height: 34)
     static let inset: CGFloat = 12       // shadow room inside the panel
 
     var body: some View {
         HStack(spacing: 6) {
             Image(systemName: model.symbol)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.white.opacity(0.72))
+                .font(.system(size: 12, weight: .semibold, design: .rounded))
+                .foregroundStyle(.white.opacity(0.78))
             Text(model.text)
-                .font(.system(size: 11.5, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.92))
+                .font(OverlayType.cursorPill)
+                .foregroundStyle(.white.opacity(0.95))
                 .lineLimit(1)
                 .fixedSize()
         }
-        .padding(.horizontal, 11)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 13)
+        .padding(.vertical, 7)
         .glassSurface(Capsule(), shadowRadius: 10, shadowY: 3)
         .fixedSize()
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
