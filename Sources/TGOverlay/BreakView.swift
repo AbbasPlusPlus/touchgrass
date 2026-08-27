@@ -186,49 +186,13 @@ public struct BreakView: View {
         VStack(alignment: .leading, spacing: 12) {
             GlassEffectContainer(spacing: 10) {
                 HStack(alignment: .bottom, spacing: 12) {
-                    // Snooze reveal: a compact zzz pill sits beside Skip; hovering the control
-                    // group slides the real +1/+5 pills out inline. Nothing ever overlaps, so
-                    // glass stays clean — the earlier stacked-cards deck read as broken.
-                    HStack(spacing: 10) {
-                        if model.showsSnoozes && !model.canEndEarly {
-                            if snoozesFanned {
-                                pill("zzz", "+ 1 min") { model.onSnooze(60) }
-                                    .transition(.asymmetric(
-                                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                                        removal: .opacity))
-                                pill("zzz", "+ 5 min") { model.onSnooze(5 * 60) }
-                                    .transition(.asymmetric(
-                                        insertion: .move(edge: .trailing).combined(with: .opacity),
-                                        removal: .opacity))
-                            } else {
-                                Button { withAnimation(OverlayMotion.softSpring(response: 0.38, damping: 0.86)) { snoozesFanned = true } } label: {
-                                    Image(systemName: "zzz")
-                                        .font(.system(size: 13, weight: .semibold))
-                                }
-                                .buttonStyle(GlassPillStyle(size: .regular))
-                                .transition(.opacity)
-                                .accessibilityLabel("Snooze options")
-                            }
-                        }
-                        if model.canEndEarly {
-                            pill("checkmark", "End Break", tinted: true) { model.onEndEarly() }
-                        } else if model.showsSkip {
-                            Button { model.onSkip() } label: {
-                                HStack(spacing: 7) {
-                                    Image(systemName: "chevron.right.2")
-                                    Text("Skip Break")
-                                }
-                            }
-                            .buttonStyle(GlassPillStyle(size: .regular,
-                                                        ringProgress: model.skipEnabled ? nil : skipRing))
-                            .disabled(!model.skipEnabled)
-                        }
-                    }
-                    .onHover { hovering in
-                        guard model.showsSnoozes, !model.canEndEarly else { return }
-                        withAnimation(OverlayMotion.softSpring(response: 0.38, damping: 0.86)) {
-                            snoozesFanned = hovering
-                        }
+                    // Option D: one capsule. Hovering Skip splits it into » Skip Break | +1m | +5m
+                    // segments — a single object stretching, nothing popping in from nowhere.
+                    // Hardcore has no Skip, so the base segment becomes the zzz glyph instead.
+                    if model.canEndEarly {
+                        pill("checkmark", "End Break", tinted: true) { model.onEndEarly() }
+                    } else if model.showsSkip || model.showsSnoozes {
+                        splitCapsule
                     }
                     pill("lock", "Lock Screen") { model.onLockScreen() }
                 }
@@ -254,6 +218,96 @@ public struct BreakView: View {
         .fixedSize()
         .animation(OverlayMotion.ease(0.35), value: model.canEndEarly)
         .animation(OverlayMotion.ease(0.35), value: model.skipEnabled)
+    }
+
+    /// The split capsule (option D): base segment is Skip (or zzz under hardcore); hovering
+    /// stretches the capsule to reveal +1m / +5m segments, divided by hairlines, all one shape.
+    private var splitCapsule: some View {
+        HStack(spacing: 0) {
+            if model.showsSkip {
+                segment {
+                    HStack(spacing: 7) {
+                        Image(systemName: "chevron.right.2")
+                            .font(.system(size: 12, weight: .semibold))
+                        Text("Skip Break")
+                    }
+                } action: { model.onSkip() }
+                .disabled(!model.skipEnabled)
+                .opacity(model.skipEnabled ? 1 : 0.55)
+            } else {
+                segment {
+                    Image(systemName: "zzz").font(.system(size: 13, weight: .semibold))
+                } action: {}
+                .allowsHitTesting(false)
+            }
+
+            if snoozesFanned && model.showsSnoozes {
+                segmentDivider
+                segment { Text("+1m") } action: { model.onSnooze(60) }
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .opacity))
+                segmentDivider
+                segment { Text("+5m") } action: { model.onSnooze(5 * 60) }
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .opacity))
+            }
+        }
+        .background(capsuleChrome)
+        .clipShape(Capsule(style: .continuous))
+        .overlay(Capsule(style: .continuous).strokeBorder(tone.pillBorder, lineWidth: 1))
+        .overlay(skipDelayRing)
+        .onHover { hovering in
+            guard model.showsSnoozes else { return }
+            withAnimation(OverlayMotion.softSpring(response: 0.4, damping: 0.85)) {
+                snoozesFanned = hovering
+            }
+        }
+        .animation(OverlayMotion.softSpring(response: 0.4, damping: 0.85), value: snoozesFanned)
+    }
+
+    private func segment<Label: View>(@ViewBuilder _ label: () -> Label,
+                                      action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            label()
+                .font(.system(size: 15, weight: .semibold, design: .rounded))
+                .foregroundStyle(tone.pillText)
+                .lineLimit(1)
+                .fixedSize()
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(SegmentHoverStyle(tone: tone))
+    }
+
+    private var segmentDivider: some View {
+        Rectangle()
+            .fill(tone.pillBorder)
+            .frame(width: 1)
+            .padding(.vertical, 7)
+    }
+
+    @ViewBuilder
+    private var capsuleChrome: some View {
+        if OverlayMotion.reduceTransparency {
+            Capsule(style: .continuous).fill(tone.pillFallback)
+        } else {
+            Color.clear
+                .background(tone.pillWash, in: Capsule(style: .continuous))
+                .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+        }
+    }
+
+    /// Balanced enforcement: a clay arc closes around the capsule over the skip delay.
+    @ViewBuilder
+    private var skipDelayRing: some View {
+        if model.showsSkip && !model.skipEnabled {
+            Capsule(style: .continuous)
+                .trim(from: 0, to: skipRing)
+                .stroke(OverlayPalette.clay, style: StrokeStyle(lineWidth: 1.5, lineCap: .round))
+        }
     }
 
     private func pill(_ symbol: String, _ title: String,

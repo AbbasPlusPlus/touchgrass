@@ -73,6 +73,25 @@ enum LogoMarkGeometry {
 
     /// The mark as a full-colour `NSImage`, sized in points (Retina comes free — `NSImage`
     /// re-runs the block per backing scale).
+    /// Monochrome silhouette for the status bar: every path filled in black, `isTemplate = true`,
+    /// so AppKit tints it like every other menu bar extra (white on dark bars, black on light).
+    /// The gaps between blades are real negative space in the artwork, so the silhouette still
+    /// reads as grass rather than a solid disc.
+    /// Template tinting respects the alpha channel, so dimming is baked into the fill.
+    static func templateImage(size: CGFloat, alpha: CGFloat = 1) -> NSImage {
+        let img = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
+            guard let ctx = NSGraphicsContext.current?.cgContext else { return false }
+            for piece in pieces(in: rect, flipped: false) {
+                ctx.addPath(piece.path)
+                ctx.setFillColor(CGColor(gray: 0, alpha: alpha))
+                ctx.fillPath()
+            }
+            return true
+        }
+        img.isTemplate = true
+        return img
+    }
+
     static func image(size: CGFloat, alpha: CGFloat = 1) -> NSImage {
         let image = NSImage(size: NSSize(width: size, height: size), flipped: false) { rect in
             draw(in: rect, alpha: alpha)
