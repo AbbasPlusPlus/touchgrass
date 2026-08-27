@@ -16,6 +16,9 @@ public final class QuickPanel {
     /// The height upper bound has to clear the Stats calendar — the tallest thing the panel shows.
     public static let width: CGFloat = 376
     private static let heightRange: ClosedRange<CGFloat> = 200...700
+    /// The panel's visible shape. The glass and the content view's mask must agree — see
+    /// `makeWindow()` for why the mask exists at all.
+    private static let cornerRadius: CGFloat = 16
 
     private let engine: BreakEngine
     private let settingsStore: SettingsStore
@@ -132,9 +135,24 @@ public final class QuickPanel {
         )
         let hostingView = NSHostingView(rootView: root)
         hosting = hostingView
-        let container = GlassBackground.container(cornerRadius: 16, content: hostingView)
+        let container = GlassBackground.container(cornerRadius: Self.cornerRadius, content: hostingView)
 
+        // **First-frame shape.** `hasShadow` makes AppKit trace the drop shadow from whatever
+        // the window has drawn. `NSGlassEffectView` composites on the window server, and on the
+        // very first frame — the one where the panel is created and ordered front in the same
+        // turn — the glass has not rendered yet, so the trace falls back to the window's frame
+        // rectangle and the panel gets a hard, square-cornered shadow around its rounded body.
+        // Nothing re-traces it until the window is redrawn for another reason, which is why it
+        // used to "fix itself" the moment the user switched apps and came back.
+        //
+        // Masking the content view to the same rounded rect gives the window's *own* backing
+        // store the right silhouette before it is ever shown, so the first trace is already
+        // correct and the shadow no longer depends on when the glass happens to come up.
         let contentView = NSView(frame: NSRect(origin: .zero, size: initialSize))
+        contentView.wantsLayer = true
+        contentView.layer?.cornerRadius = Self.cornerRadius
+        contentView.layer?.cornerCurve = .continuous
+        contentView.layer?.masksToBounds = true
         contentView.addSubview(container)
         NSLayoutConstraint.activate([
             container.leadingAnchor.constraint(equalTo: contentView.leadingAnchor),
