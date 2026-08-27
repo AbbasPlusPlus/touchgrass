@@ -2,107 +2,157 @@
 import SwiftUI
 import TGCore
 
-/// "Now" at a glance: what's next, four things you can do about it, and the state that
-/// explains the number at the top.
+/// "Now" at a glance: one number, one obvious action, and two facts underneath.
+///
+/// Deliberately sparse. Everything that isn't the countdown — pausing, quitting, the snooze
+/// budget — lives in the right-click menu, so the thing you open twenty times a day stays a
+/// glance rather than a control panel.
 struct QuickPanelView: View {
 
     @ObservedObject var engine: BreakEngine
     @ObservedObject var store: SettingsStore
 
     let actions: MenuBarActions
-    let wellnessCountdown: () -> TimeInterval?
     let dismiss: () -> Void
 
+    /// "+1m / +5m / +15m", in minutes.
+    private static let delayOptions = [1, 5, 15]
+    private static let gearWidth: CGFloat = 20
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            header
+        VStack(spacing: 0) {
+            topBar
+            countdown
+                .padding(.top, 16)
             actionPills
+                .padding(.top, 18)
             summaryList
-            Spacer(minLength: 0)
-            footer
+                .padding(.top, 18)
         }
-        .padding(16)
+        .padding(.horizontal, 14)
+        .padding(.top, 12)
+        .padding(.bottom, 14)
         // Width is fixed; height is whatever the current state needs. `QuickPanel` reads the
         // fitting size when it shows the window, so the panel never has dead space at the
-        // bottom just because wellness reminders happen to be off.
+        // bottom just because there is nothing to count down.
         .frame(width: QuickPanel.width, alignment: .top)
     }
-
-    // MARK: - Header
 
     private var presentation: StatusPresentation {
         StatusPresentation(phase: engine.phase, style: .iconAndTime)
     }
 
-    private var header: some View {
-        HStack(spacing: 11) {
-            Image(systemName: presentation.symbol)
-                .font(.system(size: 15, weight: .semibold))
-                .foregroundStyle(Color.accentColor)
-                .frame(width: 32, height: 32)
-                .background(Circle().fill(Color.accentColor.opacity(0.14)))
+    // MARK: - Top bar
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text(presentation.headline)
-                    .font(.system(size: 11, weight: .medium))
+    /// A single "Now" chip, centred, with the gear tucked into the trailing corner. 
+    /// puts a Now/Stats segmented control here; we have no Stats surface yet, so the chip is
+    /// a label rather than a control that pretends to switch something.
+    private var topBar: some View {
+        HStack(spacing: 0) {
+            // A mirror of the gear's width, so the chip sits optically centred without a
+            // ZStack — which sizes to its largest child and quietly drops the trailing button.
+            Color.clear.frame(width: Self.gearWidth, height: 1)
+            Spacer(minLength: 8)
+
+            Text("Now")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(.primary)
+                .padding(.vertical, 4)
+                .padding(.horizontal, 18)
+                .background(Capsule(style: .continuous).fill(Color.primary.opacity(0.13)))
+                .accessibilityAddTraits(.isHeader)
+
+            Spacer(minLength: 8)
+            Button {
+                dismiss()
+                actions.openSettings()
+            } label: {
+                Image(systemName: "gearshape.fill")
+                    .font(.system(size: 13.5))
                     .foregroundStyle(.secondary)
-                if presentation.value.isEmpty {
-                    Text(pausedDetail)
-                        .font(.system(size: 15, weight: .medium))
-                        .foregroundStyle(.primary)
-                } else {
-                    Text(presentation.value)
-                        .font(.system(size: 24, weight: .semibold))
-                        .monospacedDigit()
-                        .foregroundStyle(.primary)
-                }
+                    .frame(width: Self.gearWidth, alignment: .trailing)
+                    .contentShape(Rectangle())
             }
-            Spacer(minLength: 0)
+            .buttonStyle(.plain)
+            .help("Settings…")
+            .accessibilityLabel("Settings")
         }
     }
 
-    /// When there's no countdown to show (paused / stopped) the header still needs a second line.
-    private var pausedDetail: String {
-        switch engine.phase {
-        case .stopped: return "Not counting"
-        case .paused(let reasons, _, let remaining):
-            let reason = StatusPresentation.primaryReason(reasons)
-            if case .manual = reason { return "\(TGFormat.duration(remaining)) left when you resume" }
-            return reason?.toastText ?? "Paused"
-        default: return ""
+    // MARK: - Countdown
+
+    private var countdown: some View {
+        VStack(spacing: 5) {
+            Image(systemName: presentation.symbol)
+                .font(.system(size: 15, weight: .regular))
+                .foregroundStyle(.secondary)
+            Text(presentation.headline)
+                .font(.system(size: 12))
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+
+            if presentation.value.isEmpty {
+                Text(presentation.detail)
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 3)
+            } else {
+                Text(presentation.value)
+                    .font(.system(size: 44, weight: .bold))
+                    .monospacedDigit()
+                    .foregroundStyle(.primary)
+                    .padding(.top, -2)
+            }
         }
+        .frame(maxWidth: .infinity)
     }
 
     // MARK: - Actions
 
     private var actionPills: some View {
         HStack(spacing: 8) {
+            primaryButton
             if engine.phase.isPaused {
-                Button("Resume") { actions.resume(); dismiss() }
-                    .buttonStyle(PillButtonStyle(prominent: true))
-                Button("Start break") { actions.startBreak(.short); dismiss() }
+                // Nothing to delay while paused, but starting a break by hand outranks the
+                // pause — so offer that instead.
+                Button("Start break") { actions.startBreak(nextBreakKind); dismiss() }
                     .buttonStyle(PillButtonStyle())
-            } else if engine.phase.isInBreak {
-                Button("End break") { actions.skipOrEnd(); dismiss() }
-                    .buttonStyle(PillButtonStyle(prominent: true))
-                    .disabled(!engine.canSkipNow)
-                Button("+1m") { actions.snooze(60) }
-                    .buttonStyle(PillButtonStyle())
-                Button("+5m") { actions.snooze(5 * 60) }
-                    .buttonStyle(PillButtonStyle())
-            } else {
-                Button("Start break") { actions.startBreak(.short); dismiss() }
-                    .buttonStyle(PillButtonStyle(prominent: true))
-                Button("+1m") { actions.snooze(60) }
-                    .buttonStyle(PillButtonStyle())
-                Button("+5m") { actions.snooze(5 * 60) }
-                    .buttonStyle(PillButtonStyle())
-                Button("Skip") { actions.skipOrEnd(); dismiss() }
-                    .buttonStyle(PillButtonStyle())
-                    .disabled(!engine.canSkipNow)
-                    .help(engine.canSkipNow ? "Skip this break" : skipBlockedReason)
+            } else if showsDelayPills {
+                ForEach(Self.delayOptions, id: \.self) { minutes in
+                    Button("+\(minutes)m") { actions.delay(TimeInterval(minutes) * 60) }
+                        .buttonStyle(PillButtonStyle())
+                        .help("Push the break back \(minutes) min")
+                }
             }
         }
+        .frame(maxWidth: .infinity)
+    }
+
+    @ViewBuilder
+    private var primaryButton: some View {
+        if engine.phase.isPaused {
+            Button("Resume") { actions.resume(); dismiss() }
+                .buttonStyle(PillButtonStyle(tier: .primary))
+        } else if engine.phase.isInBreak {
+            Button("End break") { actions.skipOrEnd(); dismiss() }
+                .buttonStyle(PillButtonStyle(tier: .primary))
+                .disabled(!engine.canSkipNow)
+                .help(engine.canSkipNow ? "End this break" : skipBlockedReason)
+        } else if engine.phase == .stopped {
+            Button("Start TouchGrass") { actions.toggleRunning(); dismiss() }
+                .buttonStyle(PillButtonStyle(tier: .primary))
+        } else {
+            Button("Start break") { actions.startBreak(nextBreakKind); dismiss() }
+                .buttonStyle(PillButtonStyle(tier: .primary))
+        }
+    }
+
+    /// Delaying spends the snooze budget, so the pills disappear rather than sit there dead
+    /// once it's gone — running out is the point of the budget.
+    private var showsDelayPills: Bool {
+        engine.canDelayNow && engine.hasSnoozeBudget
     }
 
     private var skipBlockedReason: String {
@@ -116,48 +166,25 @@ struct QuickPanelView: View {
     // MARK: - Summary
 
     private var summaryList: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: 6) {
             QuickPanelRow(
-                symbol: "display",
+                symbol: "bolt.fill",
+                tint: .yellow,
                 title: "Current focus time",
-                value: TGFormat.duration(engine.currentSessionFocusTime)
+                value: TGFormat.elapsed(engine.currentSessionFocusTime)
             )
-            Divider().padding(.leading, 38)
             QuickPanelRow(
-                symbol: "arrow.right.circle",
+                symbol: "figure.mind.and.body",
+                tint: .pink,
                 title: "Upcoming break",
-                value: upcomingBreakSummary
-            )
-            Divider().padding(.leading, 38)
-            QuickPanelRow(
-                symbol: "zzz",
-                title: "Snoozes left",
-                value: snoozeSummary
-            )
-            if store.settings.blinkRemindersEnabled || store.settings.postureRemindersEnabled {
-                Divider().padding(.leading, 38)
-                QuickPanelRow(
-                    symbol: "eye",
-                    title: "Wellness",
-                    value: wellnessSummary
+                accent: nextBreakKind == .long ? "Long" : "Short",
+                value: TGFormat.duration(
+                    nextBreakKind == .long
+                        ? store.settings.longBreakDuration
+                        : store.settings.shortBreakDuration
                 )
-            }
+            )
         }
-        .background(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .fill(Color.primary.opacity(0.05))
-        )
-        .overlay(
-            RoundedRectangle(cornerRadius: 10, style: .continuous)
-                .strokeBorder(Color.primary.opacity(0.07), lineWidth: 1)
-        )
-    }
-
-    private var upcomingBreakSummary: String {
-        let settings = store.settings
-        let kind = nextBreakKind
-        let duration = kind == .long ? settings.longBreakDuration : settings.shortBreakDuration
-        return "\(kind == .long ? "Long" : "Short") · \(TGFormat.duration(duration))"
     }
 
     private var nextBreakKind: BreakKind {
@@ -172,64 +199,5 @@ struct QuickPanelView: View {
             guard settings.longBreaksEnabled, settings.longBreakEvery > 0 else { return .short }
             return engine.shortBreaksSinceLong + 1 >= settings.longBreakEvery ? .long : .short
         }
-    }
-
-    private var snoozeSummary: String {
-        "\(engine.snoozesRemainingToday) today, \(engine.snoozesRemainingThisSession) this session"
-    }
-
-    private var wellnessSummary: String {
-        let settings = store.settings
-        if settings.blinkRemindersEnabled {
-            if let next = wellnessCountdown() { return "Blink \(TGFormat.relative(next))" }
-            return "Blink every \(TGFormat.compact(settings.blinkReminderInterval))"
-        }
-        return "Posture every \(TGFormat.compact(settings.postureReminderInterval))"
-    }
-
-    // MARK: - Footer
-
-    private var footer: some View {
-        HStack(spacing: 6) {
-            Button {
-                dismiss()
-                actions.openSettings()
-            } label: {
-                Image(systemName: "gearshape")
-            }
-            .buttonStyle(.plain)
-            .help("Settings…")
-
-            Menu {
-                if engine.phase.isPaused {
-                    Button("Resume") { actions.resume(); dismiss() }
-                } else {
-                    ForEach(Array(PausePreset.allCases.enumerated()), id: \.offset) { _, preset in
-                        Button(preset.title) {
-                            actions.pause(preset.duration())
-                            dismiss()
-                        }
-                    }
-                }
-            } label: {
-                Label(engine.phase.isPaused ? "Paused" : "Pause", systemImage: "pause.circle")
-                    .font(.system(size: 12))
-            }
-            .menuStyle(.borderlessButton)
-            .fixedSize()
-
-            Spacer(minLength: 0)
-
-            Button {
-                dismiss()
-                actions.quit()
-            } label: {
-                Image(systemName: "power")
-            }
-            .buttonStyle(.plain)
-            .help("Quit TouchGrass")
-        }
-        .font(.system(size: 13))
-        .foregroundStyle(.secondary)
     }
 }

@@ -12,13 +12,12 @@ import TGCore
 public final class QuickPanel {
 
     /// Fixed width; the height comes from the SwiftUI layout, clamped to a sane range.
-    public static let width: CGFloat = 320
-    private static let heightRange: ClosedRange<CGFloat> = 240...440
+    public static let width: CGFloat = 340
+    private static let heightRange: ClosedRange<CGFloat> = 200...460
 
     private let engine: BreakEngine
     private let settingsStore: SettingsStore
     private let actions: MenuBarActions
-    private let wellnessCountdown: () -> TimeInterval?
 
     private var window: QuickPanelWindow?
     private var hosting: NSHostingView<QuickPanelView>?
@@ -30,13 +29,11 @@ public final class QuickPanel {
     public init(
         engine: BreakEngine,
         settingsStore: SettingsStore,
-        actions: MenuBarActions,
-        wellnessCountdown: @escaping () -> TimeInterval? = { nil }
+        actions: MenuBarActions
     ) {
         self.engine = engine
         self.settingsStore = settingsStore
         self.actions = actions
-        self.wellnessCountdown = wellnessCountdown
     }
 
     // MARK: - Presentation
@@ -80,7 +77,6 @@ public final class QuickPanel {
             engine: engine,
             store: settingsStore,
             actions: actions,
-            wellnessCountdown: wellnessCountdown,
             dismiss: { [weak self] in self?.close() }
         )
         let hostingView = NSHostingView(rootView: root)

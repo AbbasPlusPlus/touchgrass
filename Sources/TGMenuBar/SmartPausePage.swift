@@ -80,7 +80,11 @@ struct SmartPausePage: View {
 
     private var appsSection: some View {
         Section {
-            Toggle("Pause for fullscreen apps", isOn: $store.settings.pauseOnFullscreen)
+            Toggle("Pause during fullscreen games", isOn: $store.settings.pauseOnFullscreen)
+            Text("Detected automatically. To pause for other fullscreen apps, add them to Deep Focus Apps.")
+                .font(.system(size: 11))
+                .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
             Toggle("Pause while a macOS Focus is on", isOn: $store.settings.pauseOnFocusMode)
 
             AppListEditor(
@@ -97,7 +101,7 @@ struct SmartPausePage: View {
         } header: {
             Text("Apps")
         } footer: {
-            Text("Fullscreen detection uses window geometry only — it needs no Screen Recording permission.")
+            Text("Detection uses window geometry and app metadata only — it needs no Screen Recording permission.")
         }
     }
 

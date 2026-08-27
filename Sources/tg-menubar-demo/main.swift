@@ -8,8 +8,8 @@
 // Set TG_SNAPSHOT=<dir> to render every visible window to a PNG and quit — `screencapture`
 // needs Screen Recording permission, drawing our own view hierarchy doesn't.
 //
-// The BreakEngine is constructed but never driven: its methods are unimplemented in this
-// worktree, so this demo only ever reads `phase` (which starts at `.stopped`).
+// The engine is started and ticked once a second, so the quick panel and the status item
+// show a real countdown rather than the `.stopped` placeholder.
 import AppKit
 import TGCore
 import TGMenuBar
@@ -20,6 +20,7 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
     private var store: SettingsStore!
     private var engine: BreakEngine!
     private var statusBar: StatusBarController!
+    private var ticker: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         // Keep the demo's settings out of the real app's file.
@@ -35,9 +36,15 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
             previewSound: { style, event in
                 NSLog("[demo] preview sound: %@ / %@", style.rawValue, event)
             },
-            onQuit: { NSApp.terminate(nil) },
-            onStartStop: { NSLog("[demo] start/stop (the engine isn't driven in the demo)") }
+            onQuit: { NSApp.terminate(nil) }
         )
+
+        // Wall-clock ticks, like the real app: the engine reads `Date`, the timer only tells
+        // it when to look.
+        engine.start()
+        ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { _ in
+            MainActor.assumeIsolated { self.engine.tick() }
+        }
 
         let surface = CommandLine.arguments.dropFirst().first
         open(surface)
@@ -105,7 +112,14 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
                     window.displayIfNeeded()
                 }
             }
-            guard let view = window.contentView else { continue }
+            guard let contentView = window.contentView else { continue }
+
+            // `NSGlassEffectView` composites on the window server and caches as blank, so a
+            // glass-backed panel would snapshot empty. When the content view isn't itself the
+            // SwiftUI host, reach past the material and draw the host over a stand-in.
+            let host = hostingView(in: contentView)
+            let usesMaterialStandIn = host != nil && host !== contentView
+            let view = usesMaterialStandIn ? (host ?? contentView) : contentView
             let bounds = view.bounds
             guard bounds.width > 40, bounds.height > 40,
                   let content = view.bitmapImageRepForCachingDisplay(in: bounds),
@@ -114,12 +128,24 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
 
             // Offscreen drawing defaults to Aqua and leaves unbacked regions clear, so render
             // under the window's real appearance and composite over the window background.
+            //
+            // Transparent windows (onboarding, the quick panel) are the exception: there the
+            // content view's own rounded shape *is* the window, so filling a square backdrop
+            // would invent a squared-off edge the user never sees. Keep those on alpha.
+            // A transparent window whose content view is the SwiftUI host draws its own
+            // shape; anything else needs an opaque backdrop to be legible.
+            let isTransparent = !window.isOpaque && !usesMaterialStandIn
             view.effectiveAppearance.performAsCurrentDrawingAppearance {
                 view.cacheDisplay(in: bounds, to: content)
                 NSGraphicsContext.saveGraphicsState()
                 NSGraphicsContext.current = context
-                NSColor.windowBackgroundColor.setFill()
-                bounds.fill()
+                if isTransparent {
+                    NSColor.clear.setFill()
+                    bounds.fill(using: .copy)
+                } else {
+                    NSColor.windowBackgroundColor.setFill()
+                    bounds.fill()
+                }
                 content.draw(in: bounds)
                 NSGraphicsContext.restoreGraphicsState()
             }
@@ -130,6 +156,15 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
             try? data.write(to: url)
             NSLog("[demo] wrote %@", url.path)
         }
+    }
+
+    /// Depth-first search for the SwiftUI host inside a window's view tree.
+    private static func hostingView(in view: NSView) -> NSView? {
+        if String(describing: type(of: view)).hasPrefix("NSHostingView") { return view }
+        for subview in view.subviews {
+            if let found = hostingView(in: subview) { return found }
+        }
+        return nil
     }
 
     /// Blows the 18 pt status item glyph up so its shape can actually be judged.

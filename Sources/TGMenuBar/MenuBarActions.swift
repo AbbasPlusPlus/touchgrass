@@ -9,8 +9,10 @@ import TGCore
 /// are not safe to call speculatively) and makes the views trivially previewable in the demo.
 public struct MenuBarActions {
     public var startBreak: (BreakKind) -> Void
-    /// "+1m" / "+5m" — pushes the next break back.
-    public var snooze: (TimeInterval) -> Void
+    /// A one-off break of an arbitrary length — the menu's "Take a break for ▸".
+    public var startCustomBreak: (TimeInterval) -> Void
+    /// "+1m" / "+5m" / "+15m" — pushes the next break back.
+    public var delay: (TimeInterval) -> Void
     /// Skip the pending break, or end the running one early.
     public var skipOrEnd: () -> Void
     /// `nil` duration = pause indefinitely.
@@ -23,7 +25,8 @@ public struct MenuBarActions {
 
     public init(
         startBreak: @escaping (BreakKind) -> Void = { _ in },
-        snooze: @escaping (TimeInterval) -> Void = { _ in },
+        startCustomBreak: @escaping (TimeInterval) -> Void = { _ in },
+        delay: @escaping (TimeInterval) -> Void = { _ in },
         skipOrEnd: @escaping () -> Void = {},
         pause: @escaping (TimeInterval?) -> Void = { _ in },
         resume: @escaping () -> Void = {},
@@ -33,7 +36,8 @@ public struct MenuBarActions {
         quit: @escaping () -> Void = {}
     ) {
         self.startBreak = startBreak
-        self.snooze = snooze
+        self.startCustomBreak = startCustomBreak
+        self.delay = delay
         self.skipOrEnd = skipOrEnd
         self.pause = pause
         self.resume = resume
@@ -55,6 +59,16 @@ public enum PausePreset: CaseIterable, Sendable {
         switch self {
         case .fifteenMinutes: return "For 15 minutes"
         case .oneHour: return "For 1 hour"
+        case .untilTomorrow: return "Until tomorrow"
+        case .indefinitely: return "Indefinitely"
+        }
+    }
+
+    /// Shorter form for a submenu, where "Pause breaks ▸" already supplies the verb.
+    public var menuTitle: String {
+        switch self {
+        case .fifteenMinutes: return "15 minutes"
+        case .oneHour: return "1 hour"
         case .untilTomorrow: return "Until tomorrow"
         case .indefinitely: return "Indefinitely"
         }

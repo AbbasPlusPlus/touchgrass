@@ -1,41 +1,46 @@
 // TGMenuBar — the small capsule buttons in the quick panel's action row.
 import SwiftUI
 
-/// A compact capsule button. `prominent` marks the primary action ("Start break"), which is
-/// also the one allowed to take the leftover width — the `+1m`/`+5m`/`Skip` pills hug their
-/// labels so the primary label never has to truncate.
+/// A compact capsule button in two tiers, both hugging their label so the row can be centred.
+///
+/// `.primary` is the one thing the panel wants you to do ("Start break" / "Resume"); `.quiet`
+/// is for the delay pills beside it. Both are neutral fills rather than accent-coloured — on
+/// glass, a saturated button shouts, and this panel is meant to be calm.
 struct PillButtonStyle: ButtonStyle {
-    var prominent: Bool = false
+
+    enum Tier {
+        case primary
+        case quiet
+    }
+
+    var tier: Tier = .quiet
 
     @Environment(\.isEnabled) private var isEnabled
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 12, weight: .medium))
+            .font(.system(size: 12, weight: tier == .primary ? .semibold : .medium))
             .lineLimit(1)
+            .fixedSize()
             .padding(.vertical, 6)
-            .padding(.horizontal, prominent ? 12 : 10)
-            .frame(maxWidth: prominent ? .infinity : nil)
-            .fixedSize(horizontal: !prominent, vertical: false)
-            .foregroundStyle(foreground)
+            .padding(.horizontal, tier == .primary ? 13 : 11)
+            .foregroundStyle(Color.primary)
             .background(
                 Capsule(style: .continuous)
-                    .fill(background(pressed: configuration.isPressed))
+                    .fill(fill(pressed: configuration.isPressed))
             )
             .overlay(
                 Capsule(style: .continuous)
-                    .strokeBorder(Color.primary.opacity(prominent ? 0 : 0.10), lineWidth: 1)
+                    .strokeBorder(Color.primary.opacity(tier == .primary ? 0 : 0.10), lineWidth: 1)
             )
             .opacity(isEnabled ? 1 : 0.4)
             .contentShape(Capsule(style: .continuous))
     }
 
-    private var foreground: Color {
-        prominent ? .white : .primary
-    }
-
-    private func background(pressed: Bool) -> Color {
-        if prominent { return Color.accentColor.opacity(pressed ? 0.75 : 1) }
-        return Color.primary.opacity(pressed ? 0.16 : 0.07)
+    private func fill(pressed: Bool) -> Color {
+        switch tier {
+        case .primary: return Color.primary.opacity(pressed ? 0.27 : 0.18)
+        case .quiet:   return Color.primary.opacity(pressed ? 0.15 : 0.07)
+        }
     }
 }

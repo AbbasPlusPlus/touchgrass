@@ -18,6 +18,8 @@ public final class StatusBarController: NSObject {
     private let previewSound: (SoundStyle, String) -> Void
     private let onQuit: () -> Void
     private let onStartStop: (() -> Void)?
+    /// Wired by the app. The Now panel no longer carries a wellness row ('s doesn't
+    /// either); this is kept so the wiring survives for the Stats surface.
     private let wellnessCountdown: () -> TimeInterval?
 
     // MARK: - Owned objects
@@ -33,7 +35,10 @@ public final class StatusBarController: NSObject {
     /// Cached so we aren't re-rendering a bezier path every second.
     private let normalIcon = StatusBarIcon.grass()
     private let dimmedIcon = StatusBarIcon.grass(dimmed: true)
-    private var lastRendered: StatusPresentation?
+    /// Only the status item's own strings. The panel's countdown ticks every second; the
+    /// status item is minute-granular, so diffing the whole presentation would repaint 60×
+    /// more often than anything actually changes.
+    private var lastRenderedKey: String?
 
     // MARK: - Init
 
@@ -101,6 +106,7 @@ public final class StatusBarController: NSObject {
         guard let button = statusItem.button else { return }
         button.image = normalIcon
         button.imagePosition = .imageLeading
+        // Monospaced digits so `24m` → `9m` doesn't make the whole menu bar shuffle.
         button.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .medium)
         button.target = self
         button.action = #selector(statusItemClicked)
@@ -112,13 +118,13 @@ public final class StatusBarController: NSObject {
         quickPanel = QuickPanel(
             engine: engine,
             settingsStore: settingsStore,
-            actions: makeActions(),
-            wellnessCountdown: wellnessCountdown
+            actions: makeActions()
         )
     }
 
     private func observe() {
-        // The engine republishes on every tick; the status item only needs 1 Hz.
+        // The engine republishes on every tick; the status item only needs 1 Hz — and the
+        // `lastRenderedKey` diff drops all but the one tick a minute that changes anything.
         engine.$phase
             .throttle(for: .seconds(1), scheduler: DispatchQueue.main, latest: true)
             .sink { [weak self] phase in self?.render(phase: phase) }
@@ -153,8 +159,8 @@ public final class StatusBarController: NSObject {
         guard let button = statusItem.button else { return }
         let style = settingsStore.settings.menuBarStyle
         let presentation = StatusPresentation(phase: phase, style: style)
-        guard force || presentation != lastRendered else { return }
-        lastRendered = presentation
+        guard force || presentation.statusItemKey != lastRenderedKey else { return }
+        lastRenderedKey = presentation.statusItemKey
 
         let showsIcon = StatusPresentation.showsIcon(for: style)
         button.image = showsIcon ? (presentation.isDimmed ? dimmedIcon : normalIcon) : nil
@@ -185,39 +191,111 @@ public final class StatusBarController: NSObject {
         menu.popUp(positioning: nil, at: NSPoint(x: 0, y: button.bounds.height + 5), in: button)
     }
 
+    // MARK: - Right-click menu
+
+    /// Ordered the way  orders it: what's queued, then the four things you can do to
+    /// it, then the app-level items. Verbs first, housekeeping last.
     private func buildMenu() -> NSMenu {
         let menu = NSMenu()
         menu.autoenablesItems = false
-        let isStopped = engine.phase == .stopped
+        let phase = engine.phase
+        let isStopped = phase == .stopped
 
-        add(to: menu, "Start break now", #selector(menuStartShortBreak), enabled: !isStopped)
-        add(to: menu, "Start long break", #selector(menuStartLongBreak), enabled: !isStopped)
-        menu.addItem(.separator())
+        // A disabled header rather than a title: it states the situation the rest of the menu
+        // is about ("Short break · 30 secs · in 22m") without pretending to be clickable.
+        let header = NSMenuItem(title: menuHeader(phase), action: nil, keyEquivalent: "")
+        header.isEnabled = false
+        menu.addItem(header)
 
-        if engine.phase.isPaused {
-            add(to: menu, "Resume", #selector(menuResume))
-        } else {
-            let pauseItem = NSMenuItem(title: "Pause for…", action: nil, keyEquivalent: "")
-            pauseItem.isEnabled = !isStopped
-            let submenu = NSMenu()
-            for preset in PausePreset.allCases {
-                let item = NSMenuItem(title: preset.title, action: #selector(menuPause(_:)), keyEquivalent: "")
+        add(to: menu, "Start this break now", #selector(menuStartThisBreak), enabled: !isStopped)
+
+        addSubmenu(to: menu, "Delay break", enabled: engine.canDelayNow) { submenu in
+            for minutes in [1, 5, 15] {
+                let item = NSMenuItem(
+                    title: "+\(minutes) \(minutes == 1 ? "minute" : "minutes")",
+                    action: #selector(menuDelay(_:)),
+                    keyEquivalent: ""
+                )
                 item.target = self
-                // nil represented object == pause indefinitely.
-                if let duration = preset.duration() { item.representedObject = NSNumber(value: duration) }
-                item.isEnabled = !isStopped
+                item.representedObject = NSNumber(value: Double(minutes) * 60)
                 submenu.addItem(item)
             }
-            pauseItem.submenu = submenu
-            menu.addItem(pauseItem)
+        }
+
+        if phase.isPaused {
+            add(to: menu, "Resume", #selector(menuResume))
+        } else {
+            addSubmenu(to: menu, "Pause breaks", enabled: !isStopped) { submenu in
+                for preset in PausePreset.allCases {
+                    let item = NSMenuItem(
+                        title: preset.menuTitle,
+                        action: #selector(menuPause(_:)),
+                        keyEquivalent: ""
+                    )
+                    item.target = self
+                    // nil represented object == pause indefinitely.
+                    if let duration = preset.duration() {
+                        item.representedObject = NSNumber(value: duration)
+                    }
+                    submenu.addItem(item)
+                }
+            }
+        }
+
+        addSubmenu(to: menu, "Take a break for", enabled: !isStopped && !phase.isInBreak) { submenu in
+            for minutes in [1, 3, 5, 10] {
+                let item = NSMenuItem(
+                    title: "\(minutes) \(minutes == 1 ? "minute" : "minutes")",
+                    action: #selector(menuCustomBreak(_:)),
+                    keyEquivalent: ""
+                )
+                item.target = self
+                item.representedObject = NSNumber(value: Double(minutes) * 60)
+                submenu.addItem(item)
+            }
         }
 
         menu.addItem(.separator())
-        add(to: menu, "Settings…", #selector(menuSettings), keyEquivalent: ",")
-        menu.addItem(.separator())
         add(to: menu, isStopped ? "Start TouchGrass" : "Stop TouchGrass", #selector(menuStartStop))
-        add(to: menu, "Quit TouchGrass", #selector(menuQuit), keyEquivalent: "q")
+
+        menu.addItem(.separator())
+        add(to: menu, "About…", #selector(menuAbout))
+        add(to: menu, "Settings…", #selector(menuSettings), keyEquivalent: ",")
+
+        menu.addItem(.separator())
+        add(to: menu, "Quit", #selector(menuQuit), keyEquivalent: "q")
         return menu
+    }
+
+    /// The disabled first line: which break is queued, how long it lasts, and when it lands.
+    /// Minute-granular like the status item — the menu is not the place for a ticking clock.
+    private func menuHeader(_ phase: EnginePhase) -> String {
+        switch phase {
+        case .stopped:
+            return "TouchGrass is off"
+        case .running(let kind, let remaining), .preBreak(let kind, let remaining):
+            return "\(Self.kindTitle(kind)) · \(TGFormat.duration(breakLength(kind))) · in \(TGFormat.menuBar(remaining))"
+        case .waitingForActivityToStop(let kind, let hint):
+            return "\(Self.kindTitle(kind)) · \(hint.label)"
+        case .inBreak(let kind, let remaining, _):
+            return "\(Self.kindTitle(kind)) · \(TGFormat.clock(remaining)) left"
+        case .paused(let reasons, let kind, let remaining):
+            let reason = StatusPresentation.primaryReason(reasons)
+            let suffix = reason.map { reason -> String in
+                if case .manual = reason { return "" }
+                return " · \(reason.shortLabel)"
+            } ?? ""
+            return "Paused\(suffix) · \(Self.kindTitle(kind)) in \(TGFormat.menuBar(remaining))"
+        }
+    }
+
+    private static func kindTitle(_ kind: BreakKind) -> String {
+        kind == .long ? "Long break" : "Short break"
+    }
+
+    private func breakLength(_ kind: BreakKind) -> TimeInterval {
+        let settings = settingsStore.settings
+        return kind == .long ? settings.longBreakDuration : settings.shortBreakDuration
     }
 
     @discardableResult
@@ -235,13 +313,32 @@ public final class StatusBarController: NSObject {
         return item
     }
 
+    private func addSubmenu(
+        to menu: NSMenu,
+        _ title: String,
+        enabled: Bool,
+        _ build: (NSMenu) -> Void
+    ) {
+        let item = NSMenuItem(title: title, action: nil, keyEquivalent: "")
+        item.isEnabled = enabled
+        let submenu = NSMenu()
+        submenu.autoenablesItems = false
+        build(submenu)
+        for child in submenu.items where child.isSeparatorItem == false {
+            child.isEnabled = enabled
+        }
+        item.submenu = submenu
+        menu.addItem(item)
+    }
+
     // MARK: - Commands
 
     /// The one place engine commands are issued. Every closure here runs from a user action.
     private func makeActions() -> MenuBarActions {
         MenuBarActions(
             startBreak: { [weak self] kind in self?.engine.startBreakNow(kind) },
-            snooze: { [weak self] seconds in self?.engine.snooze(seconds) },
+            startCustomBreak: { [weak self] seconds in self?.engine.startCustomBreak(duration: seconds) },
+            delay: { [weak self] seconds in self?.delay(seconds) },
             skipOrEnd: { [weak self] in
                 guard let self else { return }
                 self.engine.phase.isInBreak ? self.engine.endBreakEarly() : self.engine.skipBreak()
@@ -253,6 +350,12 @@ public final class StatusBarController: NSObject {
             openOnboarding: { [weak self] in self?.showOnboarding() },
             quit: { [weak self] in self?.onQuit() }
         )
+    }
+
+    /// "+5m". A snooze once the break is imminent (that's what spends the budget), plain added
+    /// time before then — `BreakEngine.snooze` is a no-op while the timer is still mid-interval.
+    private func delay(_ seconds: TimeInterval) {
+        engine.canSnoozeNow ? engine.snooze(seconds) : engine.addTime(seconds)
     }
 
     private func toggleRunning() {
@@ -270,7 +373,7 @@ public final class StatusBarController: NSObject {
         case .startLongBreak:
             actions.startBreak(.long)
         case .addMinute:
-            actions.snooze(60)
+            actions.delay(60)
         case .skipOrEndBreak:
             actions.skipOrEnd()
         case .openQuickPanel:
@@ -280,12 +383,27 @@ public final class StatusBarController: NSObject {
 
     // MARK: - Menu targets
 
-    @objc private func menuStartShortBreak() { engine.startBreakNow(.short) }
-    @objc private func menuStartLongBreak() { engine.startBreakNow(.long) }
+    @objc private func menuStartThisBreak() {
+        engine.startBreakNow(engine.nextBreakKind)
+    }
+
+    @objc private func menuDelay(_ sender: NSMenuItem) {
+        guard let seconds = (sender.representedObject as? NSNumber)?.doubleValue else { return }
+        delay(seconds)
+    }
+
+    @objc private func menuCustomBreak(_ sender: NSMenuItem) {
+        guard let seconds = (sender.representedObject as? NSNumber)?.doubleValue else { return }
+        engine.startCustomBreak(duration: seconds)
+    }
+
     @objc private func menuResume() { engine.resumeManually() }
+
     @objc private func menuPause(_ sender: NSMenuItem) {
         engine.pauseManually(for: (sender.representedObject as? NSNumber)?.doubleValue)
     }
+
+    @objc private func menuAbout() { showSettings(selecting: .about) }
     @objc private func menuSettings() { showSettings() }
     @objc private func menuStartStop() { toggleRunning() }
     @objc private func menuQuit() { onQuit() }

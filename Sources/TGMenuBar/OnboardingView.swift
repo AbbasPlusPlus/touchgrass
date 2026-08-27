@@ -34,6 +34,10 @@ struct OnboardingView: View {
         // The window is `.fullSizeContentView` with a transparent title bar, so the content
         // fills the frame and the hero art runs to the top edge, behind the close button.
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+        // The window itself paints nothing (see `OnboardingWindowController`): this view is
+        // the entire visible surface, so it has to supply its own opaque backdrop below the
+        // hero. Without it the lower half would be see-through.
+        .background(Color(nsColor: .windowBackgroundColor))
         .ignoresSafeArea()
     }
 
@@ -87,22 +91,22 @@ struct OnboardingView: View {
     private var control: some View {
         switch step {
         case .welcome:
-            Picker("Remind me every", selection: $store.settings.shortBreakInterval) {
-                ForEach([15, 20, 25, 30, 45, 60], id: \.self) { minutes in
-                    Text("\(minutes) min").tag(TimeInterval(minutes * 60))
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            OnboardingDurationField(
+                presets: [15, 20, 25, 30, 45, 60].map { TimeInterval($0 * 60) },
+                value: $store.settings.shortBreakInterval,
+                unit: .minutes,
+                bounds: 5...180
+            )
+            .accessibilityLabel("Remind me every")
 
         case .duration:
-            Picker("Break length", selection: $store.settings.shortBreakDuration) {
-                ForEach([15, 20, 30, 45, 60], id: \.self) { seconds in
-                    Text("\(seconds) sec").tag(TimeInterval(seconds))
-                }
-            }
-            .pickerStyle(.segmented)
-            .labelsHidden()
+            OnboardingDurationField(
+                presets: [15, 20, 30, 45, 60].map { TimeInterval($0) },
+                value: $store.settings.shortBreakDuration,
+                unit: .seconds,
+                bounds: 10...900
+            )
+            .accessibilityLabel("Break length")
 
         case .wellness:
             VStack(alignment: .leading, spacing: 8) {
