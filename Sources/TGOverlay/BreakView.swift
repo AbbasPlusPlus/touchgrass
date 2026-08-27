@@ -201,6 +201,10 @@ public struct BreakView: View {
                     }
                 }
             }
+            // A ZStack grows to its largest child, so without this cap the expanded capsule
+            // enlarges the rail and the centring shifts the whole group left mid-hover. A fixed
+            // frame keeps the rail 296 wide no matter what; the expansion overflows to the right.
+            .frame(width: 296, alignment: .bottomLeading)
 
             if let action = model.escHintAction {
                 HStack(spacing: 5) {
