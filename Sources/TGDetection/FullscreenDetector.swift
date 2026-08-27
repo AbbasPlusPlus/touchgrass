@@ -14,6 +14,12 @@
 //                  layer  0 @ 0,39 1800x1130
 //     maximised    layer  0 @ 0,39 1800x1130   ← and nothing above layer 0
 // So a window inset by the menu-bar strip must additionally own that overlay to count.
+//
+// Being fullscreen is *not* on its own a reason to pause. Matching : fullscreen auto-pause
+// fires only for fullscreen **games** (`LSApplicationCategoryType` in the games family, or a known
+// launcher/wrapper from `KnownBundles.gameApps`). An editor or browser in fullscreen is ordinary
+// work — the user has to add it to Deep Focus Apps if they want it to pause. `fullscreen` itself is
+// still published for every app, because `DeepFocusDetector` uses it for arbitrary bundles.
 import AppKit
 import CoreGraphics
 import Foundation
@@ -27,6 +33,10 @@ public struct FullscreenWindowInfo: Sendable, Hashable {
     public let bundleID: String?
     public let windowBounds: CGRect
     public let displayBounds: CGRect
+    /// `LSApplicationCategoryType`, when the app declares one.
+    public let category: String?
+    /// Games are the only fullscreen apps that auto-pause.
+    public let isGame: Bool
 }
 
 // MARK: - Detector
@@ -36,7 +46,8 @@ public final class FullscreenDetector {
 
     public private(set) var frontmost: RunningAppInfo?
     public private(set) var fullscreen: FullscreenWindowInfo?
-    /// `.fullscreenApp(appName:bundleID:)` when enabled in settings and something is fullscreen.
+    /// `.fullscreenApp(appName:bundleID:)` when enabled in settings and a fullscreen **game** is
+    /// frontmost. Non-game fullscreen apps never produce a reason — see the note at the top.
     public private(set) var reason: PauseReason?
 
     public var settings: Settings {
@@ -95,7 +106,7 @@ public final class FullscreenDetector {
     public func refresh() {
         let front = FrontmostAppProbe.frontmost()
         let found = front.flatMap { fullscreenWindow(forPID: $0.pid, app: $0) }
-        let newReason: PauseReason? = (settings.pauseOnFullscreen && found != nil)
+        let newReason: PauseReason? = (settings.pauseOnFullscreen && found?.isGame == true)
             ? .fullscreenApp(appName: found?.appName ?? "App", bundleID: found?.bundleID)
             : nil
 
@@ -131,12 +142,15 @@ public final class FullscreenDetector {
             let coversOrigin = abs(bounds.origin.y - display.origin.y) <= FullscreenGeometry.originTolerance
             guard coversOrigin || FullscreenGeometry.ownsMenuBarOverlay(pid: pid, display: display, in: windows) else { continue }
 
+            let category = AppCategoryProbe.category(pid: pid, bundleID: app.bundleID)
             return FullscreenWindowInfo(
                 pid: pid,
                 appName: app.name ?? (window[kCGWindowOwnerName as String] as? String) ?? "App",
                 bundleID: app.bundleID,
                 windowBounds: bounds,
-                displayBounds: display
+                displayBounds: display,
+                category: category,
+                isGame: KnownBundles.isGame(bundleID: app.bundleID, category: category)
             )
         }
         return nil
@@ -145,10 +159,12 @@ public final class FullscreenDetector {
     // MARK: Debug
 
     public func debugDescription() -> String {
-        var lines = ["fullscreen: reason=\(reason.map { "\($0)" } ?? "nil")"]
+        let head = fullscreen.map { "\($0.appName) (game: \($0.isGame ? "yes" : "no"))" } ?? "none"
+        var lines = ["fullscreen: \(head) reason=\(reason.map { "\($0)" } ?? "nil")"]
         lines.append("  frontmost=\(frontmost?.display ?? "nil") bundle=\(frontmost?.bundleID ?? "nil")")
         if let f = fullscreen {
-            lines.append("  window=\(FullscreenGeometry.describe(f.windowBounds)) display=\(FullscreenGeometry.describe(f.displayBounds))")
+            lines.append("  window=\(FullscreenGeometry.describe(f.windowBounds)) display=\(FullscreenGeometry.describe(f.displayBounds))"
+                         + " category=\(f.category ?? "none")")
         } else {
             lines.append("  no fullscreen window (displays: "
                          + FullscreenGeometry.displayBounds().map(FullscreenGeometry.describe).joined(separator: ", ") + ")")

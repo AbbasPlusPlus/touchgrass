@@ -143,6 +143,28 @@ public enum KnownBundles {
         "com.apple.screensaver",
     ]
 
+    /// Game launchers, Windows-compat wrappers, and games that ship without a games
+    /// `LSApplicationCategoryType`. Matched with `BundleMatch`, so helper bundles
+    /// (`com.valvesoftware.steam.helper`, `net.minecraft.launcher`) are covered too.
+    ///
+    /// Only consulted for the app that is *currently fullscreen* — Parallels or CrossOver windowed on
+    /// a desktop is not a game session, and Steam's own storefront window never goes fullscreen.
+    public static let gameApps: Set<String> = [
+        "com.valvesoftware.steam",              // + steam.helper, steamhelper…
+        "com.valvesoftware.steamhelper",
+        "com.mojang.minecraftlauncher",
+        "net.minecraft",                        // net.minecraft.* (vanilla, MultiMC forks)
+        "com.epicgames.epicgameslauncher",
+        "net.battle.app",                       // Battle.net
+        "com.blizzard.worldofwarcraft",
+        "com.gog.galaxy",
+        "com.codeweavers.crossover",
+        "com.isaacmarovitz.whisky",
+        "com.parallels.desktop.console",
+        "org.prismlauncher.prismlauncher",
+        "com.riotgames.leagueoflegends",
+    ]
+
     /// Matched against the assertion's `Process Name` (CLI tools have no bundle ID).
     public static let caffeinatorProcessNames: Set<String> = [
         "caffeinate",
@@ -166,6 +188,27 @@ public enum KnownBundles {
     /// Camera/mic use by these means "a call is happening".
     public static func isMeetingCapable(_ bundleID: String?) -> Bool {
         isConferencing(bundleID) || isBrowser(bundleID)
+    }
+
+    /// True for the `LSApplicationCategoryType` values Apple assigns to games:
+    /// `public.app-category.games` and the per-genre `public.app-category.<genre>-games`
+    /// (action-games, puzzle-games, role-playing-games, …). Pure — the caller reads the plist.
+    public static func isGameCategory(_ category: String?) -> Bool {
+        guard let raw = category?.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+              !raw.isEmpty else { return false }
+        let prefix = "public.app-category."
+        guard raw.hasPrefix(prefix) else { return false }
+        return raw.dropFirst(prefix.count).contains("games")
+    }
+
+    /// Launchers / wrappers / games that carry no games category of their own.
+    public static func isGameBundle(_ bundleID: String?) -> Bool {
+        BundleMatch.matches(bundleID, anyOf: gameApps)
+    }
+
+    /// The full "is this a game?" rule: an App Store games category, or a known game bundle.
+    public static func isGame(bundleID: String?, category: String?) -> Bool {
+        isGameCategory(category) || isGameBundle(bundleID)
     }
 
     public static func isCaffeinator(bundleID: String?, processName: String?) -> Bool {
