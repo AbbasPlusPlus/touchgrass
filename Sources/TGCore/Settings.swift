@@ -70,14 +70,16 @@ public struct Settings: Codable, Equatable, Sendable {
     public var showTitle: Bool = true
     public var showSubtitle: Bool = true
     public var showClock: Bool = true
+    /// Plain and calm — never poetry. A stored settings file always wins over these, so
+    /// changing the defaults only affects people who never edited the lists.
     public var shortBreakMessages: [String] = [
-        "Relax those eyes|Find a distant spot to rest your eyes on while you wait",
-        "Breathe|In through the nose, out through the mouth",
-        "A moment of pause|Let your eyes wander for a moment",
+        "Look away|Rest your eyes on something far away",
+        "Blink a few times|Slowly, and let your eyes water",
+        "Soften your focus|Let your eyes settle on nothing in particular",
     ]
     public var longBreakMessages: [String] = [
-        "Step away|Stretch, get some water, look out a window",
-        "Go touch grass|Your screen will still be here when you get back",
+        "Stand up|Stretch, get some water, look out a window",
+        "Step outside|Your screen will still be here when you get back",
     ]
     public var showCountdownOnAllDisplays: Bool = false
 

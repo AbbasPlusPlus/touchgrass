@@ -26,11 +26,11 @@ struct ToastView: View {
         HStack(spacing: 10) {
             Image(systemName: model.symbol)
                 .font(.system(size: 14, weight: .medium, design: .rounded))
-                .foregroundStyle(.white.opacity(0.78))
+                .foregroundStyle(OverlayPalette.matcha)
 
             Text(model.text)
                 .font(OverlayType.toast)
-                .foregroundStyle(.white.opacity(0.95))
+                .foregroundStyle(OverlayPalette.ink)
                 .lineLimit(1)
                 .fixedSize()
 

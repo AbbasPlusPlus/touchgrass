@@ -4,25 +4,28 @@ import TGCore
 
 /// Two-stop palettes for the break-background pickers. TGOverlay renders the real thing;
 /// these are the settings-window previews, kept in one place so they stay in sync by name.
+///
+/// Each pair is the *top* of the real backdrop's base wash and the hue of its brighter bloom —
+/// a 78×48 tile of the actual base colours would be six near-identical near-blacks.
 enum PresetPalette {
 
     static func colors(_ preset: GradientPreset) -> [Color] {
         switch preset {
-        case .dawn:     return [Color(red: 0.99, green: 0.76, blue: 0.60), Color(red: 0.79, green: 0.53, blue: 0.72)]
-        case .dusk:     return [Color(red: 0.31, green: 0.29, blue: 0.55), Color(red: 0.85, green: 0.49, blue: 0.47)]
-        case .forest:   return [Color(red: 0.19, green: 0.42, blue: 0.32), Color(red: 0.56, green: 0.72, blue: 0.44)]
-        case .ocean:    return [Color(red: 0.13, green: 0.35, blue: 0.55), Color(red: 0.38, green: 0.74, blue: 0.78)]
-        case .ember:    return [Color(red: 0.42, green: 0.13, blue: 0.16), Color(red: 0.93, green: 0.55, blue: 0.25)]
-        case .lavender: return [Color(red: 0.55, green: 0.48, blue: 0.79), Color(red: 0.87, green: 0.79, blue: 0.93)]
+        case .dawn:     return [.tg(0x6B4A33), .tg(0xD8B45E)]
+        case .dusk:     return [.tg(0x50384A), .tg(0x8C6BB8)]
+        case .forest:   return [.tg(0x35462F), .tg(0x8BA579)]
+        case .ocean:    return [.tg(0x1E4C50), .tg(0x4FA8B4)]
+        case .ember:    return [.tg(0x5E301C), .tg(0xE08A4A)]
+        case .lavender: return [.tg(0x4C3F5C), .tg(0xA894D6)]
         }
     }
 
     static func colors(_ preset: AnimatedPreset) -> [Color] {
         switch preset {
-        case .slipstream: return [Color(red: 0.11, green: 0.16, blue: 0.34), Color(red: 0.35, green: 0.56, blue: 0.86)]
-        case .fireflies:  return [Color(red: 0.06, green: 0.12, blue: 0.10), Color(red: 0.42, green: 0.56, blue: 0.28)]
-        case .topography: return [Color(red: 0.16, green: 0.19, blue: 0.22), Color(red: 0.51, green: 0.57, blue: 0.60)]
-        case .aurora:     return [Color(red: 0.07, green: 0.10, blue: 0.22), Color(red: 0.30, green: 0.80, blue: 0.68)]
+        case .slipstream: return [.tg(0x122436), .tg(0x64A5B4)]
+        case .fireflies:  return [.tg(0x14201C), .tg(0xE6F0AE)]
+        case .topography: return [.tg(0x1D2432), .tg(0xAEC8EA)]
+        case .aurora:     return [.tg(0x111C2E), .tg(0x66E0A8)]
         }
     }
 

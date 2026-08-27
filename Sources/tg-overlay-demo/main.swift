@@ -1,7 +1,7 @@
 // tg-overlay-demo — shows any TGOverlay surface on every display, without the engine.
 //
 //   tg-overlay-demo break [short|long] [seconds] [casual|balanced|hardcore]
-//                         [wallpaper|gradient:<name>|animated:<name>]
+//                         [blur|wallpaper|gradient:<name>|animated:<name>]
 //   tg-overlay-demo card | pill | blink | posture | custom [title] [symbol] | toast
 //
 // Prints the frontmost application before and after presenting, so it is easy to verify that
@@ -15,6 +15,7 @@ import TGOverlay
 
 func parseBackground(_ raw: String?) -> BreakBackground {
     guard let raw else { return .wallpaper }
+    if raw == "blur" { return .screenBlur }
     if raw == "wallpaper" { return .wallpaper }
     if raw.hasPrefix("gradient:") {
         let name = String(raw.dropFirst("gradient:".count))
@@ -53,6 +54,8 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Self.forceAppearance()
+
         // The real app holds one of these too; without it App Nap throttles the overlay and any
         // CPU measurement taken here is meaningless.
         activityToken = ProcessInfo.processInfo.beginActivity(
@@ -86,6 +89,16 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
             let after = frontmostName()
             print("frontmost after:  \(after)")
             print(after == self.frontmostBefore ? "focus: UNCHANGED ✓" : "focus: CHANGED ✗")
+        }
+    }
+
+    /// `TG_APPEARANCE=light|dark` pins the demo to one appearance so both can be reviewed
+    /// without touching the machine's own System Settings.
+    private static func forceAppearance() {
+        switch ProcessInfo.processInfo.environment["TG_APPEARANCE"] {
+        case "light": NSApp.appearance = NSAppearance(named: .aqua)
+        case "dark":  NSApp.appearance = NSAppearance(named: .darkAqua)
+        default:      break
         }
     }
 
@@ -151,7 +164,7 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
 
     private func runPill() {
         remaining = 10
-        pill.show(symbol: "eye", text: "Short break in 10")
+        pill.show(symbol: "eye", text: "Starting break in 10")
         ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
@@ -159,7 +172,7 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
                 if self.remaining <= 3 {
                     self.pill.update(symbol: "keyboard", text: "Typing…")
                 } else {
-                    self.pill.update(symbol: "eye", text: "Short break in \(Int(self.remaining))")
+                    self.pill.update(symbol: "eye", text: "Starting break in \(Int(self.remaining))")
                 }
                 if self.remaining <= 0 { self.pill.hide(); self.finish() }
             }

@@ -2,38 +2,21 @@
 //
 // Run:  $(brew --prefix swift)/bin/swift Support/icon/generate.swift
 //
-// Draws the icon procedurally with CoreGraphics (no third-party deps), emits
-// Support/icon/AppIcon-1024.png, builds Support/icon/AppIcon.iconset at every
-// standard size, and runs `iconutil` to produce Support/AppIcon.icns.
+// Draws the approved mark (Support/logo/touchgrass-mark.svg — five flat blades clipped to a
+// disc) on a paper squircle, emits Support/icon/AppIcon-1024.png, builds
+// Support/icon/AppIcon.iconset at every standard size, and runs `iconutil` to produce
+// Support/AppIcon.icns.
+//
+// The path data below is the SVG's, verbatim, in its 512×512 viewBox. `TGMenuBar` and
+// `TGOverlay` each carry a copy (`LogoMarkGeometry`) because a standalone script can't import
+// them. If one changes, change all three.
 
 import Foundation
 import CoreGraphics
 import ImageIO
 import UniformTypeIdentifiers
 
-// MARK: - Small vector helpers
-
-struct P {
-    var x: CGFloat
-    var y: CGFloat
-    init(_ x: CGFloat, _ y: CGFloat) { self.x = x; self.y = y }
-}
-
-func cubicPoint(_ p0: P, _ p1: P, _ p2: P, _ p3: P, _ t: CGFloat) -> P {
-    let mt = 1 - t
-    let a = mt * mt * mt, b = 3 * mt * mt * t, c = 3 * mt * t * t, d = t * t * t
-    return P(a * p0.x + b * p1.x + c * p2.x + d * p3.x,
-             a * p0.y + b * p1.y + c * p2.y + d * p3.y)
-}
-
-func cubicTangent(_ p0: P, _ p1: P, _ p2: P, _ p3: P, _ t: CGFloat) -> P {
-    let mt = 1 - t
-    let a = 3 * mt * mt, b = 6 * mt * t, c = 3 * t * t
-    return P(a * (p1.x - p0.x) + b * (p2.x - p1.x) + c * (p3.x - p2.x),
-             a * (p1.y - p0.y) + b * (p2.y - p1.y) + c * (p3.y - p2.y))
-}
-
-// MARK: - Color helpers
+// MARK: - Colour helpers
 
 let sRGB = CGColorSpace(name: CGColorSpace.sRGB)!
 
@@ -59,8 +42,6 @@ func squirclePath(in rect: CGRect, cornerRadius r: CGFloat, exponent n: CGFloat 
     let steps = 40
     let e = 2 / n
 
-    // Corner centers, and the angle sweep for each, walking counter-clockwise
-    // from the +x axis of each corner.
     let corners: [(center: CGPoint, start: CGFloat)] = [
         (CGPoint(x: rect.maxX - r, y: rect.maxY - r), 0),                  // top-right
         (CGPoint(x: rect.minX + r, y: rect.maxY - r), .pi / 2),            // top-left
@@ -87,77 +68,114 @@ func squirclePath(in rect: CGRect, cornerRadius r: CGFloat, exponent n: CGFloat 
     return path
 }
 
-// MARK: - Grass blade
+// MARK: - The mark
 
-struct Blade {
-    var base: P            // normalized (0...1) inside the icon body, y up
-    var c1: P
-    var c2: P
-    var tip: P
-    var width: CGFloat     // max thickness, normalized to body size
-    var tipTaper: CGFloat  // higher = longer, sharper point
-    var baseTaper: CGFloat // higher = the blade swells further up from the base
-}
+enum Mark {
+    static let viewBox: CGFloat = 512
+    static let discCentre = CGPoint(x: 262, y: 268)
+    static let discRadius: CGFloat = 192
 
-/// Outline of a tapered blade: walk the spine, offset along the normal by a
-/// width profile that swells just above the base and comes to a point at the tip.
-func bladePath(_ b: Blade, origin: CGPoint, scale s: CGFloat) -> CGPath {
-    let samples = 220
-    let pt = { (n: P) -> CGPoint in CGPoint(x: origin.x + n.x * s, y: origin.y + n.y * s) }
-
-    var left: [CGPoint] = []
-    var right: [CGPoint] = []
-    left.reserveCapacity(samples + 1)
-    right.reserveCapacity(samples + 1)
-
-    for i in 0...samples {
-        let t = CGFloat(i) / CGFloat(samples)
-        let p = cubicPoint(b.base, b.c1, b.c2, b.tip, t)
-        var d = cubicTangent(b.base, b.c1, b.c2, b.tip, t)
-        let len = max(sqrt(d.x * d.x + d.y * d.y), 1e-6)
-        d = P(d.x / len, d.y / len)
-        let nrm = P(-d.y, d.x)
-
-        // Leaf profile: pointed where it leaves the ground, widest around a
-        // third of the way up, tapering to a fine point. Normalised so the
-        // widest part is exactly `width`.
-        let a = b.baseTaper, c = b.tipTaper
-        let peak = a / (a + c)
-        let norm = pow(peak, a) * pow(1 - peak, c)
-        let w = b.width * 0.5 * pow(max(0, t), a) * pow(max(0, 1 - t), c) / norm
-
-        left.append(pt(P(p.x + nrm.x * w, p.y + nrm.y * w)))
-        right.append(pt(P(p.x - nrm.x * w, p.y - nrm.y * w)))
+    enum Command {
+        case move(CGFloat, CGFloat)
+        case line(CGFloat, CGFloat)
+        case curve(CGFloat, CGFloat, CGFloat, CGFloat, CGFloat, CGFloat)
     }
 
-    let path = CGMutablePath()
-    path.move(to: left[0])
-    path.addLines(between: Array(left.dropFirst()))
-    path.addLines(between: right.reversed())
-    path.closeSubpath()
-    return path
+    struct Blade {
+        let hex: UInt32
+        /// The two thin slits, which turn to mush below ~26 px.
+        let isSliver: Bool
+        let commands: [Command]
+    }
+
+    static let blades: [Blade] = [
+        // 1 · big light crescent along the left rim
+        Blade(hex: 0xA6C84D, isSliver: false, commands: [
+            .move(348, 82),
+            .curve(220, 96, 72, 180, 72, 300),
+            .curve(72, 400, 180, 462, 285, 462),
+            .curve(205, 428, 163, 345, 180, 258),
+            .curve(197, 170, 270, 112, 348, 82),
+        ]),
+        // 2 · second blade, fat, base flows to bottom
+        Blade(hex: 0x78AF43, isSliver: false, commands: [
+            .move(408, 150),
+            .curve(320, 180, 238, 252, 213, 342),
+            .curve(202, 400, 210, 442, 228, 462),
+            .line(372, 462),
+            .curve(320, 380, 330, 268, 408, 150),
+        ]),
+        // 3 · third blade, overlapping blade 2's base
+        Blade(hex: 0x4F8D3C, isSliver: true, commands: [
+            .move(452, 226),
+            .curve(368, 252, 296, 314, 268, 384),
+            .curve(254, 424, 258, 452, 272, 462),
+            .line(400, 462),
+            .curve(370, 390, 392, 302, 452, 226),
+        ]),
+        // 4 · dark bottom mass, spanning the whole base
+        Blade(hex: 0x27521F, isSliver: false, commands: [
+            .move(462, 302),
+            .curve(372, 314, 296, 356, 258, 408),
+            .curve(236, 430, 222, 448, 214, 462),
+            .line(470, 462),
+            .line(470, 302),
+            .curve(468, 302, 465, 302, 462, 302),
+        ]),
+        // 5 · light leaf over the dark mass, belly on the rim
+        Blade(hex: 0x93C04C, isSliver: true, commands: [
+            .move(288, 456),
+            .curve(314, 384, 376, 342, 452, 332),
+            .curve(452, 392, 424, 434, 382, 452),
+            .curve(350, 464, 314, 464, 288, 456),
+        ]),
+    ]
+
+    /// Maps the *disc* (not the viewBox) into `rect`, in CoreGraphics' bottom-left origin.
+    /// Returns scale and offsets for `point(x, y) = (dx + x·s, dy + (viewBox − y)·s)`.
+    static func mapping(discIn rect: CGRect) -> (s: CGFloat, dx: CGFloat, dy: CGFloat) {
+        let s = rect.width / (discRadius * 2)
+        let minX = discCentre.x - discRadius
+        let minYFlipped = viewBox - (discCentre.y + discRadius)
+        return (s, rect.minX - minX * s, rect.minY - minYFlipped * s)
+    }
+
+    static func path(_ commands: [Command], discIn rect: CGRect) -> CGPath {
+        let (s, dx, dy) = mapping(discIn: rect)
+        func point(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: dx + x * s, y: dy + (viewBox - y) * s)
+        }
+        let path = CGMutablePath()
+        for command in commands {
+            switch command {
+            case .move(let x, let y): path.move(to: point(x, y))
+            case .line(let x, let y): path.addLine(to: point(x, y))
+            case .curve(let a, let b, let c, let d, let x, let y):
+                path.addCurve(to: point(x, y), control1: point(a, b), control2: point(c, d))
+            }
+        }
+        path.closeSubpath()
+        return path
+    }
+
+    /// Draws the mark so its disc exactly fills `rect`.
+    static func draw(into ctx: CGContext, discIn rect: CGRect, dropSlivers: Bool) {
+        ctx.saveGState()
+        ctx.addEllipse(in: rect)
+        ctx.clip()
+        for blade in blades {
+            let hex = (dropSlivers && blade.isSliver) ? 0x27521F : blade.hex
+            ctx.addPath(path(blade.commands, discIn: rect))
+            ctx.setFillColor(rgb(UInt32(hex)))
+            ctx.fillPath()
+        }
+        ctx.restoreGState()
+    }
 }
 
 // MARK: - Composition
 
-let blades: [Blade] = [
-    // Two low blades in a deeper green that splay out past the main pair, so
-    // the tuft layers instead of reading as flat cut-outs.
-    Blade(base: P(0.482, 0.090), c1: P(0.424, 0.196), c2: P(0.322, 0.318),
-          tip: P(0.222, 0.418), width: 0.094, tipTaper: 0.80, baseTaper: 0.46),
-    Blade(base: P(0.520, 0.090), c1: P(0.582, 0.190), c2: P(0.686, 0.302),
-          tip: P(0.782, 0.400), width: 0.090, tipTaper: 0.80, baseTaper: 0.46),
-    // Left blade, sweeping out and over.
-    Blade(base: P(0.460, 0.086), c1: P(0.412, 0.300), c2: P(0.296, 0.478),
-          tip: P(0.196, 0.618), width: 0.126, tipTaper: 0.78, baseTaper: 0.42),
-    // Right blade.
-    Blade(base: P(0.546, 0.086), c1: P(0.606, 0.318), c2: P(0.712, 0.502),
-          tip: P(0.806, 0.652), width: 0.128, tipTaper: 0.78, baseTaper: 0.42),
-    // Centre blade — tallest, reads first at 16 px.
-    Blade(base: P(0.502, 0.078), c1: P(0.462, 0.362), c2: P(0.498, 0.668),
-          tip: P(0.542, 0.878), width: 0.146, tipTaper: 0.74, baseTaper: 0.40)
-]
-
+/// Paper (#F2EEDE), a whisper of grain, and the mark with ~12 % of the body left as margin.
 func drawIcon(into ctx: CGContext, size S: CGFloat) {
     ctx.setAllowsAntialiasing(true)
     ctx.interpolationQuality = .high
@@ -168,107 +186,51 @@ func drawIcon(into ctx: CGContext, size S: CGFloat) {
     let radius = body.width * 0.225
     let shape = squirclePath(in: body, cornerRadius: radius)
 
-    // ---- Background: dusk sky falling into lawn -------------------------
+    // ---- Paper ------------------------------------------------------------
     ctx.saveGState()
     ctx.addPath(shape)
     ctx.clip()
 
+    // Not a flat fill: a barely-there vertical lift keeps 1024 px of beige from looking dead.
     ctx.drawLinearGradient(
-        gradient([
-            (rgb(0x489C57), 0.00),   // warm grass green (bottom)
-            (rgb(0x2E7A53), 0.24),
-            (rgb(0x1E6355), 0.46),
-            (rgb(0x1A4757), 0.68),
-            (rgb(0x1C3352), 0.88),
-            (rgb(0x1F2D4E), 1.00)    // deep dusk indigo (top)
-        ]),
+        gradient([(rgb(0xEDE8D6), 0.0), (rgb(0xF2EEDE), 0.45), (rgb(0xFAF7EC), 1.0)]),
         start: CGPoint(x: body.midX, y: body.minY),
         end: CGPoint(x: body.midX, y: body.maxY),
         options: []
     )
 
-    // Soft halo behind the tuft so the blades feel lit.
+    if S >= 128 { drawGrain(ctx, rect: body, alpha: 0.045) }
+
+    // A soft warm shade under where the mark sits, so the disc has something to sit *on*.
     ctx.drawRadialGradient(
-        gradient([(rgb(0xC8FFD8, 0.16), 0.0), (rgb(0xC8FFD8, 0.0), 1.0)]),
-        startCenter: CGPoint(x: body.midX, y: body.minY + body.height * 0.36),
+        gradient([(rgb(0x8A8460, 0.10), 0.0), (rgb(0x8A8460, 0.0), 1.0)]),
+        startCenter: CGPoint(x: body.midX, y: body.minY + body.height * 0.40),
         startRadius: 0,
-        endCenter: CGPoint(x: body.midX, y: body.minY + body.height * 0.36),
-        endRadius: body.width * 0.52,
+        endCenter: CGPoint(x: body.midX, y: body.minY + body.height * 0.40),
+        endRadius: body.width * 0.56,
         options: []
     )
-
-    // Vignette: gently darken the outer corners.
-    ctx.drawRadialGradient(
-        gradient([(rgb(0x000000, 0.0), 0.55), (rgb(0x001018, 0.20), 1.0)]),
-        startCenter: CGPoint(x: body.midX, y: body.midY),
-        startRadius: 0,
-        endCenter: CGPoint(x: body.midX, y: body.midY),
-        endRadius: body.width * 0.78,
-        options: [.drawsAfterEndLocation]
-    )
-
-    // Top-edge sheen.
-    ctx.drawLinearGradient(
-        gradient([(rgb(0xFFFFFF, 0.0), 0.0), (rgb(0xEAF6FF, 0.13), 1.0)]),
-        start: CGPoint(x: body.midX, y: body.maxY - body.height * 0.30),
-        end: CGPoint(x: body.midX, y: body.maxY),
-        options: []
-    )
-
-    // Fine grain, large sizes only.
-    if S >= 128 { drawGrain(ctx, rect: body, alpha: 0.030) }
     ctx.restoreGState()
 
-    // ---- Grass -----------------------------------------------------------
+    // ---- The mark ---------------------------------------------------------
+    // 12 % margin on each side leaves the disc 76 % of the body. Below 64 px there is no room
+    // to spend an eighth of the tile on air, so the margin halves and the mark fills it.
+    let margin = body.width * (S >= 64 ? 0.12 : 0.06)
+    let disc = CGRect(x: body.minX + margin, y: body.minY + margin,
+                      width: body.width - margin * 2, height: body.height - margin * 2)
+
     ctx.saveGState()
     ctx.addPath(shape)
     ctx.clip()
-
-    // Soft pool of shade where the blades leave the ground.
-    if S >= 40 {
-    ctx.saveGState()
-    let groundC = CGPoint(x: body.minX + body.width * 0.503, y: body.minY + body.height * 0.098)
-    ctx.translateBy(x: groundC.x, y: groundC.y)
-    ctx.scaleBy(x: 1, y: 0.34)
-    ctx.drawRadialGradient(
-        gradient([(rgb(0x06180F, 0.30), 0.0), (rgb(0x06180F, 0.18), 0.45), (rgb(0x06180F, 0.0), 1.0)]),
-        startCenter: .zero, startRadius: 0,
-        endCenter: .zero, endRadius: body.width * 0.20,
-        options: []
-    )
-    ctx.restoreGState()
+    if S >= 64 {
+        ctx.setShadow(offset: CGSize(width: 0, height: -S * 0.010),
+                      blur: S * 0.030,
+                      color: rgb(0x3A3A22, 0.22))
+        ctx.beginTransparencyLayer(auxiliaryInfo: nil)
     }
-
-    // Below ~40 px the two low blades turn to mush, so the small variants get
-    // the three main blades only, drawn slightly heavier.
-    let small = S < 40
-    let visible = small ? Array(blades.dropFirst(2)) : blades
-    let fatten: CGFloat = small ? 1.16 : 1.0
-
-    ctx.setShadow(offset: CGSize(width: 0, height: -S * 0.012),
-                  blur: S * (small ? 0.05 : 0.032),
-                  color: rgb(0x03140C, small ? 0.20 : 0.34))
-    ctx.beginTransparencyLayer(auxiliaryInfo: nil)
-
-    for (i, blade) in visible.enumerated() {
-        var blade = blade
-        blade.width *= fatten
-        let path = bladePath(blade, origin: body.origin, scale: body.width)
-        let box = path.boundingBox
-        ctx.saveGState()
-        ctx.addPath(path)
-        ctx.clip()
-        let stops: [(CGColor, CGFloat)] = (!small && i < 2)
-            ? [(rgb(0x358560), 0.0), (rgb(0x5FB27C), 0.55), (rgb(0x8FD09C), 1.0)]   // behind
-            : [(rgb(0x66C98A), 0.0), (rgb(0xAFEAB6), 0.50), (rgb(0xF2FFEE), 1.0)]
-        ctx.drawLinearGradient(gradient(stops),
-                               start: CGPoint(x: box.midX, y: box.minY),
-                               end: CGPoint(x: box.midX, y: box.maxY),
-                               options: [.drawsBeforeStartLocation, .drawsAfterEndLocation])
-        ctx.restoreGState()
-    }
-
-    ctx.endTransparencyLayer()
+    // Below ~26 px of *disc* the two thin slits are sub-pixel and only dirty the silhouette.
+    Mark.draw(into: ctx, discIn: disc, dropSlivers: disc.width < 26)
+    if S >= 64 { ctx.endTransparencyLayer() }
     ctx.restoreGState()
 
     // ---- Inner rim light along the top edge ------------------------------
@@ -280,7 +242,7 @@ func drawIcon(into ctx: CGContext, size S: CGFloat) {
     ctx.replacePathWithStrokedPath()
     ctx.clip()
     ctx.drawLinearGradient(
-        gradient([(rgb(0xFFFFFF, 0.0), 0.0), (rgb(0xFFFFFF, 0.0), 0.42), (rgb(0xFFFFFF, 0.10), 0.72), (rgb(0xFFFFFF, 0.30), 1.0)]),
+        gradient([(rgb(0x8A8460, 0.14), 0.0), (rgb(0xFFFFFF, 0.0), 0.45), (rgb(0xFFFFFF, 0.28), 1.0)]),
         start: CGPoint(x: body.midX, y: body.minY),
         end: CGPoint(x: body.midX, y: body.maxY),
         options: []
@@ -346,8 +308,7 @@ let supportDir = iconDir.deletingLastPathComponent()              // Support
 let iconsetDir = iconDir.appendingPathComponent("AppIcon.iconset")
 let icnsURL = supportDir.appendingPathComponent("AppIcon.icns")
 
-// Every size is drawn natively rather than downscaled, so the blades stay crisp
-// at 16 px.
+// Every size is drawn natively rather than downscaled, so the mark stays crisp at 16 px.
 let master = render(size: 1024)
 writePNG(master, to: iconDir.appendingPathComponent("AppIcon-1024.png"))
 

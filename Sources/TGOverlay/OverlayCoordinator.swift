@@ -92,7 +92,9 @@ public final class OverlayCoordinator {
         case .preBreakCountdown(let kind, let secondsLeft):
             pendingKind = kind
             card.update(secondsLeft: secondsLeft, snoozesRemaining: snoozesRemaining)
-            let label = "\(kind == .long ? "Long" : "Short") break in \(max(0, secondsLeft))"
+            let label = kind == .long
+                ? "Starting long break in \(max(0, secondsLeft))"
+                : "Starting break in \(max(0, secondsLeft))"
             if pill.isShowing {
                 pill.update(symbol: Self.symbol(for: kind), text: label)
             } else {
@@ -133,11 +135,14 @@ public final class OverlayCoordinator {
             pill.hide()
             overlay.hide()
 
-        case .paused(let reasons):
-            guard let reason = Self.toastableReason(in: reasons) else { break }
+        case .paused:
+            // No toast, ever. A pause reason carries the frontmost app's name, so every window
+            // switch inside a call produced a *different* reason, a set change, and another
+            // "Call detected on Zoom" banner. The menu bar already says "Paused · Meeting" and
+            // that is the whole indicator; the only toasts left in the app are the two that
+            // offer an action or confirm one (the away-decision Undo, and "Snoozed 5 minutes").
             card.hide()
             pill.hide()
-            toast.show(symbol: Self.symbol(for: reason), text: reason.toastText)
 
         case .resumed:
             break
@@ -205,39 +210,6 @@ public final class OverlayCoordinator {
         case .dragging: return "hand.draw"
         case .dictating: return "mic.fill"
         }
-    }
-
-    private static func symbol(for reason: PauseReason) -> String {
-        switch reason {
-        case .meeting: return "person.2.wave.2.fill"
-        case .video: return "play.rectangle.fill"
-        case .fullscreenApp: return "rectangle.inset.filled"
-        case .deepFocusApp: return "moon.fill"
-        default: return "pause.circle.fill"
-        }
-    }
-
-    /// Idle and manual pauses are deliberately silent — 's loudest complaint was toast spam.
-    private static func toastableReason(in reasons: Set<PauseReason>) -> PauseReason? {
-        let ranked = reasons.filter {
-            switch $0 {
-            // Fullscreen/deep-focus pauses are silent too: the menu bar already says
-            // "Paused · Fullscreen", and the user found the toasts noisy.
-            case .meeting, .video: return true
-            default: return false
-            }
-        }
-        // Deterministic priority: a call beats a video beats a fullscreen app beats a focus app.
-        func rank(_ reason: PauseReason) -> Int {
-            switch reason {
-            case .meeting: return 0
-            case .video: return 1
-            case .fullscreenApp: return 2
-            case .deepFocusApp: return 3
-            default: return 4
-            }
-        }
-        return ranked.min { rank($0) < rank($1) }
     }
 
     private static func minutesLabel(_ seconds: TimeInterval) -> String {

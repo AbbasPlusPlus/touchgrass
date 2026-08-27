@@ -1,7 +1,8 @@
 // TGMenuBar — the colored rounded-square glyph used all over the settings sidebar.
 import SwiftUI
 
-/// System-Settings' signature icon: a tinted, softly graded rounded square with a white symbol.
+/// System-Settings' signature icon, retinted: a palette-coloured rounded square with a paper
+/// symbol on it.
 struct SettingsIcon: View {
     let symbol: String
     let tint: Color
@@ -14,9 +15,9 @@ struct SettingsIcon: View {
             .overlay(
                 Image(systemName: symbol)
                     .font(.system(size: size * 0.56, weight: .semibold))
-                    .foregroundStyle(.white)
+                    .foregroundStyle(TGPalette.onMatcha)
             )
-            .shadow(color: tint.opacity(0.25), radius: 1, y: 0.5)
+            .shadow(color: tint.opacity(0.22), radius: 1, y: 0.5)
             .accessibilityHidden(true)
     }
 }

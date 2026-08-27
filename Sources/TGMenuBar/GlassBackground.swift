@@ -2,7 +2,10 @@
 import AppKit
 
 /// Builds the panel's background container: Tahoe glass when we can, a `.popover`
-/// visual-effect view otherwise, and a flat surface when Reduce Transparency is on.
+/// visual-effect view otherwise, and flat paper when Reduce Transparency is on.
+///
+/// The warm paper wash that keeps the material from reading gray is applied on the SwiftUI
+/// side (`QuickPanelView`), where it can sit *over* the glass rather than behind it.
 enum GlassBackground {
 
     /// Wraps `content` in a rounded translucent container sized to fill its superview.
@@ -17,11 +20,36 @@ enum GlassBackground {
     // MARK: - Private
 
     private static func makeContainer(cornerRadius: CGFloat, content: NSView) -> NSView {
-        if !NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency,
-           let glass = makeGlass(cornerRadius: cornerRadius, content: content) {
+        if NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency {
+            return makePaper(cornerRadius: cornerRadius, content: content)
+        }
+        if let glass = makeGlass(cornerRadius: cornerRadius, content: content) {
             return glass
         }
         return makeVisualEffect(cornerRadius: cornerRadius, content: content)
+    }
+
+    /// Reduce Transparency: the glass becomes flat paper2, one-for-one.
+    ///
+    /// An `NSBox` rather than a layer-backed `NSView`: `fillColor` keeps a *dynamic* NSColor
+    /// dynamic, where assigning `layer.backgroundColor` would freeze whichever appearance
+    /// happened to be current when the panel was built.
+    private static func makePaper(cornerRadius: CGFloat, content: NSView) -> NSView {
+        let paper = NSBox()
+        paper.boxType = .custom
+        paper.titlePosition = .noTitle
+        paper.borderWidth = 0
+        paper.fillColor = .tgPaper2
+        paper.cornerRadius = cornerRadius
+        paper.contentViewMargins = .zero
+        paper.addSubview(content)
+        NSLayoutConstraint.activate([
+            content.leadingAnchor.constraint(equalTo: paper.leadingAnchor),
+            content.trailingAnchor.constraint(equalTo: paper.trailingAnchor),
+            content.topAnchor.constraint(equalTo: paper.topAnchor),
+            content.bottomAnchor.constraint(equalTo: paper.bottomAnchor),
+        ])
+        return paper
     }
 
     /// `NSGlassEffectView` is macOS 26+. The package's deployment target is 26.0, but the

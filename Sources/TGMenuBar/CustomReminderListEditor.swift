@@ -20,11 +20,11 @@ struct CustomReminderListEditor: View {
             }
             .background(
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(Color.primary.opacity(0.035))
+                    .fill(TGPalette.paper2.opacity(0.55))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
+                    .strokeBorder(TGPalette.stone, lineWidth: 1)
             )
         }
     }
@@ -60,7 +60,7 @@ struct CustomReminderListEditor: View {
             } label: {
                 Image(systemName: "minus.circle")
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TGPalette.ink2)
             }
             .buttonStyle(.plain)
             .help("Remove this reminder")
@@ -91,7 +91,7 @@ struct CustomReminderListEditor: View {
                 .padding(.trailing, 9)
         }
         .font(TGType.footnote)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(TGPalette.ink2)
         .padding(.horizontal, 4)
         .padding(.vertical, 2)
     }

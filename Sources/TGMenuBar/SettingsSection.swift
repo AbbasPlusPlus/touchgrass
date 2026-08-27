@@ -59,17 +59,19 @@ public enum SettingsSection: String, CaseIterable, Identifiable, Hashable, Senda
         }
     }
 
+    /// Palette only: the matcha family, with clay reserved for the one page that is about
+    /// being interrupted.
     var tint: Color {
         switch self {
-        case .screenBreaks: return .pink
-        case .smartPause:   return .purple
-        case .wellness:     return .green
-        case .alerts:       return .orange
-        case .appearance:   return .blue
-        case .sounds:       return .teal
-        case .shortcuts:    return .gray
-        case .general:      return .gray
-        case .about:        return .gray
+        case .screenBreaks: return TGPalette.matcha
+        case .smartPause:   return TGPalette.moss
+        case .wellness:     return TGPalette.matcha
+        case .alerts:       return TGPalette.clay
+        case .appearance:   return TGPalette.moss
+        case .sounds:       return TGPalette.matcha
+        case .shortcuts:    return TGPalette.ink2
+        case .general:      return TGPalette.ink2
+        case .about:        return TGPalette.ink2
         }
     }
 

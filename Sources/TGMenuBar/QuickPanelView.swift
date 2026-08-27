@@ -41,6 +41,10 @@ struct QuickPanelView: View {
         .padding(.horizontal, 14)
         .padding(.top, 12)
         .padding(.bottom, 14)
+        // Warm wash over the glass, plus a whisper of grain: without it the material picks up
+        // whatever is behind the panel and the whole thing reads gray.
+        .background(TGPalette.glassWash)
+        .paperGrain(opacity: 0.025)
         // Width is fixed; height is whatever the current state needs. `QuickPanel` reads the
         // fitting size when it shows the window — and again whenever the tab changes — so the
         // panel never has dead space at the bottom just because there is nothing to count down.
@@ -77,10 +81,10 @@ struct QuickPanelView: View {
         if stats == nil {
             Text("Now")
                 .font(TGType.caption)
-                .foregroundStyle(.primary)
+                .foregroundStyle(TGPalette.onMatcha)
                 .padding(.vertical, 5)
                 .padding(.horizontal, 20)
-                .background(Capsule(style: .continuous).fill(Color.primary.opacity(0.13)))
+                .background(Capsule(style: .continuous).fill(TGPalette.matcha))
                 .accessibilityAddTraits(.isHeader)
         } else {
             QuickPanelTabControl(tab: $model.tab)
@@ -116,16 +120,8 @@ struct QuickPanelView: View {
         help: String? = nil,
         action: @escaping () -> Void
     ) -> some View {
-        Button(action: action) {
-            Image(systemName: symbol)
-                .font(.system(size: size))
-                .foregroundStyle(.secondary)
-                .frame(width: Self.sideWidth, height: 18)
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .help(help ?? label)
-        .accessibilityLabel(label)
+        IconButton(symbol: symbol, label: label, size: size, help: help,
+                   diameter: Self.sideWidth, action: action)
     }
 
     // MARK: - Now tab
@@ -160,23 +156,23 @@ struct QuickPanelView: View {
         VStack(spacing: 6) {
             Image(systemName: presentation.symbol)
                 .font(.system(size: 17, weight: .regular))
-                .foregroundStyle(.secondary)
+                .foregroundStyle(TGPalette.matcha)
             Text(presentation.headline)
                 .font(TGType.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(TGPalette.ink2)
                 .multilineTextAlignment(.center)
 
             if presentation.value.isEmpty {
                 Text(presentation.detail)
                     .font(TGType.title)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(TGPalette.ink)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.top, 3)
             } else {
                 Text(presentation.value)
                     .font(TGType.hero)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(TGPalette.matchaDeep)
                     .padding(.top, -2)
             }
         }
@@ -249,14 +245,12 @@ struct QuickPanelView: View {
     private var summaryList: some View {
         VStack(spacing: 7) {
             QuickPanelRow(
-                symbol: "bolt.fill",
-                tint: .yellow,
+                emoji: "\u{1F331}",
                 title: "Current focus time",
                 value: TGFormat.elapsed(engine.currentSessionFocusTime)
             )
             QuickPanelRow(
-                symbol: "figure.mind.and.body",
-                tint: .pink,
+                emoji: "\u{1F343}",
                 title: "Upcoming break",
                 accent: nextBreakKind == .long ? "Long" : "Short",
                 value: TGFormat.duration(

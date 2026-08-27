@@ -19,11 +19,14 @@ struct SettingsSidebar: View {
             }
         }
         .listStyle(.sidebar)
+        .scrollContentBackground(.hidden)
+        .background(TGPalette.paper)
     }
 
     private func row(_ section: SettingsSection) -> some View {
         Label {
             Text(section.title)
+                .foregroundStyle(TGPalette.ink)
         } icon: {
             SettingsIcon(symbol: section.symbol, tint: section.tint)
         }

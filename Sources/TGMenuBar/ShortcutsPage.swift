@@ -16,13 +16,13 @@ struct ShortcutsPage: View {
                         HStack(spacing: 8) {
                             Image(systemName: action.symbolName)
                                 .font(.system(size: 13))
-                                .foregroundStyle(.secondary)
+                                .foregroundStyle(TGPalette.ink2)
                                 .frame(width: 16)
                             VStack(alignment: .leading, spacing: 0) {
                                 Text(action.title)
                                 Text(action.subtitle)
                                     .font(TGType.footnote)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(TGPalette.ink2)
                             }
                         }
                     }

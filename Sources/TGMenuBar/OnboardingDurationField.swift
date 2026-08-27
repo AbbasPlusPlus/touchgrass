@@ -43,14 +43,14 @@ struct OnboardingDurationField: View {
                 .lineLimit(1)
                 .padding(.vertical, 6)
                 .padding(.horizontal, 12)
-                .foregroundStyle(selected ? Color.white : Color.primary)
+                .foregroundStyle(selected ? TGPalette.onMatcha : TGPalette.ink)
                 .background(
                     Capsule(style: .continuous)
-                        .fill(selected ? Color.accentColor : Color.primary.opacity(0.07))
+                        .fill(selected ? TGPalette.matcha : TGPalette.paper2)
                 )
                 .overlay(
                     Capsule(style: .continuous)
-                        .strokeBorder(Color.primary.opacity(selected ? 0 : 0.10), lineWidth: 1)
+                        .strokeBorder(selected ? Color.clear : TGPalette.stone, lineWidth: 1)
                 )
                 .contentShape(Capsule(style: .continuous))
         }
@@ -70,13 +70,13 @@ struct OnboardingDurationField: View {
                 .labelsHidden()
             Text(unit.suffix)
                 .font(TGType.body)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(TGPalette.ink2)
 
             // A rest of 150 sec is easier to picture as "2 min 30 sec".
             if unit == .seconds, value >= 60 {
                 Text("· \(TGFormat.compact(value))")
                     .font(TGType.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TGPalette.ink2)
             }
             Spacer(minLength: 0)
         }

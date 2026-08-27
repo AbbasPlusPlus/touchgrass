@@ -1,65 +1,45 @@
-// TGOverlay — the blink reminder: an eye that closes and opens twice, then goes away.
-// No text beyond one word; nobody should have to read a nudge.
-
+// TGOverlay — the blink reminder: two closed eyes that open, close and open again.
 import SwiftUI
 
 struct BlinkNudgeView: View {
-    static let size = CGSize(width: 260, height: 260)
+    static let size = WellnessBadge<EmptyView>.size
 
-    @State private var openness: CGFloat = 1
-    @State private var appeared = false
+    /// Matches the controller's lifetime for this nudge, so the float finishes as it fades.
+    var lifetime: TimeInterval = 2.9
+
+    @State private var openness: CGFloat = 0
 
     var body: some View {
-        VStack(spacing: 22) {
-            ZStack {
-                Circle()
-                    .fill(RadialGradient(colors: [.white.opacity(0.10), .clear],
-                                         center: .center, startRadius: 4, endRadius: 78))
-                    .frame(width: 156, height: 156)
-
-                EyeShape(openness: openness)
-                    .stroke(Color.white.opacity(0.88),
-                            style: StrokeStyle(lineWidth: 2.4, lineCap: .round, lineJoin: .round))
-                    .frame(width: 128, height: 72)
-
-                Circle()
-                    .fill(Color.white.opacity(0.80))
-                    .frame(width: 25, height: 25)
-                    .scaleEffect(y: max(0.02, openness), anchor: .center)
-                    .opacity(Double(min(1, openness * 2.4)))
-            }
-            .frame(height: 156)
-
-            Text("Blink")
-                .font(OverlayType.nudge)
-                .foregroundStyle(.white.opacity(0.92))
-                .kerning(0.4)
+        WellnessBadge(lifetime: lifetime) {
+            EyePair(openness: openness)
+                .stroke(OverlayPalette.badgeRing,
+                        style: StrokeStyle(lineWidth: WellnessBadge<EmptyView>.diameter * 0.048,
+                                           lineCap: .round))
         }
-        .frame(width: Self.size.width, height: Self.size.height)
-        .glassSurface(RoundedRectangle(cornerRadius: 30, style: .continuous), shadowRadius: 30, shadowY: 12)
-        .opacity(appeared ? 1 : 0)
-        .scaleEffect(appeared ? 1 : 0.94)
-        .animation(OverlayMotion.softSpring(response: 0.5, damping: 0.85), value: appeared)
         .onAppear {
-            appeared = true
             guard !OverlayMotion.reduceMotion else { return }
-            Task { await blinkTwice() }
+            Task { await blink() }
         }
     }
 
-    private func blinkTwice() async {
-        try? await Task.sleep(nanoseconds: 350_000_000)
-        for _ in 0..<2 {
-            withAnimation(.easeInOut(duration: 0.30)) { openness = 0.04 }
-            try? await Task.sleep(nanoseconds: 330_000_000)
-            withAnimation(.easeOut(duration: 0.38)) { openness = 1 }
-            try? await Task.sleep(nanoseconds: 560_000_000)
-        }
+    /// Open → close → open, once, over about two and a half seconds.
+    private func blink() async {
+        try? await Task.sleep(nanoseconds: 380_000_000)
+        withAnimation(.easeInOut(duration: 0.55)) { openness = 1 }
+        try? await Task.sleep(nanoseconds: 900_000_000)
+        withAnimation(.easeInOut(duration: 0.34)) { openness = 0 }
+        try? await Task.sleep(nanoseconds: 520_000_000)
+        withAnimation(.easeInOut(duration: 0.45)) { openness = 1 }
     }
 }
 
-/// Two mirrored quadratic curves. `openness` 1 = wide, 0 = a closed line.
-private struct EyeShape: Shape {
+/// Two lids side by side. `openness` 0 = shut (a thick, almost flat mark), 1 = open (a tall
+/// arc with clear air under it).
+///
+/// A stroked arc rather than a filled crescent: at this size a filled lens turns into a wedge
+/// the moment the two edges cross, and a round-capped stroke is exactly the mark the reference
+/// build draws when the eyes are closed.
+struct EyePair: Shape {
     var openness: CGFloat
 
     var animatableData: CGFloat {
@@ -68,13 +48,21 @@ private struct EyeShape: Shape {
     }
 
     func path(in rect: CGRect) -> Path {
-        let lift = rect.height / 2 * max(0.015, openness)
+        let gap = rect.width * 0.14
+        let eyeWidth = (rect.width - gap) / 2
+        let t = max(0, min(1, openness))
+        // Measured against the eye's *width*, not the box: an arc a third as tall as it is
+        // wide is an eye; anything taller is a pair of rabbit ears.
+        let lift = eyeWidth * (0.05 + 0.28 * t)
+        let midY = rect.midY + lift / 2
+
         var path = Path()
-        path.move(to: CGPoint(x: rect.minX, y: rect.midY))
-        path.addQuadCurve(to: CGPoint(x: rect.maxX, y: rect.midY),
-                          control: CGPoint(x: rect.midX, y: rect.midY - lift * 2))
-        path.addQuadCurve(to: CGPoint(x: rect.minX, y: rect.midY),
-                          control: CGPoint(x: rect.midX, y: rect.midY + lift * 2))
+        for index in 0..<2 {
+            let minX = rect.minX + CGFloat(index) * (eyeWidth + gap)
+            path.move(to: CGPoint(x: minX, y: midY))
+            path.addQuadCurve(to: CGPoint(x: minX + eyeWidth, y: midY),
+                              control: CGPoint(x: minX + eyeWidth / 2, y: midY - lift * 2))
+        }
         return path
     }
 }

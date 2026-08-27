@@ -17,7 +17,7 @@ struct MessageListEditor: View {
                 Spacer()
                 Text("\(messages.count) \(messages.count == 1 ? "message" : "messages")")
                     .font(TGType.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TGPalette.ink2)
             }
 
             VStack(spacing: 0) {
@@ -29,17 +29,17 @@ struct MessageListEditor: View {
             }
             .background(
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(Color.primary.opacity(0.035))
+                    .fill(TGPalette.paper2.opacity(0.55))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
+                    .strokeBorder(TGPalette.stone, lineWidth: 1)
             )
 
             if let footnote {
                 Text(footnote)
                     .font(TGType.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TGPalette.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -56,14 +56,14 @@ struct MessageListEditor: View {
             TextField("Subtitle", text: part(index, .subtitle))
                 .textFieldStyle(.plain)
                 .font(TGType.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(TGPalette.ink2)
             Button {
                 guard messages.indices.contains(index) else { return }
                 messages.remove(at: index)
             } label: {
                 Image(systemName: "minus.circle")
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TGPalette.ink2)
             }
             .buttonStyle(.plain)
             .help("Remove this message")
@@ -89,7 +89,7 @@ struct MessageListEditor: View {
             Spacer()
         }
         .font(TGType.footnote)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(TGPalette.ink2)
         .padding(.horizontal, 4)
         .padding(.vertical, 2)
     }

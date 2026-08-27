@@ -48,6 +48,9 @@ public final class SettingsWindowController: NSObject, NSWindowDelegate {
 
         window.contentViewController = NSHostingController(rootView: root)
         window.title = selection.section.title
+        // Paper, not the system window colour: the title bar is transparent, so this is what
+        // shows behind it and around the split view's edges.
+        window.backgroundColor = .tgPaper
         window.titlebarAppearsTransparent = true
         window.titlebarSeparatorStyle = .none
         window.isReleasedWhenClosed = false

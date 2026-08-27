@@ -29,11 +29,12 @@ struct StatsView: View {
 
     private var chip: some View {
         Text("Today's stats")
-            .font(.system(size: 12, weight: .medium))
-            .foregroundStyle(.primary)
+            .font(.system(size: 12, weight: .medium, design: .rounded))
+            .foregroundStyle(TGPalette.ink2)
             .padding(.vertical, 5)
             .padding(.horizontal, 16)
-            .background(Capsule(style: .continuous).fill(Color.primary.opacity(0.09)))
+            .background(Capsule(style: .continuous).fill(TGPalette.paper2.opacity(0.45)))
+            .overlay(Capsule(style: .continuous).strokeBorder(TGPalette.stone.opacity(0.8), lineWidth: 1))
             .accessibilityAddTraits(.isHeader)
     }
 }

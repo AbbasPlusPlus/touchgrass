@@ -40,7 +40,7 @@ struct UpdatesSection: View {
             if let notes = releaseNotes {
                 Text(notes)
                     .font(.system(size: 11))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TGPalette.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             }
         } header: {

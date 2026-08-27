@@ -13,6 +13,7 @@ struct PreBreakCardView: View {
     static let inset: CGFloat = 30          // room for the drop shadow inside the panel
 
     @State private var hovering = false
+    @State private var closeHovering = false
 
     private var expanded: Bool { !model.compact || hovering }
 
@@ -51,15 +52,21 @@ struct PreBreakCardView: View {
             ClockTile(progress: model.clockProgress)
 
             VStack(alignment: .leading, spacing: 1) {
+                Text(model.eyebrowLine)
+                    .font(OverlayType.eyebrow)
+                    .textCase(.uppercase)
+                    .kerning(0.7)
+                    .foregroundStyle(OverlayPalette.matcha)
+                    .lineLimit(1)
                 Text(model.countdownText)
                     .font(OverlayType.cardCountdown)
-                    .foregroundStyle(.white.opacity(0.96))
+                    .foregroundStyle(OverlayPalette.ink)
                     .contentTransition(.numericText(countsDown: true))
                     .animation(OverlayMotion.reduceMotion ? nil : .easeOut(duration: 0.3),
                                value: model.secondsLeft)
-                Text(model.subtitle)
+                Text(model.copy.isEmpty ? model.subtitle : model.copy)
                     .font(OverlayType.body)
-                    .foregroundStyle(.white.opacity(OverlayType.secondaryOpacity))
+                    .foregroundStyle(OverlayPalette.ink2)
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -71,12 +78,15 @@ struct PreBreakCardView: View {
         Button(action: model.onDismiss) {
             Image(systemName: "xmark")
                 .font(.system(size: 9, weight: .bold, design: .rounded))
-                .foregroundStyle(.white.opacity(OverlayType.tertiaryOpacity))
+                .foregroundStyle(OverlayPalette.ink2)
                 .frame(width: 18, height: 18)
-                .background(Circle().fill(Color.white.opacity(0.08)))
+                .background(Circle().fill(closeHovering ? OverlayPalette.stone : OverlayPalette.stone.opacity(0.45)))
                 .contentShape(Circle())
         }
         .buttonStyle(.plain)
+        .onHover { hovering in
+            withAnimation(OverlayMotion.ease(0.12)) { closeHovering = hovering }
+        }
         .accessibilityLabel("Dismiss")
     }
 

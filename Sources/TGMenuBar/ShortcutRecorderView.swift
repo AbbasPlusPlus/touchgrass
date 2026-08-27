@@ -36,7 +36,7 @@ public struct ShortcutRecorderView: View {
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 6, style: .continuous)
-                            .strokeBorder(isRecording ? Color.accentColor : Color.primary.opacity(0.12),
+                            .strokeBorder(isRecording ? TGPalette.matcha : TGPalette.stone,
                                           lineWidth: isRecording ? 2 : 1)
                     )
             }
@@ -48,7 +48,7 @@ public struct ShortcutRecorderView: View {
                 stopRecording()
             } label: {
                 Image(systemName: "xmark.circle.fill")
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(TGPalette.ink2.opacity(0.7))
             }
             .buttonStyle(.plain)
             .help("Clear shortcut")
@@ -72,8 +72,8 @@ public struct ShortcutRecorderView: View {
     }
 
     private var background: Color {
-        if isRecording { return Color.accentColor.opacity(0.10) }
-        return Color.primary.opacity(isHovering ? 0.08 : 0.04)
+        if isRecording { return TGPalette.matcha.opacity(0.12) }
+        return isHovering ? TGPalette.stone.opacity(0.55) : TGPalette.paper2.opacity(0.7)
     }
 
     // MARK: - Recording

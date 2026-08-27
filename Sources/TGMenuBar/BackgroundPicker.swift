@@ -18,11 +18,11 @@ struct BackgroundPicker: View {
                     background = .screenBlur
                 } content: {
                     AnyView(
-                        LinearGradient(colors: [Color(white: 0.55), Color(white: 0.35)],
+                        LinearGradient(colors: [.tg(0xF2EEDE), .tg(0xD5CEB6)],
                                        startPoint: .top, endPoint: .bottom)
                             .overlay(Image(systemName: "circle.lefthalf.filled.inverse")
                                 .font(.system(size: 15))
-                                .foregroundStyle(.white.opacity(0.7)))
+                                .foregroundStyle(Color.tg(0x3D443A, opacity: 0.55)))
                             .blur(radius: 1.5)
                     )
                 }
@@ -72,7 +72,7 @@ struct BackgroundPicker: View {
         VStack(alignment: .leading, spacing: 6) {
             Text(header)
                 .font(TGType.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(TGPalette.ink2)
             LazyVGrid(columns: columns, alignment: .leading, spacing: 10) {
                 content()
             }
@@ -88,9 +88,9 @@ struct BackgroundPicker: View {
                 Image(nsImage: image).resizable().aspectRatio(contentMode: .fill)
             } else {
                 ZStack {
-                    PresetPalette.gradient([Color(white: 0.35), Color(white: 0.6)])
+                    PresetPalette.gradient([.tg(0x4A5343), .tg(0x7C8570)])
                     Image(systemName: "photo.on.rectangle.angled")
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(Color.tg(0xF3F1E2, opacity: 0.85))
                 }
             }
         }
@@ -102,7 +102,7 @@ struct BackgroundPicker: View {
             PresetPalette.gradient(PresetPalette.colors(preset))
             Image(systemName: "sparkles")
                 .font(.system(size: 13))
-                .foregroundStyle(.white.opacity(0.75))
+                .foregroundStyle(Color.tg(0xF3F1E2, opacity: 0.8))
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
                 .padding(5)
         }
@@ -114,10 +114,10 @@ struct BackgroundPicker: View {
                 Image(nsImage: image).resizable().aspectRatio(contentMode: .fill)
             } else {
                 ZStack {
-                    Color.primary.opacity(0.06)
+                    TGPalette.paper2
                     Image(systemName: "plus")
                         .font(.system(size: 14, weight: .medium))
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(TGPalette.ink2)
                 }
             }
         }

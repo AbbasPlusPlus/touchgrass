@@ -12,14 +12,17 @@ struct SettingsPageHeader: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(section.title)
                     .font(TGType.title)
+                    .foregroundStyle(TGPalette.ink)
                 Text(subtitle)
                     .font(TGType.caption)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TGPalette.ink2)
             }
             Spacer(minLength: 0)
         }
         .padding(.horizontal, 20)
         .padding(.top, 14)
         .padding(.bottom, 10)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(TGPalette.paper)
     }
 }

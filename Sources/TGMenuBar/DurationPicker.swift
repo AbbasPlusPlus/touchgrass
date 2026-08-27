@@ -43,7 +43,7 @@ struct DurationPicker: View {
                         .labelsHidden()
                     Stepper("", value: units, in: bounds, step: unit.step)
                         .labelsHidden()
-                    Text(unit.suffix).foregroundStyle(.secondary)
+                    Text(unit.suffix).foregroundStyle(TGPalette.ink2)
                 }
             }
         }

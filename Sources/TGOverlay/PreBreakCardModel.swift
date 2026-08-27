@@ -25,6 +25,17 @@ final class PreBreakCardModel: ObservableObject {
 
     var eyebrow: String { kind == .long ? "Long break in" : "Break in" }
 
+    /// "SHORT BREAK · 30 SEC" — the facts, small and quiet, so the line under the countdown can
+    /// be the warm one.
+    var eyebrowLine: String {
+        var line = kind == .long ? "Long break" : "Short break"
+        if breakDuration > 0 {
+            let secs = Int(breakDuration)
+            line += secs < 60 ? " · \(secs) sec" : " · \(secs / 60) min"
+        }
+        return line
+    }
+
     /// Total seconds this countdown started from (for the clock hand's sweep).
     @Published var totalSeconds: Int = 60
     /// Length of the upcoming break, for the subtitle. 0 = unknown.

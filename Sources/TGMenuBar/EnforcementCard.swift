@@ -10,6 +10,8 @@ struct EnforcementCard: View {
     let isSelected: Bool
     let action: () -> Void
 
+    @State private var hovering = false
+
     var body: some View {
         Button(action: action) {
             VStack(alignment: .leading, spacing: 7) {
@@ -17,10 +19,10 @@ struct EnforcementCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(enforcement.title)
                         .font(TGType.caption)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(TGPalette.ink)
                     Text(enforcement.subtitle)
                         .font(TGType.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(TGPalette.ink2)
                         .lineLimit(2, reservesSpace: true)
                         .multilineTextAlignment(.leading)
                 }
@@ -29,15 +31,22 @@ struct EnforcementCard: View {
             .padding(7)
             .background(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .fill(isSelected ? Color.accentColor.opacity(0.12) : Color.primary.opacity(0.04))
+                    .fill(isSelected ? TGPalette.matcha.opacity(0.14)
+                                     : (hovering ? TGPalette.stone.opacity(0.40)
+                                                 : TGPalette.paper2.opacity(0.55)))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
-                    .strokeBorder(isSelected ? Color.accentColor : Color.primary.opacity(0.10),
+                    .strokeBorder(isSelected ? TGPalette.matcha : TGPalette.stone,
                                   lineWidth: isSelected ? 2 : 1)
             )
+            .shadow(color: TGPalette.ink.opacity(hovering && !isSelected ? 0.18 : 0),
+                    radius: hovering ? 5 : 0, y: hovering ? 1 : 0)
         }
         .buttonStyle(.plain)
+        .onHover { hovering in
+            withAnimation(TGPalette.hoverAnimation()) { self.hovering = hovering }
+        }
         .accessibilityLabel("\(enforcement.title). \(enforcement.subtitle)")
         .accessibilityAddTraits(isSelected ? [.isSelected] : [])
     }
@@ -50,13 +59,13 @@ struct EnforcementCard: View {
                 .fill(PresetPalette.gradient(gradientColors))
 
             VStack(spacing: 3) {
-                Text("Relax those eyes")
-                    .font(.system(size: 6, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.75))
+                Text("Look away")
+                    .font(.system(size: 6, weight: .medium, design: .rounded))
+                    .foregroundStyle(thumbnailInk.opacity(0.78))
                 Text("00:30")
-                    .font(.system(size: 15, weight: .semibold))
+                    .font(.system(size: 15, weight: .semibold, design: .rounded))
                     .monospacedDigit()
-                    .foregroundStyle(.white)
+                    .foregroundStyle(thumbnailInk)
             }
 
             VStack {
@@ -78,22 +87,23 @@ struct EnforcementCard: View {
         switch enforcement {
         case .casual:
             // Live and clickable from the first second.
-            chip(glyph: "»", background: .white.opacity(0.92), foreground: .black.opacity(0.75))
+            chip(glyph: "»", background: .tg(0xFAF7EC, opacity: 0.92), foreground: .tg(0x3D443A))
 
         case .balanced:
-            // Waiting out a countdown ring before it unlocks.
-            chip(glyph: "⏱", background: .white.opacity(0.35), foreground: .white)
+            // Waiting out a countdown ring before it unlocks — and the ring is clay, the one
+            // place in the app that colour is allowed.
+            chip(glyph: "⏱", background: thumbnailInk.opacity(0.28), foreground: thumbnailInk)
                 .overlay(
                     Circle()
                         .trim(from: 0, to: 0.68)
-                        .stroke(Color.white, style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+                        .stroke(TGPalette.clay, style: StrokeStyle(lineWidth: 1.4, lineCap: .round))
                         .rotationEffect(.degrees(-90))
                         .frame(width: 15, height: 15)
                 )
 
         case .hardcore:
             // Not offered at all.
-            chip(glyph: "⊘", background: .white.opacity(0.10), foreground: .white.opacity(0.35))
+            chip(glyph: "⊘", background: thumbnailInk.opacity(0.10), foreground: thumbnailInk.opacity(0.35))
         }
     }
 
@@ -105,11 +115,19 @@ struct EnforcementCard: View {
             .background(Capsule().fill(background))
     }
 
+    /// A three-step ramp through the palette — paper, matcha, deep — so the thumbnails read
+    /// as "how firmly does this insist" before a single word has been read. Fixed hexes
+    /// rather than dynamic tokens: a thumbnail of a break screen shouldn't invert with the
+    /// system, and the ink on top has to stay predictable.
     private var gradientColors: [Color] {
         switch enforcement {
-        case .casual:   return PresetPalette.colors(.forest)
-        case .balanced: return PresetPalette.colors(.ocean)
-        case .hardcore: return PresetPalette.colors(.ember)
+        case .casual:   return [.tg(0xE9E4D2), .tg(0xD8D2BB)]
+        case .balanced: return [.tg(0x6E8560), .tg(0x47563F)]
+        case .hardcore: return [.tg(0x2E352B), .tg(0x181C16)]
         }
+    }
+
+    private var thumbnailInk: Color {
+        enforcement == .casual ? .tg(0x3D443A) : .tg(0xF3F1E2)
     }
 }

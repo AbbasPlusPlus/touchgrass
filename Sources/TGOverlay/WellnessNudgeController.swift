@@ -127,13 +127,15 @@ public final class WellnessNudgeController {
 
     private static func host(for nudge: Nudge, size: CGSize) -> NSView {
         let container: NSHostingView<AnyView>
+        let lifetime = nudge.lifetime
         switch nudge {
         case .wellness(.blink):
-            container = NSHostingView(rootView: AnyView(centred(BlinkNudgeView())))
+            container = NSHostingView(rootView: AnyView(centred(BlinkNudgeView(lifetime: lifetime))))
         case .wellness(.posture):
-            container = NSHostingView(rootView: AnyView(centred(PostureNudgeView())))
+            container = NSHostingView(rootView: AnyView(centred(PostureNudgeView(lifetime: lifetime))))
         case .custom(let title, let symbol):
-            container = NSHostingView(rootView: AnyView(centred(CustomNudgeView(symbol: symbol, title: title))))
+            container = NSHostingView(rootView: AnyView(centred(
+                CustomNudgeView(symbol: symbol, title: title, lifetime: lifetime))))
         }
         container.frame = NSRect(origin: .zero, size: size)
         container.autoresizingMask = [.width, .height]

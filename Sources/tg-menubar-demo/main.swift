@@ -26,6 +26,8 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
     private var ticker: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        Self.forceAppearance()
+
         // Keep the demo's settings out of the real app's file.
         let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
             .appendingPathComponent("TouchGrass", isDirectory: true)
@@ -60,6 +62,16 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
 
         if let output = ProcessInfo.processInfo.environment["TG_SNAPSHOT"] {
             scheduleSnapshots(of: surface, into: output)
+        }
+    }
+
+    /// `TG_APPEARANCE=light|dark` pins the demo to one appearance so both can be reviewed
+    /// without touching the machine's own System Settings.
+    private static func forceAppearance() {
+        switch ProcessInfo.processInfo.environment["TG_APPEARANCE"] {
+        case "light": NSApp.appearance = NSAppearance(named: .aqua)
+        case "dark":  NSApp.appearance = NSAppearance(named: .darkAqua)
+        default:      break
         }
     }
 
@@ -154,7 +166,11 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
                     NSColor.clear.setFill()
                     bounds.fill(using: .copy)
                 } else {
-                    NSColor.windowBackgroundColor.setFill()
+                    // A stand-in for whatever the panel is floating over. Picked off the
+                    // window's own appearance rather than `windowBackgroundColor`, which
+                    // resolves against the *drawing* appearance and can disagree with what
+                    // SwiftUI just rendered.
+                    Self.standInBackdrop(for: window).setFill()
                     bounds.fill()
                 }
                 content.draw(in: bounds)
@@ -169,6 +185,12 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    /// The neutral "desktop" a glass surface is composited over in a snapshot.
+    private static func standInBackdrop(for window: NSWindow) -> NSColor {
+        let dark = window.effectiveAppearance.bestMatch(from: [.aqua, .darkAqua]) == .darkAqua
+        return NSColor(calibratedWhite: dark ? 0.15 : 0.86, alpha: 1)
+    }
+
     /// Depth-first search for the SwiftUI host inside a window's view tree.
     private static func hostingView(in view: NSView) -> NSView? {
         if String(describing: type(of: view)).hasPrefix("NSHostingView") { return view }
@@ -178,29 +200,60 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
         return nil
     }
 
-    /// Blows the 18 pt status item glyph up so its shape can actually be judged.
-    /// It's a black template image, so a light backdrop shows it the way a light menu bar would.
+    /// Rasterises the status item glyph at its *real* pixel sizes (18 pt @1x and @2x) and then
+    /// blows each up with nearest-neighbour, so what you look at is exactly the pixels the menu
+    /// bar gets — drawing the vector straight into a big rect would flatter it.
     private static func snapshotStatusIcon(into directory: String) {
-        let scale: CGFloat = 8
-        let side = StatusBarIcon.size * scale
-        let rect = NSRect(x: 0, y: 0, width: side, height: side)
-
         for (name, dimmed) in [("icon", false), ("icon-dimmed", true)] {
-            let image = NSImage(size: NSSize(width: side, height: side))
-            image.lockFocus()
-            NSColor.white.setFill()
-            rect.fill()
-            StatusBarIcon.grass(dimmed: dimmed)
-                .draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
-            image.unlockFocus()
-
-            guard let tiff = image.tiffRepresentation,
-                  let rep = NSBitmapImageRep(data: tiff),
-                  let data = rep.representation(using: .png, properties: [:]) else { continue }
-            let url = URL(fileURLWithPath: directory).appendingPathComponent("tg-\(name).png")
-            try? data.write(to: url)
-            NSLog("[demo] wrote %@", url.path)
+            for (suffix, pixels) in [("", 18), ("@2x", 36)] {
+                guard let small = rasterise(StatusBarIcon.grass(dimmed: dimmed), pixels: pixels),
+                      let big = magnify(small, by: 12)
+                else { continue }
+                let url = URL(fileURLWithPath: directory)
+                    .appendingPathComponent("tg-\(name)\(suffix).png")
+                if let data = big.representation(using: .png, properties: [:]) {
+                    try? data.write(to: url)
+                    NSLog("[demo] wrote %@", url.path)
+                }
+            }
         }
+    }
+
+    /// Draws `image` into a bitmap of exactly `pixels` square.
+    private static func rasterise(_ image: NSImage, pixels: Int) -> NSBitmapImageRep? {
+        guard let rep = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: pixels, pixelsHigh: pixels,
+                                         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+                                         isPlanar: false, colorSpaceName: .deviceRGB,
+                                         bytesPerRow: 0, bitsPerPixel: 0),
+              let context = NSGraphicsContext(bitmapImageRep: rep)
+        else { return nil }
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = context
+        let rect = NSRect(x: 0, y: 0, width: pixels, height: pixels)
+        image.draw(in: rect, from: .zero, operation: .sourceOver, fraction: 1)
+        NSGraphicsContext.restoreGraphicsState()
+        return rep
+    }
+
+    /// Nearest-neighbour upscale over a light backdrop, the way a light menu bar would show it.
+    private static func magnify(_ rep: NSBitmapImageRep, by factor: Int) -> NSBitmapImageRep? {
+        let side = rep.pixelsWide * factor
+        guard let out = NSBitmapImageRep(bitmapDataPlanes: nil, pixelsWide: side, pixelsHigh: side,
+                                         bitsPerSample: 8, samplesPerPixel: 4, hasAlpha: true,
+                                         isPlanar: false, colorSpaceName: .deviceRGB,
+                                         bytesPerRow: 0, bitsPerPixel: 0),
+              let context = NSGraphicsContext(bitmapImageRep: out)
+        else { return nil }
+        NSGraphicsContext.saveGraphicsState()
+        NSGraphicsContext.current = context
+        context.imageInterpolation = .none
+        NSColor.white.setFill()
+        NSRect(x: 0, y: 0, width: side, height: side).fill()
+        rep.draw(in: NSRect(x: 0, y: 0, width: side, height: side),
+                 from: .zero, operation: .sourceOver, fraction: 1,
+                 respectFlipped: true, hints: [.interpolation: NSNumber(value: NSImageInterpolation.none.rawValue)])
+        NSGraphicsContext.restoreGraphicsState()
+        return out
     }
 }
 

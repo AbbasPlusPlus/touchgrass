@@ -1,12 +1,17 @@
 // TGMenuBar — one line of the quick panel's inset list.
 import SwiftUI
 
-/// A tinted System-Settings glyph, a label, and a live value — the row idiom  uses.
-/// Each row draws its own rounded card so the list reads as two calm blocks rather than a table.
+/// An emoji, a label, and a live value. Each row draws its own rounded card so the list reads
+/// as two calm blocks rather than as a table.
+///
+/// Emoji rather than a tinted SF Symbol: they're already beautifully drawn, instantly readable
+/// at a glance, and they carry the personality the rest of this panel deliberately doesn't.
+///
+/// No hover state: these rows are facts, not controls, and lighting one under the pointer
+/// would promise a click that never happens.
 struct QuickPanelRow: View {
 
-    let symbol: String
-    var tint: Color = .gray
+    let emoji: String
     let title: String
     /// Drawn in full-strength text before `value`, separated by a dot: "Short · 1 min".
     var accent: String?
@@ -14,23 +19,26 @@ struct QuickPanelRow: View {
 
     var body: some View {
         HStack(spacing: 10) {
-            SettingsIcon(symbol: symbol, tint: tint, size: 22)
+            Text(emoji)
+                .font(.system(size: 15))
+                .frame(width: 20)
+                .accessibilityHidden(true)
             Text(title)
                 .font(TGType.row)
-                .foregroundStyle(.primary)
+                .foregroundStyle(TGPalette.ink)
                 .lineLimit(1)
             Spacer(minLength: 8)
             if let accent {
                 Text(accent)
                     .font(TGType.rowEmphasis)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(TGPalette.ink)
                 Text("·")
                     .font(TGType.row)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TGPalette.ink2)
             }
             Text(value)
                 .font(TGType.row)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(TGPalette.ink2)
                 .lineLimit(1)
                 .truncationMode(.tail)
         }
@@ -39,7 +47,12 @@ struct QuickPanelRow: View {
         .frame(minHeight: TGType.rowHeight)
         .background(
             RoundedRectangle(cornerRadius: 11, style: .continuous)
-                .fill(Color.primary.opacity(0.06))
+                .fill(TGPalette.rowFill)
         )
+        .overlay(
+            RoundedRectangle(cornerRadius: 11, style: .continuous)
+                .strokeBorder(TGPalette.stone.opacity(0.7), lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
     }
 }

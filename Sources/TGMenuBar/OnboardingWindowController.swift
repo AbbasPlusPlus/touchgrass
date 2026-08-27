@@ -62,6 +62,7 @@ public final class OnboardingWindowController: NSObject, NSWindowDelegate {
         // second, square-cornered shape sitting behind the first.
         window.isOpaque = false
         window.backgroundColor = .clear
+        window.appearance = nil            // follow the system, like every other window
         window.hasShadow = true
         window.isMovableByWindowBackground = true
         window.isReleasedWhenClosed = false

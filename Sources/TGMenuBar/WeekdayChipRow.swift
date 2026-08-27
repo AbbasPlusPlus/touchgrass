@@ -25,11 +25,11 @@ struct WeekdayChipRow: View {
         } label: {
             Text(shortSymbol(weekday))
                 .font(TGType.caption)
-                .foregroundStyle(isOn ? Color.white : Color.primary.opacity(0.75))
+                .foregroundStyle(isOn ? TGPalette.onMatcha : TGPalette.ink2)
                 .frame(width: 24, height: 22)
                 .background(
                     Capsule(style: .continuous)
-                        .fill(isOn ? Color.accentColor : Color.primary.opacity(0.09))
+                        .fill(isOn ? TGPalette.matcha : TGPalette.paper2)
                 )
                 .contentShape(Capsule(style: .continuous))
         }

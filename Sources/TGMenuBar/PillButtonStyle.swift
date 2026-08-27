@@ -1,11 +1,13 @@
 // TGMenuBar — the small capsule buttons in the quick panel's action row.
+import AppKit
 import SwiftUI
 
 /// A compact capsule button in two tiers, both hugging their label so the row can be centred.
 ///
-/// `.primary` is the one thing the panel wants you to do ("Start break" / "Resume"); `.quiet`
-/// is for the delay pills beside it. Both are neutral fills rather than accent-coloured — on
-/// glass, a saturated button shouts, and this panel is meant to be calm.
+/// `.primary` is the one thing the panel wants you to do ("Start break" / "Resume"): a matcha
+/// fill with paper type, the only saturated thing on the panel. `.quiet` is for the delay pills
+/// beside it — translucent paper with a stone hairline, so they read as chrome rather than as
+/// three more decisions.
 struct PillButtonStyle: ButtonStyle {
 
     enum Tier {
@@ -25,26 +27,32 @@ struct PillButtonStyle: ButtonStyle {
             .fixedSize()
             .padding(.vertical, 8)
             .padding(.horizontal, tier == .primary ? 15 : 12)
-            .foregroundStyle(Color.primary)
+            .foregroundStyle(tier == .primary ? TGPalette.onMatcha : TGPalette.ink)
             .background(
                 Capsule(style: .continuous)
                     .fill(fill(pressed: configuration.isPressed))
             )
             .overlay(
                 Capsule(style: .continuous)
-                    .strokeBorder(Color.primary.opacity(tier == .primary ? 0 : 0.10), lineWidth: 1)
+                    .strokeBorder(tier == .primary ? Color.clear : TGPalette.stone,
+                                  lineWidth: 1)
             )
             .opacity(isEnabled ? 1 : 0.45)
             .contentShape(Capsule(style: .continuous))
             .onHover { hovering in
-                withAnimation(.easeOut(duration: 0.12)) { isHovered = hovering && isEnabled }
+                withAnimation(TGPalette.hoverAnimation()) { isHovered = hovering && isEnabled }
             }
     }
 
     private func fill(pressed: Bool) -> Color {
         switch tier {
-        case .primary: return Color.primary.opacity(pressed ? 0.27 : (isHovered ? 0.23 : 0.18))
-        case .quiet:   return Color.primary.opacity(pressed ? 0.15 : (isHovered ? 0.11 : 0.07))
+        case .primary:
+            // Matcha holds its hue; the tiers of state are brightness, not opacity.
+            return pressed ? TGPalette.matchaDeep : TGPalette.matcha.opacity(isHovered ? 0.86 : 1)
+        case .quiet:
+            let paper = TGPalette.paper2
+            if NSWorkspace.shared.accessibilityDisplayShouldReduceTransparency { return paper }
+            return paper.opacity(pressed ? 0.85 : (isHovered ? 0.62 : 0.40))
         }
     }
 }

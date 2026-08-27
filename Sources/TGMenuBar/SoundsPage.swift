@@ -32,14 +32,14 @@ struct SoundsPage: View {
                 }
                 LabeledContent("Volume") {
                     HStack(spacing: 8) {
-                        Image(systemName: "speaker").foregroundStyle(.secondary)
+                        Image(systemName: "speaker").foregroundStyle(TGPalette.ink2)
                         Slider(value: $store.settings.volume, in: 0...1)
                             .frame(width: 150)
-                        Image(systemName: "speaker.wave.3").foregroundStyle(.secondary)
+                        Image(systemName: "speaker.wave.3").foregroundStyle(TGPalette.ink2)
                         Text("\(Int(settings.volume * 100))%")
                             .font(TGType.footnote)
                             .monospacedDigit()
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(TGPalette.ink2)
                             .frame(width: 40, alignment: .trailing)
                     }
                 }
@@ -67,7 +67,7 @@ struct SoundsPage: View {
             HStack(spacing: 8) {
                 Text(customSoundName)
                     .font(TGType.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TGPalette.ink2)
                     .lineLimit(1)
                     .truncationMode(.middle)
 

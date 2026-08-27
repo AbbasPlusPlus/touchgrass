@@ -1,6 +1,7 @@
-// TGOverlay — the one button in the app: a translucent glass capsule.
-// Liquid Glass on macOS 26, a flat white-wash capsule when Reduce Transparency is on.
-// Hover brightens by a few percent over 200 ms — enough to feel alive, not enough to notice.
+// TGOverlay — the one button in the app: a paper-glass capsule.
+// Liquid Glass washed toward paper on macOS 26, flat paper2 when Reduce Transparency is on.
+// The prominent tier is a matcha fill with paper type — the single loud thing on a screen
+// whose whole job is to be quiet. Hover brightens over 120 ms.
 
 import SwiftUI
 
@@ -33,18 +34,27 @@ public struct GlassPillStyle: ButtonStyle {
     }
 
     var size: Size = .regular
+    /// The prominent tier: a matcha fill instead of paper glass.
     var tinted: Bool = false
     /// 0…1 — draws a hairline arc around the capsule as it fills. Used by Balanced's skip delay.
     var ringProgress: Double? = nil
+    /// Which canvas the pill sits on. The small floating surfaces follow the system appearance
+    /// (`.paper`); the break screen's gradient and wallpaper backdrops pass `.dark`.
+    var tone: BreakTone = .paper
 
-    public init(size: Size = .regular, tinted: Bool = false, ringProgress: Double? = nil) {
+    public init(size: Size = .regular,
+                tinted: Bool = false,
+                ringProgress: Double? = nil,
+                tone: BreakTone = .paper) {
         self.size = size
         self.tinted = tinted
         self.ringProgress = ringProgress
+        self.tone = tone
     }
 
     public func makeBody(configuration: Configuration) -> some View {
-        GlassPillBody(configuration: configuration, size: size, tinted: tinted, ringProgress: ringProgress)
+        GlassPillBody(configuration: configuration, size: size, tinted: tinted,
+                      ringProgress: ringProgress, tone: tone)
     }
 }
 
@@ -55,6 +65,7 @@ private struct GlassPillBody: View {
     let size: GlassPillStyle.Size
     let tinted: Bool
     let ringProgress: Double?
+    let tone: BreakTone
 
     @Environment(\.isEnabled) private var isEnabled
     @State private var hovering = false
@@ -63,7 +74,7 @@ private struct GlassPillBody: View {
         let content = configuration.label
             .font(size.font)
             .kerning(0.2)
-            .foregroundStyle(.white.opacity(isEnabled ? 0.95 : 0.70))
+            .foregroundStyle(label)
             .padding(.horizontal, size.hPadding)
             .padding(.vertical, size.vPadding)
             .contentShape(Capsule())
@@ -74,28 +85,36 @@ private struct GlassPillBody: View {
             .opacity(isEnabled ? 1 : 0.88)
             .scaleEffect(configuration.isPressed && isEnabled ? 0.97 : 1)
             .animation(OverlayMotion.ease(0.18), value: configuration.isPressed)
-            .animation(OverlayMotion.ease(0.22), value: hovering)
+            .animation(OverlayMotion.ease(0.12), value: hovering)
             .onHover { hovering = $0 && isEnabled }
+    }
+
+    private var label: Color {
+        let base = tinted ? tone.primaryText : tone.pillText
+        return isEnabled ? base : base.opacity(0.68)
     }
 
     @ViewBuilder
     private func chrome<V: View>(_ content: V) -> some View {
-        if OverlayMotion.reduceTransparency {
+        if tinted {
+            // Prominent: a flat matcha capsule. No glass — the accent has to hold its hue, and
+            // tinted glass pulls the whole scene into a separate compositing pass to do it.
+            content.background(tone.primaryFill, in: Capsule())
+        } else if OverlayMotion.reduceTransparency {
             content
-                .background(Color.white.opacity(tinted ? 0.22 : 0.11), in: Capsule())
-                .overlay(Capsule().strokeBorder(Color.white.opacity(0.30), lineWidth: 1))
+                .background(tone.pillFallback, in: Capsule())
+                .overlay(Capsule().strokeBorder(tone.pillBorder, lineWidth: 1))
         } else {
-            // Prominence is a white wash *inside* the glass rather than `Glass.tint`: tinted glass
-            // pulls the whole scene into a separate compositing pass, which we do not need here.
             content
-                .background(Color.white.opacity(tinted ? 0.17 : 0), in: Capsule())
+                .background(tone.pillWash, in: Capsule())
                 .glassEffect(.regular.interactive(), in: Capsule())
+                .overlay(Capsule().strokeBorder(tone.pillBorder, lineWidth: 1))
         }
     }
 
     private var hoverWash: some View {
         Capsule()
-            .fill(Color.white.opacity(hovering && isEnabled ? 0.09 : 0))
+            .fill(hovering && isEnabled ? tone.hoverWash : Color.clear)
             .allowsHitTesting(false)
     }
 
@@ -104,8 +123,7 @@ private struct GlassPillBody: View {
         if let progress = ringProgress {
             Capsule()
                 .trim(from: 0, to: max(0, min(1, progress)))
-                .stroke(Color.white.opacity(0.55),
-                        style: StrokeStyle(lineWidth: 1.2, lineCap: .round))
+                .stroke(tone.ring, style: StrokeStyle(lineWidth: 1.6, lineCap: .round))
                 .allowsHitTesting(false)
         }
     }

@@ -33,7 +33,7 @@ struct SymbolGridPicker: View {
                             .frame(width: 30, height: 26)
                             .background(
                                 RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                    .fill(candidate == symbol ? Color.accentColor.opacity(0.22) : .clear)
+                                    .fill(candidate == symbol ? TGPalette.matcha.opacity(0.22) : .clear)
                             )
                             .contentShape(Rectangle())
                     }

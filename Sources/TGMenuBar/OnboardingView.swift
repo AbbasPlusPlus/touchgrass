@@ -17,10 +17,11 @@ struct OnboardingView: View {
             VStack(alignment: .leading, spacing: 10) {
                 Text(step.title)
                     .font(TGType.display)
+                    .foregroundStyle(TGPalette.ink)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(step.body)
                     .font(TGType.body)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TGPalette.ink2)
                     .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
                 control
@@ -39,18 +40,26 @@ struct OnboardingView: View {
         // The window itself paints nothing (see `OnboardingWindowController`): this view is
         // the entire visible surface, so it has to supply its own opaque backdrop below the
         // hero. Without it the lower half would be see-through.
-        .background(Color(nsColor: .windowBackgroundColor))
+        .background(TGPalette.paper)
+        .tint(TGPalette.matcha)
         .ignoresSafeArea()
     }
 
     // MARK: - Hero
 
+    /// Paper, grain, and the same two grass strokes the break screen draws — the hero is the
+    /// first thing anyone sees of the app, so it is the identity and nothing else.
     private var hero: some View {
         ZStack {
-            PresetPalette.gradient(PresetPalette.colors(.forest))
+            LinearGradient(colors: [TGPalette.paper2, TGPalette.paper],
+                           startPoint: .top, endPoint: .bottom)
+            GrassStrokes(height: 120)
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+                .padding(.trailing, 34)
+
             switch step {
             case .welcome:
-                heroText(icon: "leaf.fill", caption: "Your eyes will thank you.")
+                welcomeHero
             case .duration:
                 breakPreview
             case .wellness:
@@ -58,31 +67,45 @@ struct OnboardingView: View {
             }
         }
         .frame(height: 178)
+        .overlay(PaperGrain(opacity: 0.045))
+        .overlay(alignment: .bottom) {
+            Rectangle().fill(TGPalette.stone).frame(height: 1)
+        }
+    }
+
+    private var welcomeHero: some View {
+        VStack(spacing: 10) {
+            LogoMark()
+                .frame(width: 78, height: 78)
+            Text("Your eyes will thank you.")
+                .font(TGType.body)
+                .foregroundStyle(TGPalette.ink2)
+        }
     }
 
     private func heroText(icon: String, caption: String) -> some View {
         VStack(spacing: 8) {
             Image(systemName: icon)
                 .font(.system(size: 38, weight: .light, design: .rounded))
-                .foregroundStyle(.white)
+                .foregroundStyle(TGPalette.matcha)
             Text(caption)
                 .font(TGType.body)
-                .foregroundStyle(.white.opacity(0.92))
+                .foregroundStyle(TGPalette.ink2)
         }
     }
 
     /// A miniature of the real break screen, so step 2's number means something.
     private var breakPreview: some View {
         VStack(spacing: 5) {
-            Text("Relax those eyes")
+            Text("Look away")
                 .font(TGType.caption)
-                .foregroundStyle(.white.opacity(0.88))
+                .foregroundStyle(TGPalette.ink2)
             Text(TGFormat.clock(store.settings.shortBreakDuration))
                 .font(TGType.hero)
-                .foregroundStyle(.white)
-            Text("Find a distant spot to rest your eyes on")
+                .foregroundStyle(TGPalette.matchaDeep)
+            Text("Rest your eyes on something far away")
                 .font(TGType.footnote)
-                .foregroundStyle(.white.opacity(0.78))
+                .foregroundStyle(TGPalette.ink2)
         }
     }
 
@@ -118,7 +141,7 @@ struct OnboardingView: View {
                 if let error = loginItems.lastError {
                     Text(error)
                         .font(TGType.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(TGPalette.ink2)
                         .fixedSize(horizontal: false, vertical: true)
                 }
             }
@@ -160,7 +183,7 @@ struct OnboardingView: View {
         HStack(spacing: 6) {
             ForEach(OnboardingStep.allCases) { candidate in
                 Circle()
-                    .fill(candidate == step ? Color.accentColor : Color.primary.opacity(0.18))
+                    .fill(candidate == step ? TGPalette.matcha : TGPalette.stone)
                     .frame(width: 6, height: 6)
             }
         }

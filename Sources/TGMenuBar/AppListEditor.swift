@@ -19,7 +19,7 @@ struct AppListEditor: View {
                 if bundleIDs.isEmpty {
                     Text(emptyMessage)
                         .font(TGType.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(TGPalette.ink2)
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 9)
@@ -36,17 +36,17 @@ struct AppListEditor: View {
             }
             .background(
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .fill(Color.primary.opacity(0.035))
+                    .fill(TGPalette.paper2.opacity(0.55))
             )
             .overlay(
                 RoundedRectangle(cornerRadius: 7, style: .continuous)
-                    .strokeBorder(Color.primary.opacity(0.10), lineWidth: 1)
+                    .strokeBorder(TGPalette.stone, lineWidth: 1)
             )
 
             if let footnote {
                 Text(footnote)
                     .font(TGType.footnote)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TGPalette.ink2)
                     .fixedSize(horizontal: false, vertical: true)
             }
         }
@@ -65,13 +65,13 @@ struct AppListEditor: View {
                 if !AppInfo.isInstalled(bundleID) {
                     Text("Not installed")
                         .font(TGType.footnote)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(TGPalette.ink2)
                 }
             }
             Spacer(minLength: 6)
             Text(bundleID)
                 .font(TGType.footnote)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(TGPalette.ink2)
                 .lineLimit(1)
                 .truncationMode(.head)
             Button {
@@ -79,7 +79,7 @@ struct AppListEditor: View {
             } label: {
                 Image(systemName: "minus.circle")
                     .font(.system(size: 12))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TGPalette.ink2)
             }
             .buttonStyle(.plain)
             .help("Remove \(AppInfo.name(for: bundleID))")
@@ -105,7 +105,7 @@ struct AppListEditor: View {
             Spacer()
         }
         .font(TGType.footnote)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(TGPalette.ink2)
         .padding(.horizontal, 4)
         .padding(.vertical, 2)
     }

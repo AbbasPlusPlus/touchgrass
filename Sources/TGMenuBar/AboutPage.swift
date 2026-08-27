@@ -12,12 +12,13 @@ struct AboutPage: View {
                     VStack(alignment: .leading, spacing: 3) {
                         Text("TouchGrass")
                             .font(TGType.heading)
+                            .foregroundStyle(TGPalette.ink)
                         Text(Self.versionLine)
                             .font(TGType.footnote)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(TGPalette.ink2)
                         Text("Breaks that never become the interruption.")
                             .font(TGType.caption)
-                            .foregroundStyle(.secondary)
+                            .foregroundStyle(TGPalette.ink2)
                     }
                     Spacer(minLength: 0)
                 }
@@ -43,21 +44,20 @@ struct AboutPage: View {
 
     // MARK: - Pieces
 
+    /// The mark itself rather than `NSApp.applicationIconImage`: it is vector, it is right
+    /// outside a real .app bundle (where the icon is a generic alias), and it is the same five
+    /// paths the app icon is cut from.
     private var appIcon: some View {
-        Group {
-            // Outside a real .app bundle `applicationIconImage` is a generic alias icon, which
-            // looks broken — fall back to the leaf instead.
-            if Bundle.main.bundleIdentifier != nil, let icon = NSApp.applicationIconImage {
-                Image(nsImage: icon).resizable()
-            } else {
-                Image(systemName: "leaf.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .padding(12)
-                    .foregroundStyle(.green)
-            }
-        }
-        .frame(width: 64, height: 64)
+        LogoMark()
+            .frame(width: 64, height: 64)
+            .background(
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .fill(TGPalette.paper2)
+            )
+            .overlay(
+                RoundedRectangle(cornerRadius: 15, style: .continuous)
+                    .strokeBorder(TGPalette.stone, lineWidth: 1)
+            )
     }
 
     private func link(_ title: String, _ urlString: String, symbol: String) -> some View {
@@ -75,7 +75,7 @@ struct AboutPage: View {
             HStack(spacing: 8) {
                 Image(systemName: symbol)
                     .font(.system(size: 13))
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(TGPalette.matcha)
                     .frame(width: 16)
                 Text(title)
             }

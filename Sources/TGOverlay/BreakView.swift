@@ -4,6 +4,9 @@
 // a title, a subtitle, a hairline, and the countdown. Controls sit at the bottom, far from the
 // countdown, so nothing competes for the centre of the screen. Everything rises into place
 // 80 ms apart, after the window itself has finished fading in.
+//
+// The whole screen is matte on purpose — paper, never glass. Glass would let the thing you are
+// resting *from* glow through. Which ink it uses depends on the backdrop: see `BreakTone`.
 
 import SwiftUI
 import TGCore
@@ -37,11 +40,26 @@ public struct BreakView: View {
         role == .primary || model.showCountdownOnAllDisplays
     }
 
+    /// Paper backdrops follow the system appearance; gradients and wallpapers never do.
+    private var tone: BreakTone { BreakTone.matching(model.background) }
+
+    @ViewBuilder
     public var body: some View {
+        // A dark backdrop pins the scheme, so everything drawn on it stays legible whatever the
+        // system is doing. A paper backdrop is *meant* to follow the system, so it is left alone.
+        if tone == .dark {
+            composition.environment(\.colorScheme, .dark)
+        } else {
+            composition
+        }
+    }
+
+    private var composition: some View {
         ZStack {
-            Color.black
+            base
             BreakBackgroundView(background: model.background, wallpaperURL: wallpaperURL)
             vignette
+            grass
 
             if showsFullComposition {
                 fullComposition
@@ -50,7 +68,6 @@ public struct BreakView: View {
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .environment(\.colorScheme, .dark)
         .onAppear {
             appeared = true
             armSkipRing()
@@ -59,10 +76,29 @@ public struct BreakView: View {
 
     // MARK: - Layers
 
+    /// What shows through in the split second before the backdrop has drawn, and behind a
+    /// wallpaper that doesn't fill the screen.
+    @ViewBuilder
+    private var base: some View {
+        switch tone {
+        case .paper: OverlayPalette.paper
+        case .dark:  Color.black
+        }
+    }
+
     private var vignette: some View {
-        RadialGradient(colors: [.clear, .black.opacity(0.30)],
+        RadialGradient(colors: [.clear, tone.vignette],
                        center: .center, startRadius: 260, endRadius: 1100)
             .ignoresSafeArea()
+            .allowsHitTesting(false)
+    }
+
+    /// Two faint blades, bottom-right. The only illustration on the screen, and static —
+    /// nothing here should move except the countdown.
+    private var grass: some View {
+        GrassStrokes(color: tone.grass)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomTrailing)
+            .padding(.trailing, 64)
             .allowsHitTesting(false)
     }
 
@@ -87,7 +123,7 @@ public struct BreakView: View {
     private var quietCountdown: some View {
         Text(model.countdownText)
             .font(OverlayType.quietCountdown)
-            .foregroundStyle(.white.opacity(0.34))
+            .foregroundStyle(tone.numerals.opacity(0.42))
             .kerning(1)
             .rise(index: 1, appeared: appeared)
     }
@@ -99,22 +135,21 @@ public struct BreakView: View {
             if model.showTitle {
                 Text(model.title)
                     .font(OverlayType.breakTitle)
-                    .foregroundStyle(.white.opacity(0.97))
+                    .foregroundStyle(tone.primary)
                     .kerning(-0.3)
                     .multilineTextAlignment(.center)
-                    .shadow(color: .black.opacity(0.30), radius: 16, y: 4)
+                    .shadow(color: tone.textShadow, radius: 16, y: 4)
                     .rise(index: 1, appeared: appeared)
             }
 
             if model.showSubtitle, let subtitle = model.subtitle, !subtitle.isEmpty {
                 Text(subtitle)
                     .font(OverlayType.breakSubtitle)
-                    .foregroundStyle(.white.opacity(0.80))
+                    .foregroundStyle(tone.secondary)
                     .multilineTextAlignment(.center)
                     .lineSpacing(5)
                     .frame(maxWidth: 640)
                     .padding(.top, 16)
-                    .shadow(color: .black.opacity(0.25), radius: 12, y: 3)
                     .rise(index: 2, appeared: appeared)
             }
 
@@ -124,9 +159,9 @@ public struct BreakView: View {
 
             Text(model.countdownText)
                 .font(OverlayType.breakCountdown)
-                .foregroundStyle(.white.opacity(0.95))
+                .foregroundStyle(tone.numerals)
                 .kerning(1.5)
-                .shadow(color: .black.opacity(0.35), radius: 24, y: 8)
+                .shadow(color: tone.textShadow, radius: 24, y: 8)
                 .padding(.top, 26)
                 .rise(index: 4, appeared: appeared)
         }
@@ -134,10 +169,8 @@ public struct BreakView: View {
 
     private var hairline: some View {
         Rectangle()
-            .fill(LinearGradient(colors: [.white.opacity(0), .white.opacity(0.32), .white.opacity(0)],
-                                 startPoint: .leading, endPoint: .trailing))
+            .fill(LinearGradient(colors: tone.hairline, startPoint: .leading, endPoint: .trailing))
             .frame(width: 320, height: 1)
-            .shadow(color: .black.opacity(0.35), radius: 4, y: 1)
     }
 
     // MARK: - Clock
@@ -146,9 +179,8 @@ public struct BreakView: View {
         TimelineView(.everyMinute) { context in
             Text(Self.clockFormatter.string(from: context.date))
                 .font(OverlayType.clock)
-                .foregroundStyle(.white.opacity(0.78))
+                .foregroundStyle(tone.secondary)
                 .kerning(1.2)
-                .shadow(color: .black.opacity(0.30), radius: 10, y: 2)
         }
     }
 
@@ -178,11 +210,11 @@ public struct BreakView: View {
                                     .transition(.opacity.combined(with: .move(edge: .bottom)))
                             } else {
                                 Capsule(style: .continuous)
-                                    .fill(.white.opacity(0.10))
+                                    .fill(tone.pillBorder.opacity(0.55))
                                     .frame(width: Self.pillWidth - 28, height: 5)
                                     .padding(.leading, 14)
                                 Capsule(style: .continuous)
-                                    .fill(.white.opacity(0.16))
+                                    .fill(tone.pillBorder)
                                     .frame(width: Self.pillWidth - 14, height: 5)
                                     .padding(.leading, 7)
                             }
@@ -200,7 +232,8 @@ public struct BreakView: View {
                                 .frame(width: Self.pillWidth - 38)
                             }
                             .buttonStyle(GlassPillStyle(size: .regular,
-                                                        ringProgress: model.skipEnabled ? nil : skipRing))
+                                                        ringProgress: model.skipEnabled ? nil : skipRing,
+                                                        tone: tone))
                             .disabled(!model.skipEnabled)
                         }
                     }
@@ -224,12 +257,12 @@ public struct BreakView: View {
                         .padding(.vertical, 3)
                         .background(
                             RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                .fill(.white.opacity(0.16))
+                                .fill(tone.keycap)
                         )
                     Text("twice to \(action)")
                 }
                 .font(OverlayType.hint)
-                .foregroundStyle(.white.opacity(OverlayType.tertiaryOpacity))
+                .foregroundStyle(tone.tertiary)
             }
         }
         .fixedSize()
@@ -248,7 +281,7 @@ public struct BreakView: View {
                 Spacer(minLength: 0)
             }
         }
-        .buttonStyle(GlassPillStyle(size: .regular, tinted: tinted))
+        .buttonStyle(GlassPillStyle(size: .regular, tinted: tinted, tone: tone))
     }
 
     /// Balanced enforcement draws a hairline arc closing around the Skip pill over the delay.
