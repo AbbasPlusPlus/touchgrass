@@ -4,7 +4,7 @@ Native macOS 26 menu-bar break reminder (-style). SwiftPM only, **no Xcode**. Sw
 
 ## Build
 - `make build` — `swift build -c release` (use `make CONFIG=debug build` while iterating)
-- `make run` — build → `build/TouchGrass.app` → ad-hoc codesign → `open`
+- `make run` — build → `build.noindex/TouchGrass.app` → ad-hoc codesign → `open`
 - `make test` — `swift test` (TGCore only; pure Swift). Use **swift-testing** (`import Testing`, `@Test`, `#expect`) — XCTest is unavailable without Xcode.
 - The system CLT SwiftPM is broken; `make` uses the Homebrew toolchain (`SWIFT` var in Makefile). Don't call bare `swift` — use `$(SWIFT)` / `make`.
 

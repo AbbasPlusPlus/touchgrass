@@ -4,7 +4,8 @@ SWIFT    ?= $(shell brew --prefix swift 2>/dev/null)/bin/swift
 BUILD    := .build
 CONFIG   ?= release
 BIN      := $(BUILD)/$(CONFIG)/$(APP)
-APPDIR   := build/$(APP).app
+# .noindex keeps Spotlight from listing the build artifact as a second copy of the app
+APPDIR   := build.noindex/$(APP).app
 CONTENTS := $(APPDIR)/Contents
 
 .PHONY: all build bundle run test clean debug kill install release release-dry
@@ -53,4 +54,4 @@ release-dry:
 	DRY_RUN=1 bash Support/release.sh $(VERSION)
 
 clean:
-	rm -rf $(BUILD) build dist
+	rm -rf $(BUILD) build build.noindex dist

@@ -1,6 +1,8 @@
 .build/
+build.noindex/
 .swiftpm/
 build/
+build.noindex/
 *.app
 DerivedData/
 .DS_Store
