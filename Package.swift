@@ -24,6 +24,7 @@ let package = Package(
         .executableTarget(name: "tg-sound-demo", dependencies: ["TGCore", "TGAudio"]),
         .executableTarget(name: "tg-probe", dependencies: ["TGCore", "TGDetection"]),
         .executableTarget(name: "tg-menubar-demo", dependencies: ["TGCore", "TGMenuBar"]),
+        .executableTarget(name: "tg-overlay-demo", dependencies: ["TGCore", "TGOverlay"]),
         .testTarget(name: "TGCoreTests", dependencies: ["TGCore"]),
         .testTarget(name: "TGDetectionTests", dependencies: ["TGCore", "TGDetection"]),
     ],
