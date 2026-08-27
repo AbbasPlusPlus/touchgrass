@@ -20,6 +20,9 @@ let package = Package(
             name: "TouchGrass",
             dependencies: ["TGCore", "TGDetection", "TGAudio", "TGOverlay", "TGMenuBar"]
         ),
+        // Standalone harness for the menu bar surfaces (status item, quick panel,
+        // settings, onboarding) so they can be run and screenshotted without the full app.
+        .executableTarget(name: "tg-menubar-demo", dependencies: ["TGCore", "TGMenuBar"]),
         .testTarget(name: "TGCoreTests", dependencies: ["TGCore"]),
     ],
 )

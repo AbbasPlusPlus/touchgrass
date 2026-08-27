@@ -93,6 +93,11 @@ public struct Settings: Codable, Equatable, Sendable {
     public var menuBarStyle: MenuBarStyle = .iconAndTime
     public var hasCompletedOnboarding: Bool = false
 
+    // MARK: Keyboard shortcuts
+    /// Global hotkeys keyed by `HotkeyAction.rawValue` (TGMenuBar owns the action vocabulary).
+    /// Empty by default — nothing is registered until the user records a shortcut.
+    public var hotkeys: [String: Hotkey] = [:]
+
     public init() {}
 
     /// "Title|Subtitle" → (title, subtitle?)
@@ -115,6 +120,17 @@ public enum DeepFocusMode: String, Codable, Sendable, Hashable, CaseIterable {
 
 public enum MenuBarStyle: String, Codable, Sendable, Hashable, CaseIterable {
     case iconOnly, timeOnly, iconAndTime
+}
+
+/// A recorded global keyboard shortcut. `keyCode` is a virtual key code (Carbon `kVK_*`),
+/// `modifiers` is a Carbon modifier mask (`cmdKey | optionKey | controlKey | shiftKey`).
+public struct Hotkey: Codable, Equatable, Sendable, Hashable {
+    public var keyCode: UInt32
+    public var modifiers: UInt32
+    public init(keyCode: UInt32, modifiers: UInt32) {
+        self.keyCode = keyCode
+        self.modifiers = modifiers
+    }
 }
 
 // MARK: - Persistence
