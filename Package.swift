@@ -20,6 +20,9 @@ let package = Package(
             name: "TouchGrass",
             dependencies: ["TGCore", "TGDetection", "TGAudio", "TGOverlay", "TGMenuBar"]
         ),
+        // Dev-only CLI that prints every raw detection signal live. Not bundled into the app.
+        .executableTarget(name: "tg-probe", dependencies: ["TGCore", "TGDetection"]),
         .testTarget(name: "TGCoreTests", dependencies: ["TGCore"]),
+        .testTarget(name: "TGDetectionTests", dependencies: ["TGCore", "TGDetection"]),
     ],
 )
