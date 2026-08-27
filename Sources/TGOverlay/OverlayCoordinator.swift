@@ -231,11 +231,12 @@ public final class OverlayCoordinator {
     }
 
     static func lockScreenNow() {
-        let tool = "/System/Library/CoreServices/Menu Extras/User.menu/Contents/Resources/CGSession"
-        guard FileManager.default.isExecutableFile(atPath: tool) else { return }
+        // CGSession -suspend disappeared with the User menu extra in macOS 26. `pmset
+        // displaysleepnow` is the public equivalent: the display sleeps and macOS locks
+        // per the user's "require password" setting (immediately, by default).
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: tool)
-        process.arguments = ["-suspend"]
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/pmset")
+        process.arguments = ["displaysleepnow"]
         try? process.run()
     }
 }
