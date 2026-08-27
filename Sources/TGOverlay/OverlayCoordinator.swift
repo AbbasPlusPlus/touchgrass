@@ -229,9 +229,16 @@ public final class OverlayCoordinator {
     }
 
     static func lockScreenNow() {
-        // CGSession -suspend disappeared with the User menu extra in macOS 26. `pmset
-        // displaysleepnow` is the public equivalent: the display sleeps and macOS locks
-        // per the user's "require password" setting (immediately, by default).
+        // The only true lock (what ⌃⌘Q does) is SACLockScreenImmediate in the private login
+        // framework — CGSession -suspend is gone on macOS 26, and `pmset displaysleepnow` merely
+        // sleeps the display, which mouse movement undoes unless the user requires a password
+        // immediately. Same guarded-private-API policy as SpacePinning: dlsym or degrade.
+        typealias LockFn = @convention(c) () -> Int32
+        if let handle = dlopen("/System/Library/PrivateFrameworks/login.framework/login", RTLD_LAZY),
+           let sym = dlsym(handle, "SACLockScreenImmediate") {
+            _ = unsafeBitCast(sym, to: LockFn.self)()
+            return
+        }
         let process = Process()
         process.executableURL = URL(fileURLWithPath: "/usr/bin/pmset")
         process.arguments = ["displaysleepnow"]

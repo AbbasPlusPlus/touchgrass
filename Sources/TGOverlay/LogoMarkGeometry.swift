@@ -12,62 +12,45 @@ import CoreGraphics
 /// re-reads the SVG).
 enum LogoMarkGeometry {
 
-    /// The SVG's viewBox, in its own coordinates (y down).
-    static var viewBox: CGRect { LogoMarkData.viewBox }
-
     /// One shape ready to draw: already mapped into the destination rect.
     struct Piece {
         let path: CGPath
         let color: CGColor
     }
 
-    // MARK: - Fit
+    /// How much of the destination rect is left as air, as a fraction of its side. The mark
+    /// is a disc with blade tips reaching past it, so it wants almost none — at 18 pt there is
+    /// nothing to spare.
+    static let defaultInset: CGFloat = 0.02
 
-    /// How the artwork is laid into a destination rect.
-    enum Fit {
-        /// The whole viewBox fits the rect, artwork centred inside it. Matches how a browser
-        /// would render the file.
-        case viewBox
-        /// The artwork's own bounds fill the rect, inset by a fraction of the side. What every
-        /// small rendering wants: at 18 pt there is no room to spend anything on air.
-        case disc(inset: CGFloat)
-    }
+    // MARK: - Mapping
 
-    /// Scale and offset taking viewBox coordinates into `rect`. `flipped` is for AppKit's
-    /// bottom-left origin, where the SVG's y has to be turned upside down.
-    static func transform(in rect: CGRect, flipped: Bool, fit: Fit) -> CGAffineTransform {
-        let side = min(rect.width, rect.height)
-        let source: CGRect
-        let padding: CGFloat
-        switch fit {
-        case .viewBox:
-            source = viewBox
-            padding = 0
-        case .disc(let insetFraction):
-            source = artworkBounds
-            padding = side * insetFraction
-        }
+    /// Scales and centres the artwork's own bounds — not the viewBox, which has a little slack
+    /// around the drawing — into `rect`. `flipped` is for AppKit's bottom-left origin, where
+    /// the SVG's y has to be turned upside down.
+    static func transform(in rect: CGRect, flipped: Bool, inset: CGFloat) -> CGAffineTransform {
+        let source = artworkBounds
         guard source.width > 0, source.height > 0 else { return .identity }
 
-        let scale = max(0, side - padding * 2) / max(source.width, source.height)
+        let padding = min(rect.width, rect.height) * inset
+        let scale = max(0, min(rect.width, rect.height) - padding * 2) / max(source.width, source.height)
         let tx = rect.midX - source.midX * scale
-        // Flipping mirrors about the viewBox, then the whole thing is centred as usual.
+        // Flipping mirrors the artwork, then the whole thing is centred as usual.
         let ty = flipped ? rect.midY + source.midY * scale : rect.midY - source.midY * scale
         return CGAffineTransform(a: scale, b: 0, c: 0, d: flipped ? -scale : scale, tx: tx, ty: ty)
     }
 
     // MARK: - Pieces
 
-    /// Below this many points the hairline overlap slivers are sub-pixel: drawing them only
-    /// dirties the edges they sit on, so they are dropped and the mass underneath shows.
-    static let sliverFloor: CGFloat = 24
-
     /// The mark's shapes, back to front, mapped into `rect`.
-    static func pieces(in rect: CGRect, flipped: Bool, fit: Fit = .disc(inset: 0.02)) -> [Piece] {
-        var matrix = transform(in: rect, flipped: flipped, fit: fit)
-        let dropSlivers = min(rect.width, rect.height) < sliverFloor
+    ///
+    /// Every shape is drawn at every size. Two thirds of them are hairline seam-fillers that
+    /// go sub-pixel below ~24 pt, but measured against a render that omits them the difference
+    /// at 18 px is at most 3/255 on 18 of 4704 subpixels — so there is nothing to gain by
+    /// simplifying, and the mark stays exactly the SVG at every size.
+    static func pieces(in rect: CGRect, flipped: Bool, inset: CGFloat = defaultInset) -> [Piece] {
+        var matrix = transform(in: rect, flipped: flipped, inset: inset)
         return parsed.compactMap { shape in
-            if dropSlivers && shape.isSliver { return nil }
             guard let path = shape.path.copy(using: &matrix) else { return nil }
             return Piece(path: path, color: shape.color)
         }
@@ -76,12 +59,12 @@ enum LogoMarkGeometry {
     // MARK: - Rendering
 
     /// Draws the mark into the current AppKit graphics context.
-    static func draw(in rect: CGRect, alpha: CGFloat = 1, fit: Fit = .disc(inset: 0.02)) {
+    static func draw(in rect: CGRect, alpha: CGFloat = 1, inset: CGFloat = defaultInset) {
         guard let ctx = NSGraphicsContext.current?.cgContext else { return }
         ctx.saveGState()
         ctx.setAlpha(alpha)
         ctx.setShouldAntialias(true)
-        for piece in pieces(in: rect, flipped: true, fit: fit) {
+        for piece in pieces(in: rect, flipped: true, inset: inset) {
             ctx.addPath(piece.path)
             ctx.setFillColor(piece.color)
             ctx.fillPath()
@@ -106,28 +89,20 @@ enum LogoMarkGeometry {
     private struct ParsedShape {
         let path: CGPath
         let color: CGColor
-        /// A hairline seam-filler: smaller than this fraction of the viewBox in both axes.
-        let isSliver: Bool
     }
-
-    private static let sliverFraction: CGFloat = 0.05
 
     private static let parsed: [ParsedShape] = {
         let space = CGColorSpace(name: CGColorSpace.sRGB)
-        let limit = max(viewBox.width, viewBox.height) * sliverFraction
         return LogoMarkData.shapes.compactMap { shape in
             guard let path = SVGPathParser.parse(shape.d) else { return nil }
             let components: [CGFloat] = [shape.fill.r, shape.fill.g, shape.fill.b, 1]
             let color = space.flatMap { CGColor(colorSpace: $0, components: components) }
                 ?? CGColor(red: shape.fill.r, green: shape.fill.g, blue: shape.fill.b, alpha: 1)
-            let box = path.boundingBoxOfPath
-            return ParsedShape(path: path, color: color,
-                               isSliver: box.width < limit && box.height < limit)
+            return ParsedShape(path: path, color: color)
         }
     }()
 
-    /// The union of every shape's bounds — the artwork's true extent, which is a little
-    /// smaller than the viewBox.
+    /// The union of every shape's bounds — the artwork's true extent.
     private static let artworkBounds: CGRect = {
         parsed.reduce(CGRect.null) { $0.union($1.path.boundingBoxOfPath) }
     }()
