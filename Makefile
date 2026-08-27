@@ -1,4 +1,6 @@
 APP      := TouchGrass
+# System CLT SwiftPM is broken on this machine; use Homebrew toolchain.
+SWIFT    ?= $(shell brew --prefix swift 2>/dev/null)/bin/swift
 BUILD    := .build
 CONFIG   ?= release
 BIN      := $(BUILD)/$(CONFIG)/$(APP)
@@ -10,7 +12,7 @@ CONTENTS := $(APPDIR)/Contents
 all: bundle
 
 build:
-	swift build -c $(CONFIG)
+	$(SWIFT) build -c $(CONFIG)
 
 debug:
 	$(MAKE) CONFIG=debug bundle
@@ -33,7 +35,7 @@ run: kill bundle
 	open $(APPDIR)
 
 test:
-	swift test
+	$(SWIFT) test
 
 install: bundle
 	rm -rf /Applications/$(APP).app
