@@ -2,13 +2,13 @@
 """
 Synthesize TouchGrass notification sounds.
 
-Three styles (bell / chime / flute) x four events (breakStart / breakEnd /
-preBreak / wellness) = 12 files, written to Sources/TGAudio/Resources as
-"<style>-<event>.<ext>".
+Seven styles (bell / chime / flute / marimba / kalimba / sparkle / pop) x four
+events (breakStart / breakEnd / preBreak / wellness) = 28 files, written to
+Sources/TGAudio/Resources as "<style>-<event>.<ext>".
 
 Pure standard library: math + wave + random. numpy is used automatically when
-it is importable, but is never required. Rendering all 12 files takes a few
-seconds.
+it is importable, but is never required. Rendering all 28 files takes
+about a minute.
 
 Design rules (these are the audible contract, keep them):
   * 48 kHz, mono, 16-bit source. Optionally transcoded to AAC/.m4a with
@@ -17,7 +17,8 @@ Design rules (these are the audible contract, keep them):
     deliberately quieter so they never startle.
   * 5 ms raised-cosine fade-in and 50 ms fade-out on every file, plus a DC
     blocker, so nothing can click. ( shipped a crackle bug here.)
-  * gentle low-pass on bell/chime so partials never get glassy.
+  * gentle low-pass on every style so partials never get glassy (sparkle is
+    capped at 9 kHz, which is where a glockenspiel stops being cheerful).
 
 Usage:
     python3 Support/sounds/generate.py                 # -> .m4a in Resources
@@ -363,6 +364,137 @@ def flute_note(n, freq, amp, attack=0.085, release=0.16, breath_db=-26.0, seed=1
     return buf
 
 
+# ------------------------------------------------------- upbeat voices
+
+
+def add_glide_sine(buf, offset, f0, f1, glide, amp, env, phase=0.0):
+    """Sine that bends f0 -> f1 over `glide` seconds, then holds.
+
+    The bend is smoothstepped in the *pitch* domain and the phase is
+    integrated, so there is no corner where the glide lands and no step in the
+    waveform — a linear frequency ramp read as a zipper here.
+    """
+    g = max(1e-6, glide)
+    span = math.log(f1 / f0)
+    sin = math.sin
+    for i, e in enumerate(env):
+        j = offset + i
+        if j >= len(buf):
+            break
+        x = min(1.0, (i / SR) / g)
+        x = x * x * (3.0 - 2.0 * x)
+        phase += TWO_PI * (f0 * math.exp(span * x)) / SR
+        buf[j] += amp * e * sin(phase)
+
+
+def _transient(n, amp, cutoff, tau, seed, attack=0.0015, hp=None):
+    """A short filtered noise burst — the mallet/tine/click contact noise."""
+    rng = random.Random(seed)
+    buf = pink_noise(n, rng)
+    if hp:
+        highpass(buf, hp)
+    lowpass(buf, cutoff)
+    env = struck_env(n, attack, tau)
+    for i in range(n):
+        buf[i] *= env[i]
+    lvl = rms(buf)
+    if lvl > 1e-9:
+        gain(buf, amp / lvl)
+    return buf
+
+
+def marimba_note(n, freq, amp, attack=0.0025, tau=None, seed=7):
+    """Rosewood bar over a resonator tube.
+
+    The bar's first overtone is tuned to exactly 4x — that ratio is the whole
+    difference between a marimba and a xylophone (which tunes to 3x and sounds
+    hard). The tube under the bar re-radiates that 4x for a moment and then
+    swallows it, so the partial is loud at the strike and gone by ~60 ms: the
+    "shimmer". Low bars ring longer than high ones, as real ones do.
+    """
+    tau = tau or 0.36 * (523.25 / freq) ** 0.45
+    buf = [0.0] * n
+    #        ratio  amp    decay x tau
+    spec = ((1.00, 1.000, 1.00),
+            (4.00, 0.270, 0.13),   # tuned overtone + tube shimmer, gone fast
+            (9.20, 0.045, 0.05))   # the wooden "tick" of the strike
+    for ratio, a, td in spec:
+        add_sine(buf, 0, freq * ratio, amp * a, struck_env(n, attack, tau * td))
+    # Yarn mallet on wood: dull, 3 ms, well under the tone.
+    click = _transient(min(n, int(0.05 * SR)), amp * 0.10, 2600.0, 0.0045, seed)
+    for i, v in enumerate(click):
+        buf[i] += v
+    return buf
+
+
+def kalimba_note(n, freq, amp, attack=0.0018, tau=None, seed=21, buzz=0.055):
+    """Plucked steel tine.
+
+    A cantilever bar's partials run 1 : 6.27 : 17.5, which is what makes a
+    kalimba read as metal rather than as a bell. The tine also rattles against
+    its bridge for the first few milliseconds (`buzz`), and a real thumb piano
+    is never quite in tune with itself, hence the detuned twin.
+    """
+    tau = tau or 0.62 * (659.26 / freq) ** 0.35
+    buf = [0.0] * n
+    spec = ((1.000, 1.000, 1.00),
+            (6.270, 0.130, 0.16),
+            (17.50, 0.020, 0.05))
+    for ratio, a, td in spec:
+        add_sine(buf, 0, freq * ratio, amp * a, struck_env(n, attack, tau * td))
+    # Detuned twin, ~2.5 Hz flat: a slow swell rather than a chorus.
+    add_sine(buf, 0, freq - 2.5, amp * 0.30, struck_env(n, attack, tau * 0.9), phase=0.7)
+    if buzz > 0.0:
+        b = _transient(min(n, int(0.06 * SR)), amp * buzz, 5200.0, 0.010, seed,
+                       attack=0.0008, hp=freq * 1.5)
+        for i, v in enumerate(b):
+            buf[i] += v
+    return buf
+
+
+def glock_note(n, freq, amp, attack=0.0015, tau=None, seed=31, air=0.05):
+    """Glockenspiel bar: a free steel bar, untuned overtones at 2.76 and 5.40.
+
+    Those two are the sparkle; they decay much faster than the fundamental so
+    the note starts glassy and settles into a pure tone. `air` adds a breath of
+    filtered noise at the strike so the top end shimmers instead of pinging.
+    """
+    tau = tau or 0.95 * (1046.5 / freq) ** 0.4
+    buf = [0.0] * n
+    spec = ((1.00, 1.000, 1.00),
+            (2.76, 0.200, 0.30),
+            (5.40, 0.070, 0.16),
+            (8.93, 0.022, 0.09))
+    for ratio, a, td in spec:
+        add_sine(buf, 0, freq * ratio, amp * a, struck_env(n, attack, tau * td))
+    if air > 0.0:
+        a = _transient(min(n, int(0.09 * SR)), amp * air, 8000.0, 0.014, seed,
+                       attack=0.001, hp=2500.0)
+        for i, v in enumerate(a):
+            buf[i] += v
+    return buf
+
+
+def boop(n, f0, f1, amp, glide=0.060, tau=0.075, click=0.055, seed=41):
+    """Modern UI "boop": a rounded sine that bends up, with a soft click on top.
+
+    Almost a pure sine — one quiet octave keeps it from sounding like a test
+    tone — and the click is a 2 ms lowpassed tick, there to give the onset an
+    edge you feel rather than hear.
+    """
+    buf = [0.0] * n
+    env = struck_env(n, 0.004, tau)
+    add_glide_sine(buf, 0, f0, f1, glide, amp, env)
+    add_glide_sine(buf, 0, f0 * 2.0, f1 * 2.0, glide, amp * 0.07,
+                   struck_env(n, 0.004, tau * 0.45))
+    if click > 0.0:
+        c = _transient(min(n, int(0.03 * SR)), amp * click, 3200.0, 0.0022, seed,
+                       attack=0.0006, hp=250.0)
+        for i, v in enumerate(c):
+            buf[i] += v
+    return buf
+
+
 def mix(dst, src, offset):
     need = offset + len(src)
     if need > len(dst):
@@ -372,11 +504,13 @@ def mix(dst, src, offset):
     return dst
 
 
-# -------------------------------------------------------------- the 12 cues
+# -------------------------------------------------------------- the 28 cues
 
 # Note frequencies used below (equal temperament, A4 = 440).
 G4, A4, D5, E5, B5 = 392.00, 440.00, 587.33, 659.26, 987.77
 A3, D4, E4 = 220.00, 293.66, 329.63  # bowl fundamentals; E4 = a fifth above A3
+C5, G5, A5 = 523.25, 783.99, 880.00  # marimba / kalimba register
+C6, D6 = 1046.50, 1174.66            # the top of the sparkle run
 
 # Perceived loudness target (LKFS, loudest 400 ms) and hard peak ceiling per
 # event. The two ambient cues sit far below the two "something happened" cues.
@@ -384,7 +518,8 @@ LOUDNESS = {"breakStart": -16.5, "breakEnd": -17.5, "preBreak": -23.0, "wellness
 CEILING = {"breakStart": -3.5, "breakEnd": -4.0, "preBreak": -9.0, "wellness": -12.0}
 # Equal-loudness nudge: K-weighting is flat below 1 kHz, but a 220 Hz bowl still
 # reads quieter than a 660 Hz chime at the same LKFS. Small, deliberate.
-STYLE_TRIM = {"bell": 1.5, "chime": 0.0, "flute": 0.0}
+STYLE_TRIM = {"bell": 1.5, "chime": 0.0, "flute": 0.0,
+              "marimba": 0.0, "kalimba": 0.0, "sparkle": -1.0, "pop": 0.5}
 
 
 def build_bell(event):
@@ -439,7 +574,101 @@ def build_flute(event):
     return out
 
 
-BUILDERS = {"bell": build_bell, "chime": build_chime, "flute": build_flute}
+def build_marimba(event):
+    """Bouncy wooden phrase: C5-E5-G5 up to start, back down to end."""
+    out = []
+    if event == "breakStart":
+        # Crescendo into the top note: the phrase should arrive somewhere.
+        for k, f in enumerate((C5, E5, G5)):
+            mix(out, marimba_note(int((0.85 + 0.25 * k) * SR), f, 0.86 + 0.07 * k, seed=7 + k),
+                int(0.110 * k * SR))
+    elif event == "breakEnd":
+        # Decrescendo on the way down: a landing, not a second announcement.
+        for k, f in enumerate((G5, E5, C5)):
+            mix(out, marimba_note(int((0.85 + 0.25 * k) * SR), f, 1.00 - 0.05 * k, seed=11 + k),
+                int(0.110 * k * SR))
+    elif event == "preBreak":
+        mix(out, marimba_note(int(0.80 * SR), C5, 0.90, seed=15), 0)
+        mix(out, marimba_note(int(1.10 * SR), G5, 0.85, seed=16), int(0.130 * SR))
+    else:
+        mix(out, marimba_note(int(0.95 * SR), G5, 0.85, seed=17), 0)
+    out.extend([0.0] * int(0.45 * SR))
+    reverb(out, wet=0.16, rt60=0.85, damp=0.36)   # small warm room, not a hall
+    highpass(out, 90.0)
+    lowpass(out, 8000.0)
+    return out
+
+
+def build_kalimba(event):
+    """Two-note grace: E5 -> A5 to start (85 ms apart), A5 -> E5 to end."""
+    out = []
+    if event == "breakStart":
+        mix(out, kalimba_note(int(1.00 * SR), E5, 0.82, seed=21), 0)
+        mix(out, kalimba_note(int(1.55 * SR), A5, 1.00, seed=22), int(0.085 * SR))
+    elif event == "breakEnd":
+        mix(out, kalimba_note(int(0.95 * SR), A5, 0.82, seed=23), 0)
+        mix(out, kalimba_note(int(1.55 * SR), E5, 1.00, seed=24), int(0.085 * SR))
+    elif event == "preBreak":
+        mix(out, kalimba_note(int(1.25 * SR), A5, 0.90, seed=25, buzz=0.040), 0)
+    else:
+        mix(out, kalimba_note(int(1.05 * SR), E5, 0.85, seed=26, buzz=0.030), 0)
+    out.extend([0.0] * int(0.45 * SR))
+    reverb(out, wet=0.15, rt60=0.80, damp=0.40)
+    highpass(out, 150.0)
+    lowpass(out, 9500.0)
+    return out
+
+
+def build_sparkle(event):
+    """Pentatonic run, 70 ms per step. Up four notes = "level up"; down three
+    to close. Lowpassed at 9 kHz so the top stays airy rather than sharp."""
+    out = []
+    if event == "breakStart":
+        for k, f in enumerate((G5, A5, C6, D6)):
+            mix(out, glock_note(int((0.70 + 0.35 * k) * SR), f, 0.72 + 0.09 * k, seed=31 + k),
+                int(0.070 * k * SR))
+    elif event == "breakEnd":
+        for k, f in enumerate((D6, C6, G5)):
+            mix(out, glock_note(int((0.75 + 0.35 * k) * SR), f, 0.78 + 0.07 * k, seed=41 + k),
+                int(0.075 * k * SR))
+    elif event == "preBreak":
+        mix(out, glock_note(int(0.80 * SR), G5, 0.80, seed=51), 0)
+        mix(out, glock_note(int(1.25 * SR), C6, 0.88, seed=52), int(0.080 * SR))
+    else:
+        mix(out, glock_note(int(1.05 * SR), C6, 0.80, seed=53, air=0.035), 0)
+    out.extend([0.0] * int(0.70 * SR))
+    reverb(out, wet=0.26, rt60=1.5, damp=0.46)     # the soft tail
+    highpass(out, 200.0)
+    lowpass(out, 9000.0)
+    return out
+
+
+def build_pop(event):
+    """UI boop. Everything here is under 0.6 s — a pop that rings is a chime."""
+    out = []
+    if event == "breakStart":
+        mix(out, boop(int(0.30 * SR), 300.0, 660.0, 1.00), 0)
+        mix(out, boop(int(0.34 * SR), 450.0, 990.0, 0.52,
+                      glide=0.050, tau=0.062, click=0.030, seed=42), int(0.085 * SR))
+    elif event == "breakEnd":
+        mix(out, boop(int(0.38 * SR), 660.0, 300.0, 0.95,
+                      glide=0.075, tau=0.085, seed=43), 0)
+    elif event == "preBreak":
+        mix(out, boop(int(0.30 * SR), 320.0, 520.0, 0.80,
+                      glide=0.055, tau=0.070, click=0.030, seed=44), 0)
+    else:
+        mix(out, boop(int(0.26 * SR), 400.0, 600.0, 0.72,
+                      glide=0.045, tau=0.055, click=0.020, seed=45), 0)
+    out.extend([0.0] * int(0.12 * SR))
+    reverb(out, wet=0.07, rt60=0.40, damp=0.50)    # a hint of room, no tail
+    highpass(out, 120.0)
+    lowpass(out, 6500.0)
+    return out
+
+
+BUILDERS = {"bell": build_bell, "chime": build_chime, "flute": build_flute,
+            "marimba": build_marimba, "kalimba": build_kalimba,
+            "sparkle": build_sparkle, "pop": build_pop}
 EVENTS = ("breakStart", "breakEnd", "preBreak", "wellness")
 
 

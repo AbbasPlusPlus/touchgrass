@@ -3,7 +3,7 @@
 //   swift run tg-sound-demo                    (bundle sits beside the binary)
 //   build/TouchGrass.app/Contents/MacOS/…      (bundle in Contents/Resources)
 //
-// Exits non-zero if any of the 12 assets is missing, so it doubles as a check
+// Exits non-zero if any of the 28 assets is missing, so it doubles as a check
 // that `Bundle.module`-style resource lookup resolves in both layouts.
 
 import Foundation
@@ -18,7 +18,9 @@ MainActor.assumeIsolated { runDemo() }
 func runDemo() {
     var volume = 0.8
     var gap: TimeInterval = 0.35
-    var styles: [SoundStyle] = [.bell, .chime, .flute]
+    // Every style that has assets, in Settings order. Driven off `allCases` so a
+    // style added to the contract is played here without touching this file.
+    var styles: [SoundStyle] = SoundStyle.allCases.filter { $0 != SoundStyle.none }
     var silent = false
     var preview = false
 
@@ -30,8 +32,9 @@ func runDemo() {
         case "--gap":
             gap = arguments.next().flatMap(Double.init) ?? gap
         case "--style":
-            guard let name = arguments.next(), let style = SoundStyle(rawValue: name) else {
-                fail("--style expects one of: bell, chime, flute")
+            guard let name = arguments.next(), let style = SoundStyle(rawValue: name),
+                  style != SoundStyle.none else {
+                fail("--style expects one of: " + styleNames)
             }
             styles = [style]
         case "--list":
@@ -40,8 +43,8 @@ func runDemo() {
             preview = true
         case "-h", "--help":
             say("""
-                usage: tg-sound-demo [--style bell|chime|flute] [--volume 0…1] \
-                [--gap SECONDS] [--list] [--preview]
+                usage: tg-sound-demo [--style \(styleNames.replacingOccurrences(of: ", ", with: "|"))] \
+                [--volume 0…1] [--gap SECONDS] [--list] [--preview]
                 """)
             return
         default:
@@ -97,6 +100,13 @@ func runDemo() {
 }
 
 // MARK: - Helpers
+
+/// The styles that ship with assets, for argument parsing and `--help`.
+@MainActor
+let styleNames = SoundStyle.allCases
+    .filter { $0 != SoundStyle.none }
+    .map(\.rawValue)
+    .joined(separator: ", ")
 
 func say(_ text: String) {
     print(text)

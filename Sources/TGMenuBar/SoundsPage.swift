@@ -15,21 +15,30 @@ struct SoundsPage: View {
     var body: some View {
         Form {
             Section {
-                soundToggle("When a break starts", isOn: $store.settings.soundOnBreakStart, event: "start")
-                soundToggle("When a break ends", isOn: $store.settings.soundOnBreakEnd, event: "end")
+                // The event names are `SoundEvent` raw values — the app maps them back
+                // with `SoundEvent(rawValue:)`, so "end" would silently preview the
+                // *start* cue, which is audibly wrong now that phrases run up and down.
+                soundToggle("When a break starts", isOn: $store.settings.soundOnBreakStart, event: "breakStart")
+                soundToggle("When a break ends", isOn: $store.settings.soundOnBreakEnd, event: "breakEnd")
                 soundToggle("When a break is coming up", isOn: $store.settings.soundOnPreBreak, event: "preBreak")
             } header: {
                 Text("Play a sound")
             } footer: {
-                Text("Every sound is a single soft tone. Nothing repeats and nothing insists.")
+                Text("Every sound is a second or two long and plays once. Nothing repeats and nothing insists.")
             }
 
             Section {
-                Picker("Sound", selection: $store.settings.soundStyle) {
+                VStack(spacing: 1) {
                     ForEach(SoundStyle.allCases, id: \.self) { style in
-                        Text(style.title).tag(style)
+                        SoundStyleRow(
+                            style: style,
+                            isSelected: settings.soundStyle == style,
+                            select: { store.settings.soundStyle = style },
+                            preview: { previewSound(style, "breakStart") }
+                        )
                     }
                 }
+                .padding(.vertical, 2)
                 LabeledContent("Volume") {
                     HStack(spacing: 8) {
                         Image(systemName: "speaker").foregroundStyle(TGPalette.ink2)
@@ -150,6 +159,7 @@ struct SoundsPage: View {
     private var styleSummary: String {
         settings.soundStyle == .none
             ? "Silent."
-            : "\(settings.soundStyle.title) at \(Int(settings.volume * 100))%."
+            : "\(settings.soundStyle.title) — \(settings.soundStyle.subtitle.lowercased()) "
+                + "— at \(Int(settings.volume * 100))%."
     }
 }

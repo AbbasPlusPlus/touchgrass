@@ -168,6 +168,12 @@ public enum SoundStyle: String, Codable, Sendable, Hashable, CaseIterable {
     case bell        // Tibetan singing bowl
     case chime
     case flute
+    // The upbeat half of the set. Order is the order they appear in Settings:
+    // the three calm styles first, then the four bright ones.
+    case marimba
+    case kalimba
+    case sparkle
+    case pop
     case none
 
     public var title: String {
@@ -175,7 +181,26 @@ public enum SoundStyle: String, Codable, Sendable, Hashable, CaseIterable {
         case .bell: return "Singing bowl"
         case .chime: return "Chime"
         case .flute: return "Flute"
+        case .marimba: return "Marimba"
+        case .kalimba: return "Kalimba"
+        case .sparkle: return "Sparkle"
+        case .pop: return "Pop"
         case .none: return "None"
+        }
+    }
+
+    /// One line under the title in the picker: what it feels like, not what it
+    /// is made of. Three or four words — it sits in a 12 pt secondary row.
+    public var subtitle: String {
+        switch self {
+        case .bell: return "Slow and grounding"
+        case .chime: return "Two soft tones"
+        case .flute: return "Breathy and warm"
+        case .marimba: return "Bright and bouncy"
+        case .kalimba: return "Cheerful pluck"
+        case .sparkle: return "Quick ascending shimmer"
+        case .pop: return "Clean, snappy"
+        case .none: return "Silent"
         }
     }
 }
