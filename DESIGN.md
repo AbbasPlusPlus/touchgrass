@@ -87,5 +87,24 @@ at 40%, icon buttons get a circular paper wash, tiles lift 1pt shadow. 120ms eas
 
 ## Emojis
 Personality: menu chip 🌿 (the ledger's facts column carries no emoji — it's a set page),
-wellness nudges (💧 water, 🧘 posture, 👁️ blink uses the
-drawn eye animation still), toasts keep SF Symbols. Settings sidebar stays SF Symbols.
+toasts keep SF Symbols. Settings sidebar stays SF Symbols. Wellness nudges carry no emoji and no
+SF Symbol at all — they are the sprout (below).
+
+## Wellness nudges (approved 2026-08-28)
+A **free-floating sprout above a paper-glass word pill**, centred on the screen (every screen
+unless `wellnessMainScreenOnly`), optionally over the dim. No badge, no ring, no chrome around
+the plant.
+- **The sprout** is the seedling drawn from the mock's SVG (120-unit box, `SproutMark`): a matcha
+  stem (7 units, round cap) and two leaves, `#A6C84D` left and `#78AF43` right, joined at
+  (60, 78). 104 pt tall with a soft drop shadow. Its greens are fixed in both appearances — it is
+  the same plant on paper as on ink.
+- **The pill** holds one serif word in Fraunces 28 at ink ("Blink." · "Sit up." · a custom
+  reminder's title with a full stop: "Water." · "Stretch."), 12 × 26 pt of padding, on the same
+  paper-glass surface as the toasts (flat paper2 under Reduce Transparency). 18 pt below the
+  sprout; the two rise and fade in together, hold, and leave together.
+- **The motion** is the sprout's alone, once, over a 3.6 s life (`SproutPose`, percentages of
+  that cycle): blink folds both leaves shut about the join (±40°, scaleY .3) at 48–56%; posture
+  starts leaning 16° about the stem's foot and straightens by 56%; water drops a `#CFE3EE`
+  droplet onto the join, squashes it, runs it down the stem and perks the leaves up behind it;
+  stretch straightens *and* grows 8% taller; any other custom reminder rustles (±6°, two beats).
+- Reduce Motion shows the resting frame and cross-fades only.

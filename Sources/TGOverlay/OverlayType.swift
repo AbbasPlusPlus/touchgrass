@@ -36,8 +36,9 @@ enum OverlayType {
     static let hint = Font.system(size: 12.5, weight: .medium, design: .rounded)
     /// The Esc keycap itself.
     static let keycap = Font.system(size: 12.5, weight: .semibold, design: .rounded)
-    /// The single word on a wellness nudge: "Blink", "Sit up".
-    static let nudge = Font.system(size: 20, weight: .medium, design: .rounded)
+    /// The single word under a wellness nudge's sprout: "Blink.", "Sit up.". Serif, because
+    /// it is the only text in the composition — a caption, not a control.
+    static let nudgeWord = Font.custom("Fraunces", size: 28)
 
     // MARK: - Pre-break card
 

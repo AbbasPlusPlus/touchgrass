@@ -4,6 +4,12 @@
 //                         [blur|wallpaper|gradient:<name>|animated:<name>]
 //   tg-overlay-demo card | pill | blink | posture | custom [title] [symbol] | toast
 //
+// The wellness nudges are the sprout + word stack; a custom reminder's title and symbol pick
+// the sprout's motion:
+//   tg-overlay-demo custom "Water" drop.fill          → droplet runs down the stem
+//   tg-overlay-demo custom "Stretch" figure.cooldown  → the plant straightens and grows
+//   tg-overlay-demo custom "Eye drops" eyedropper     → the leaves rustle
+//
 // Prints the frontmost application before and after presenting, so it is easy to verify that
 // nothing here ever steals focus.
 

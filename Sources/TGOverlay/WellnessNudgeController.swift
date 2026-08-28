@@ -19,25 +19,28 @@ public final class WellnessNudgeController {
 
     // MARK: - Nudge kinds
 
-    /// What is on screen. Custom reminders carry their own copy; the built-ins draw themselves.
+    /// What is on screen. Custom reminders carry their own copy; the built-ins name themselves.
     @MainActor
     private enum Nudge {
         case wellness(WellnessKind)
         case custom(title: String, symbol: String)
 
-        var size: CGSize {
-            switch self {
-            case .wellness(.blink): return BlinkNudgeView.size
-            case .wellness(.posture): return PostureNudgeView.size
-            case .custom: return CustomNudgeView.size
-            }
-        }
+        var size: CGSize { SproutNudgeView.size }
 
-        /// Blink is the quickest read; posture and custom reminders need a beat longer.
-        var lifetime: TimeInterval {
+        /// One length for all of them: the sprout's timings are percentages of this.
+        var lifetime: TimeInterval { NudgeMotion.lifetime }
+
+        /// What the sprout does, and the word that sits under it.
+        var view: SproutNudgeView {
             switch self {
-            case .wellness(.blink): return 2.9
-            case .wellness(.posture), .custom: return 3.6
+            case .wellness(.blink):
+                return SproutNudgeView(motion: .blink, word: "Blink.", lifetime: lifetime)
+            case .wellness(.posture):
+                return SproutNudgeView(motion: .posture, word: "Sit up.", lifetime: lifetime)
+            case .custom(let title, let symbol):
+                return SproutNudgeView(motion: NudgeMotion.forCustom(title: title, symbol: symbol),
+                                       word: NudgeMotion.word(for: title),
+                                       lifetime: lifetime)
             }
         }
     }
@@ -48,7 +51,8 @@ public final class WellnessNudgeController {
         show(.wellness(kind), dimsScreen: dimsScreen, mainScreenOnly: mainScreenOnly)
     }
 
-    /// A user-defined reminder: an SF Symbol and a line of text, otherwise identical to posture.
+    /// A user-defined reminder. The title becomes the word on the pill; the title and symbol
+    /// together pick which way the sprout moves (water, stretch, or a plain rustle).
     public func showCustom(title: String, symbol: String, dimsScreen: Bool, mainScreenOnly: Bool) {
         show(.custom(title: title, symbol: symbol), dimsScreen: dimsScreen, mainScreenOnly: mainScreenOnly)
     }
@@ -90,7 +94,7 @@ public final class WellnessNudgeController {
             let panel = OverlayPanel(contentRect: frame, level: .floating,
                                      becomesKey: false, clickThrough: true)
             panel.contentView = Self.host(for: nudge, size: padded)
-            panel.alphaValue = 1        // the view springs itself in; the window does not fade
+            panel.alphaValue = 1        // the view fades itself in; the window does not
             panel.present(takingKey: false)
             nudgePanels[id] = panel
         }
@@ -126,17 +130,7 @@ public final class WellnessNudgeController {
     // MARK: - Hosting
 
     private static func host(for nudge: Nudge, size: CGSize) -> NSView {
-        let container: NSHostingView<AnyView>
-        let lifetime = nudge.lifetime
-        switch nudge {
-        case .wellness(.blink):
-            container = NSHostingView(rootView: AnyView(centred(BlinkNudgeView(lifetime: lifetime))))
-        case .wellness(.posture):
-            container = NSHostingView(rootView: AnyView(centred(PostureNudgeView(lifetime: lifetime))))
-        case .custom(let title, let symbol):
-            container = NSHostingView(rootView: AnyView(centred(
-                CustomNudgeView(symbol: symbol, title: title, lifetime: lifetime))))
-        }
+        let container = NSHostingView(rootView: centred(nudge.view))
         container.frame = NSRect(origin: .zero, size: size)
         container.autoresizingMask = [.width, .height]
         return container

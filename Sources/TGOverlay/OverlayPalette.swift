@@ -50,15 +50,6 @@ public enum OverlayPalette {
     /// What every glass surface becomes under Reduce Transparency.
     public static let glassFallback = Color(nsColor: .ovGlassFallback)
 
-    // MARK: - Wellness badge
-
-    /// The heavy ring around a wellness nudge, and the glyph inside it.
-    public static let badgeRing = Color(nsColor: .ovBadgeRing)
-    /// The warm disc the glyph sits on. The cool end is a *lighter* step of the matcha family
-    /// than the `matcha` token: at 170 pt the ink glyph has to stay legible right into the
-    /// corner of the gradient, and full-strength matcha is only a shade off the ink itself.
-    public static var badgeDisc: [Color] { [Color(nsColor: .ovBadgeDisc), pollen] }
-
     // MARK: - Break-screen washes
 
     /// Laid over the frosted desktop in light appearance (DESIGN.md: warm off-white, 30%).
@@ -115,9 +106,6 @@ extension NSColor {
     static let ovClay       = NSColor.ovDynamic("ovClay",       OverlayPalette.Hex.clayLight,       OverlayPalette.Hex.clayDark)
     static let ovOnMatcha   = NSColor.ovDynamic("ovOnMatcha",   0xF3F1E2,                           0x252A1E)
     static let ovMoss       = NSColor.ovDynamic("ovMoss",       0x4F6B4A,                           0x7D9A6C)
-    /// The wellness badge's ring, and the glyph inside it. Always the darkest thing on screen.
-    static let ovBadgeRing  = NSColor.ovDynamic("ovBadgeRing",  OverlayPalette.Hex.inkLight,        OverlayPalette.Hex.paperDark)
-    static let ovBadgeDisc  = NSColor.ovDynamic("ovBadgeDisc",  0x86A06E,                           0x7D9A6C)
 
     static let ovGlassWash = NSColor.ovDynamicAlpha("ovGlassWash",
                                                     OverlayPalette.Hex.paper2Light, 0.24,
