@@ -80,12 +80,15 @@ public final class OverlayCoordinator {
 
         case .preBreakWarning(let kind, let startsIn):
             pendingKind = kind
-            card.show(kind: kind,
-                      secondsLeft: Int(startsIn.rounded()),
-                      snoozesRemaining: snoozesRemaining,
-                      visibleSeconds: settings.preBreakCardVisibleSeconds,
-                      breakDuration: kind == .long ? settings.longBreakDuration
-                                                   : settings.shortBreakDuration)
+            if settings.preBreakEnabled {
+                card.style = .notch
+                card.show(kind: kind,
+                          secondsLeft: Int(startsIn.rounded()),
+                          snoozesRemaining: snoozesRemaining,
+                          visibleSeconds: settings.preBreakCardVisibleSeconds,
+                          breakDuration: kind == .long ? settings.longBreakDuration
+                                                       : settings.shortBreakDuration)
+            }
             if settings.soundOnPreBreak {
                 sound.play(settings.soundStyle, event: .preBreak, volume: settings.volume)
             }

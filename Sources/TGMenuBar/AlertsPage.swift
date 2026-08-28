@@ -11,24 +11,34 @@ struct AlertsPage: View {
     var body: some View {
         Form {
             Section {
-                Picker("Warn me before a break", selection: $store.settings.preBreakWarningSeconds) {
-                    Text("30 sec").tag(TimeInterval(30))
-                    Text("1 min").tag(TimeInterval(60))
-                    Text("90 sec").tag(TimeInterval(90))
-                    Text("2 min").tag(TimeInterval(120))
-                }
-                DurationPicker(
-                    title: "Keep the card on screen for",
-                    value: $store.settings.preBreakCardVisibleSeconds,
-                    presets: [5, 10, 15, 30],
-                    unit: .seconds,
-                    bounds: 2...120
-                )
-                LabeledContent("Summary", value: warningSummary)
+                Toggle("Show a pre-break notification", isOn: $store.settings.preBreakEnabled)
             } header: {
-                Text("Pre-break card")
+                Text("Pre-break notification")
             } footer: {
-                Text("The card offers Start now, +1m, +5m and +15m. It never takes focus and it never blocks a click.")
+                Text("A dark banner grows out of the notch as a break approaches; the countdown drains around its edges. On displays without a notch it appears at the top centre.")
+            }
+
+            if settings.preBreakEnabled {
+                Section {
+                    Picker("Warn me before a break", selection: $store.settings.preBreakWarningSeconds) {
+                        Text("30 sec").tag(TimeInterval(30))
+                        Text("1 min").tag(TimeInterval(60))
+                        Text("90 sec").tag(TimeInterval(90))
+                        Text("2 min").tag(TimeInterval(120))
+                    }
+                    DurationPicker(
+                        title: "Keep it on screen for",
+                        value: $store.settings.preBreakCardVisibleSeconds,
+                        presets: [5, 10, 15, 30],
+                        unit: .seconds,
+                        bounds: 2...120
+                    )
+                    LabeledContent("Summary", value: warningSummary)
+                } header: {
+                    Text("Timing")
+                } footer: {
+                    Text("The banner offers Start, and snooze +1m / +5m / +15m. It never takes focus and it never blocks a click.")
+                }
             }
 
             Section {

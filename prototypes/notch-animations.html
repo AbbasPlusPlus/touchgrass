@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TouchGrass — Notch reminders (real card)</title>
+<style>
+  :root {
+    /* Paper Garden palette (light) — mirrors OverlayPalette */
+    --paper2:   #FAF7EC;
+    --stone:    #E3DCC8;
+    --ink:      #3D443A;
+    --ink2:     #6E7361;
+    --matcha:   #5F7355;
+    --pollen:   #D8B45E;
+    --onMatcha: #F3F1E2;
+
+    --shell-bg: #0a0b0d;
+    --shell-panel: #131519;
+    --shell-panel2: #1b1e24;
+    --shell-stroke: #2a2e36;
+    --shell-text: #e7e9ee;
+    --shell-muted: #9aa0ab;
+    --accent: #7bd88f;
+
+    /* a soft desktop so the warm paper card reads (as it does over a real wallpaper) */
+    --wall: linear-gradient(160deg, #4a6d78 0%, #3d5f63 28%, #35564f 58%, #2b463f 100%);
+    --dur: 900ms;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--shell-bg); color: var(--shell-text);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased; }
+
+  header { padding: 30px 40px 6px; max-width: 1500px; margin: 0 auto; }
+  header h1 { margin: 0 0 6px; font-size: 22px; letter-spacing: -0.02em; font-weight: 650; }
+  header p { margin: 0; color: var(--shell-muted); font-size: 13.5px; line-height: 1.55; max-width: 780px; }
+  header .k { color: var(--accent); }
+
+  .toolbar { max-width: 1500px; margin: 16px auto 0; padding: 0 40px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .btn { appearance: none; border: 1px solid var(--shell-stroke); background: var(--shell-panel2); color: var(--shell-text);
+    font: inherit; font-size: 13px; padding: 8px 14px; border-radius: 9px; cursor: pointer; transition: background .15s, border-color .15s, transform .05s; }
+  .btn:hover { background: #262a31; border-color: #3a3f49; }
+  .btn:active { transform: translateY(1px); }
+  .btn.primary { background: var(--accent); color: #06210f; border-color: transparent; font-weight: 600; }
+  .toolbar label { display: inline-flex; align-items: center; gap: 7px; color: var(--shell-muted); font-size: 13px; cursor: pointer; margin-left: 6px; }
+
+  .grid { max-width: 1500px; margin: 8px auto 60px; padding: 22px 40px;
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 22px; }
+
+  .cell { background: var(--shell-panel); border: 1px solid var(--shell-stroke); border-radius: 16px; overflow: hidden; display: flex; flex-direction: column; }
+  .cell-head { display: flex; align-items: baseline; justify-content: space-between; padding: 13px 15px 11px; gap: 10px; }
+  .cell-head .idx { font-variant-numeric: tabular-nums; color: var(--accent); font-weight: 700; font-size: 12px; letter-spacing: .04em; }
+  .cell-head .name { font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+  .cell-head .desc { color: var(--shell-muted); font-size: 11.5px; margin-top: 3px; line-height: 1.4; max-width: 300px; }
+  .cell-head .replay { font-size: 11px; color: var(--shell-muted); border: 1px solid var(--shell-stroke); background: transparent; border-radius: 7px; padding: 4px 9px; cursor: pointer; white-space: nowrap; }
+  .cell-head .replay:hover { color: var(--shell-text); border-color: #3a3f49; }
+
+  /* ---- Simulated screen ---- */
+  .screen { position: relative; height: 250px; margin: 0 12px 12px; border-radius: 12px;
+    background: var(--wall); overflow: hidden; border: 1px solid #000; cursor: pointer; }
+  .menubar { position: absolute; top: 0; left: 0; right: 0; height: 24px;
+    background: rgba(0,0,0,.26); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+    display: flex; align-items: center; justify-content: space-between; padding: 0 12px;
+    font-size: 11px; color: #eef3ee; z-index: 60; }
+  .menubar .grass { color: #cfeecf; font-weight: 600; }
+  .menubar .right { display: flex; gap: 10px; opacity: .9; font-variant-numeric: tabular-nums; }
+
+  .notch { position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 150px; height: 26px; background: #000; z-index: 55;
+    border-bottom-left-radius: 12px; border-bottom-right-radius: 12px; }
+  .notch::after { content:""; position:absolute; right:22px; top:9px; width:5px; height:5px; border-radius:50%;
+    background:#0c1410; box-shadow: 0 0 0 1px rgba(255,255,255,.05); }
+
+  /* ============================================================
+     THE REAL CARD — PreBreakCardView reproduction
+     ============================================================ */
+  .tg-card {
+    position: absolute; top: 22px; left: 50%; width: 320px; margin-left: -160px; z-index: 45;
+    padding: 13px 16px 14px;
+    background: rgba(250,247,236,0.80);
+    backdrop-filter: blur(24px) saturate(1.15); -webkit-backdrop-filter: blur(24px) saturate(1.15);
+    border: 0.8px solid rgba(255,255,255,0.55);
+    border-radius: 20px;
+    box-shadow: 0 22px 48px -16px rgba(15,25,15,.55), 0 2px 6px rgba(0,0,0,.14), inset 0 1px 0 rgba(255,255,255,.45);
+    will-change: transform, opacity, filter, clip-path;
+  }
+  .tg-head { display: flex; align-items: center; gap: 13px; }
+  .tg-clock { width: 46px; height: 46px; flex: 0 0 46px; border-radius: 12px;
+    background: linear-gradient(145deg, var(--matcha), var(--pollen));
+    box-shadow: 0 4px 8px -2px rgba(0,0,0,.22); display: grid; place-items: center; }
+  .tg-clock svg { width: 46px; height: 46px; display: block; }
+  .tg-hand { transform-origin: 23px 23px; animation: sweep 12s linear infinite; }
+  @keyframes sweep { to { transform: rotate(360deg); } }
+
+  .tg-text { flex: 1 1 auto; min-width: 0; }
+  .tg-eyebrow { font-size: 9.5px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase;
+    color: var(--matcha); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .tg-count { font-size: 27px; line-height: 1.04; font-weight: 700; color: var(--ink);
+    font-variant-numeric: tabular-nums; letter-spacing: -0.01em; margin: 1px 0 1px; }
+  .tg-sub { font-size: 11.5px; color: var(--ink2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  .tg-close { position: absolute; top: 11px; right: 12px; width: 18px; height: 18px; border-radius: 50%;
+    border: 0; cursor: pointer; background: rgba(227,220,200,.5); color: var(--ink2);
+    font-size: 9px; font-weight: 800; display: grid; place-items: center; line-height: 1; }
+  .tg-close:hover { background: var(--stone); }
+
+  .tg-actions { display: flex; align-items: center; gap: 7px; margin-top: 11px; }
+  .tg-spacer { flex: 1 1 auto; }
+  .tg-pill { border: 0.8px solid rgba(0,0,0,.07); background: rgba(250,247,236,.65);
+    color: var(--ink); font: inherit; font-size: 12px; font-weight: 600; letter-spacing: .1px;
+    padding: 6px 12px; border-radius: 999px; cursor: pointer; box-shadow: inset 0 1px 0 rgba(255,255,255,.5); }
+  .tg-pill:hover { background: #fff; }
+  .tg-pill.primary { background: var(--matcha); color: var(--onMatcha); border-color: transparent;
+    box-shadow: 0 2px 6px -1px rgba(63,68,58,.4); }
+  .tg-pill.primary:hover { background: #6a8060; }
+
+  /* seed = the black notch-extension used by the Dynamic-Island-style morphs */
+  .seed { position: absolute; top: 22px; left: 50%; margin-left: -160px; width: 320px; height: 104px;
+    border-radius: 20px; background: #000; z-index: 44; opacity: 0; }
+
+  /* hidden until played */
+  .screen:not(.play) .tg-card { opacity: 0; }
+  .screen:not(.play) .seed { opacity: 0; }
+
+  /* ---------- 1. Fluid Morph (Dynamic Island): black notch balloons, card resolves ---------- */
+  .screen.play .seed-fluid { animation: seedFluid var(--dur) cubic-bezier(.3,1.05,.3,1) both; }
+  @keyframes seedFluid {
+    0%   { opacity: 1; width: 150px; margin-left: -75px; height: 6px;  top: 0;  border-radius: 0 0 12px 12px; }
+    50%  { opacity: 1; width: 320px; margin-left: -160px; height: 104px; top: 22px; border-radius: 20px; }
+    80%  { opacity: 1; }
+    100% { opacity: 0; width: 320px; margin-left: -160px; height: 104px; top: 22px; border-radius: 20px; }
+  }
+  .screen.play .card-fluid { animation: cardFade 380ms ease 430ms both; }
+
+  /* ---------- 2. Slide from behind the notch ---------- */
+  .card-slide { z-index: 44; }  /* below notch (z55) so it emerges from under the black */
+  .screen.play .card-slide { animation: slideDown 700ms cubic-bezier(.2,.85,.25,1) both; }
+  @keyframes slideDown { 0% { opacity: 1; transform: translateY(-120px); } 100% { opacity: 1; transform: translateY(0); } }
+
+  /* ---------- 3. Curtain Unroll (clip from top — no content distortion) ---------- */
+  .screen.play .card-curtain { animation: curtain 720ms cubic-bezier(.22,.8,.3,1) both; }
+  @keyframes curtain {
+    0%   { opacity: 1; clip-path: inset(0 0 100% 0 round 20px); }
+    100% { opacity: 1; clip-path: inset(0 0 0 0 round 20px); }
+  }
+
+  /* ---------- 4. Breathe & Exhale ---------- */
+  .screen.play .seed-breathe { animation: seedBreathe 1350ms cubic-bezier(.4,0,.2,1) both; }
+  @keyframes seedBreathe {
+    0%   { opacity: 1; width: 150px; margin-left: -75px; height: 6px; top: 0; border-radius: 0 0 12px 12px; }
+    16%  { opacity: 1; width: 176px; margin-left: -88px; height: 11px; top: 0; }   /* inhale */
+    28%  { opacity: 1; width: 152px; margin-left: -76px; height: 6px; top: 0; }    /* settle */
+    76%  { opacity: 1; width: 320px; margin-left: -160px; height: 104px; top: 22px; border-radius: 20px; }
+    100% { opacity: 0; width: 320px; margin-left: -160px; height: 104px; top: 22px; border-radius: 20px; }
+  }
+  .screen.play .card-breathe { animation: cardFade 380ms ease 820ms both; }
+
+  /* ---------- 5. Sticky Peel (hinge at notch) ---------- */
+  .card-peel { transform-origin: 50% 0; }
+  .screen.play .card-peel { animation: peel 820ms cubic-bezier(.3,.9,.25,1) both; }
+  @keyframes peel {
+    0%   { opacity: 0; transform: perspective(760px) rotateX(-85deg); }
+    55%  { opacity: 1; transform: perspective(760px) rotateX(7deg); }
+    78%  { transform: perspective(760px) rotateX(-3deg); }
+    100% { opacity: 1; transform: perspective(760px) rotateX(0); }
+  }
+
+  /* ---------- 6. Sonar Ping ---------- */
+  .sonar { position: absolute; top: 13px; left: 50%; width: 44px; height: 44px; margin-left: -22px; z-index: 43; pointer-events: none; }
+  .sonar span { position: absolute; inset: 0; border: 2px solid var(--accent); border-radius: 50%; opacity: 0; }
+  .screen.play .sonar span:nth-child(1) { animation: sonar 1100ms ease-out both; }
+  .screen.play .sonar span:nth-child(2) { animation: sonar 1100ms ease-out .22s both; }
+  .screen.play .sonar span:nth-child(3) { animation: sonar 1100ms ease-out .44s both; }
+  @keyframes sonar { 0% { opacity: .75; transform: scale(.4); } 100% { opacity: 0; transform: scale(3.2); } }
+  .screen.play .card-sonar { animation: materialize 680ms ease .34s both; }
+
+  /* ---------- 7. Elastic Pop (from notch center) ---------- */
+  .screen.play .seed-pop { animation: seedPop 780ms cubic-bezier(.18,1.5,.4,1) both; transform-origin: 50% 0; }
+  @keyframes seedPop {
+    0%   { opacity: 1; transform: translateY(-16px) scale(.12); }
+    60%  { opacity: 1; }
+    100% { opacity: 0; transform: translateY(0) scale(1); }
+  }
+  .screen.play .card-pop { animation: cardFade 340ms ease 360ms both; }
+
+  /* ---------- 8. Collar Countdown (ring drains around the notch, then blooms) ---------- */
+  .collar { position: absolute; top: 0; left: 50%; transform: translateX(-50%); width: 172px; height: 48px; z-index: 52; pointer-events: none; }
+  .collar path { fill: none; stroke: var(--accent); stroke-width: 3; stroke-linecap: round;
+    stroke-dasharray: 230; stroke-dashoffset: 230; filter: drop-shadow(0 0 4px rgba(123,216,143,.6)); }
+  .screen.play .collar path { animation: collarFill 1400ms linear both; }
+  @keyframes collarFill { to { stroke-dashoffset: 0; } }
+  .screen.play .card-collar { animation: curtain 640ms cubic-bezier(.3,1,.3,1) 1300ms both; }
+
+  /* ---------- 9. Peek (sprout pokes from behind the notch) ---------- */
+  .sprite { position: absolute; top: 5px; left: 50%; margin-left: -13px; width: 26px; font-size: 19px;
+    text-align: center; z-index: 43; opacity: 0; }
+  .screen.play .sprite { animation: peek 1300ms cubic-bezier(.3,1.4,.4,1) both; }
+  @keyframes peek {
+    0%   { opacity: 0; transform: translateY(4px) rotate(0); }
+    18%  { opacity: 1; transform: translateY(-15px) rotate(-9deg); }
+    30%  { transform: translateY(-15px) rotate(9deg); }
+    42%  { transform: translateY(-15px) rotate(-5deg); }
+    55%  { transform: translateY(-15px) rotate(0); }
+    78%,100% { opacity: 1; transform: translateY(2px) rotate(0); }
+  }
+  .card-peek { z-index: 44; }
+  .screen.play .card-peek { animation: slideDown 640ms cubic-bezier(.3,1,.3,1) .52s both; }
+
+  /* ---------- 10. Glow Materialize ---------- */
+  .notch-glow { position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+    width: 190px; height: 54px; z-index: 50; pointer-events: none; opacity: 0;
+    background: radial-gradient(58% 120% at 50% 0%, rgba(123,216,143,.6), transparent 70%); filter: blur(7px); }
+  .screen.play .glow-on { animation: glowpulse 900ms ease both; }
+  @keyframes glowpulse { 0% { opacity: 0; } 32% { opacity: 1; } 100% { opacity: 0; } }
+  .screen.play .card-glow { animation: materialize 820ms ease both; }
+
+  /* shared */
+  @keyframes cardFade { from { opacity: 0; } to { opacity: 1; } }
+  @keyframes materialize { 0% { opacity: 0; filter: blur(11px); transform: translateY(-8px) scale(.96); }
+                           100% { opacity: 1; filter: blur(0); transform: none; } }
+
+  /* reduce motion: plain fade, frozen clock */
+  body.reduce .screen.play .tg-card { animation: cardFade 240ms ease both !important; }
+  body.reduce .seed, body.reduce .sonar, body.reduce .collar, body.reduce .sprite, body.reduce .notch-glow { display: none !important; }
+  body.reduce .tg-hand { animation: none !important; }
+
+  footer { max-width: 1500px; margin: 0 auto; padding: 0 40px 50px; color: var(--shell-muted); font-size: 12px; line-height: 1.6; }
+  footer code { background: var(--shell-panel2); padding: 1px 6px; border-radius: 5px; color: #cdd2da; }
+  .note { color: #d8b46a; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>TouchGrass — notch reminders, real card</h1>
+    <p>Each variant is the <span class="k">actual pre-break card</span> — clock tile, countdown, <code>+1m / +5m / +15m</code>
+    snooze pills and <em>Start break now</em> — but instead of sliding in from the top-right corner, it emerges from the notch.
+    The morph styles (1, 4, 7) grow the black notch itself before the card resolves, iPhone-Dynamic-Island style. Click a screen or Replay.</p>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn primary" id="playAll">▶ Play all</button>
+    <button class="btn" id="loop">⟳ Loop: off</button>
+    <label><input type="checkbox" id="reduce" /> Reduce Motion</label>
+    <label><input type="checkbox" id="slow" /> Slow-mo</label>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <footer>
+    Card is a faithful HTML copy of <code>PreBreakCardView</code> (Paper Garden palette, light mode). Judge the <em>emergence</em>.
+    <span class="note">Note:</span> morph / slide / peek styles assume a real notch; non-notch Macs &amp; external displays fall back to
+    today's top-right slide. Pick the numbers you like and I'll port them natively + add a live Settings preview.
+  </footer>
+
+<script>
+  // 12-dot clock face + sweeping hand, matching ClockTile.swift (viewBox 46, center 23, r≈15.6)
+  function clockSVG() {
+    const cx = 23, cy = 23, r = 15.6;
+    let dots = "";
+    for (let h = 0; h < 12; h++) {
+      const a = h / 12 * 2 * Math.PI - Math.PI / 2;
+      const x = cx + Math.cos(a) * r, y = cy + Math.sin(a) * r;
+      dots += `<circle cx="${x.toFixed(2)}" cy="${y.toFixed(2)}" r="1.2" fill="#F3F1E2" opacity="0.85"/>`;
+    }
+    // hand starts pointing up; CSS rotates it
+    const hx = cx, hy = cy - r * 0.72;
+    return `<svg viewBox="0 0 46 46">${dots}
+      <g class="tg-hand"><line x1="${cx}" y1="${cy}" x2="${hx}" y2="${hy.toFixed(2)}"
+        stroke="#F3F1E2" stroke-width="2.4" stroke-linecap="round"/></g></svg>`;
+  }
+
+  const card = (cls) => `
+    <div class="tg-card card-${cls}">
+      <button class="tg-close">✕</button>
+      <div class="tg-head">
+        <div class="tg-clock">${clockSVG()}</div>
+        <div class="tg-text">
+          <div class="tg-eyebrow">Short break · 1 min</div>
+          <div class="tg-count">00:58</div>
+          <div class="tg-sub">Almost time. Your eyes will appreciate this.</div>
+        </div>
+      </div>
+      <div class="tg-actions">
+        <button class="tg-pill">+1m</button>
+        <button class="tg-pill">+5m</button>
+        <button class="tg-pill">+15m</button>
+        <span class="tg-spacer"></span>
+        <button class="tg-pill primary">Start break now</button>
+      </div>
+    </div>`;
+
+  const VARIANTS = [
+    { cls:"fluid",   name:"Fluid Morph (Dynamic Island)", desc:"The black notch balloons out, then the card resolves inside it.", seed:"seed-fluid" },
+    { cls:"slide",   name:"Slide from Behind",            desc:"The card slides down out from underneath the black notch." },
+    { cls:"curtain", name:"Curtain Unroll",               desc:"Reveals top-to-bottom from the notch, like a window shade." },
+    { cls:"breathe", name:"Breathe & Exhale",             desc:"The notch inhales to pre-announce, then exhales the card.", seed:"seed-breathe" },
+    { cls:"peel",    name:"Sticky Peel",                  desc:"The card peels down off the notch's underside and settles." },
+    { cls:"sonar",   name:"Sonar Ping",                   desc:"Rings pulse from the notch, then the card materializes.", extra:`<div class="sonar"><span></span><span></span><span></span></div>` },
+    { cls:"pop",     name:"Elastic Pop",                  desc:"Pops out of the notch centre with an elastic overshoot.", seed:"seed-pop" },
+    { cls:"collar",  name:"Collar Countdown",             desc:"A green ring drains around the notch, then the card blooms.",
+      extra:`<div class="collar"><svg viewBox="0 0 172 48" preserveAspectRatio="none"><path d="M2 0 L2 22 Q2 36 26 36 L146 36 Q170 36 170 22 L170 0"/></svg></div>` },
+    { cls:"peek",    name:"Peek",                         desc:"A sprout pokes out from behind the notch, then drops the card.", extra:`<div class="sprite">🌱</div>` },
+    { cls:"glow",    name:"Glow Materialize",             desc:"The notch glows green and the card blurs into focus.", extra:`<div class="notch-glow"></div>` },
+  ];
+
+  const grid = document.getElementById("grid");
+  VARIANTS.forEach((v,i)=>{
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    const seed = v.seed ? `<div class="seed ${v.seed}"></div>` : "";
+    cell.innerHTML = `
+      <div class="cell-head">
+        <div>
+          <div><span class="idx">${String(i+1).padStart(2,"0")}</span> &nbsp;<span class="name">${v.name}</span></div>
+          <div class="desc">${v.desc}</div>
+        </div>
+        <button class="replay">Replay</button>
+      </div>
+      <div class="screen">
+        <div class="menubar"><div class="grass">🌱 TouchGrass</div><div class="right"><span>100%</span><span>9:41</span></div></div>
+        ${v.extra||""}
+        ${seed}
+        ${card(v.cls)}
+        <div class="notch"></div>
+      </div>`;
+    grid.appendChild(cell);
+
+    const screen = cell.querySelector(".screen");
+    const glow = screen.querySelector(".notch-glow");
+    const play = ()=>{
+      screen.classList.remove("play");
+      if (glow) glow.classList.remove("glow-on");
+      void screen.offsetWidth;
+      screen.classList.add("play");
+      if (glow) { void glow.offsetWidth; glow.classList.add("glow-on"); }
+    };
+    screen.addEventListener("click", play);
+    cell.querySelector(".replay").addEventListener("click", e=>{ e.stopPropagation(); play(); });
+    screen._play = play;
+  });
+
+  document.getElementById("playAll").addEventListener("click", ()=> document.querySelectorAll(".screen").forEach(s=>s._play()));
+
+  const reduce = document.getElementById("reduce");
+  reduce.addEventListener("change", ()=> document.body.classList.toggle("reduce", reduce.checked));
+
+  const slow = document.getElementById("slow");
+  const slowStyle = document.createElement("style"); document.head.appendChild(slowStyle);
+  slow.addEventListener("change", ()=>{
+    document.documentElement.style.setProperty("--dur", slow.checked ? "2700ms" : "900ms");
+    slowStyle.textContent = slow.checked
+      ? `.screen.play .tg-card, .screen.play .seed, .screen.play .sonar span, .screen.play .collar path, .screen.play .sprite, .screen.play .glow-on { animation-duration: 2700ms !important; }`
+      : "";
+  });
+
+  let loopOn=false, timer=null;
+  const loopBtn=document.getElementById("loop");
+  loopBtn.addEventListener("click", ()=>{
+    loopOn=!loopOn; loopBtn.textContent="⟳ Loop: "+(loopOn?"on":"off");
+    if(loopOn){ const t=()=>document.querySelectorAll(".screen").forEach(s=>s._play()); t(); timer=setInterval(t, slow.checked?3600:2000);} else clearInterval(timer);
+  });
+
+  window.addEventListener("load", ()=> setTimeout(()=>document.querySelectorAll(".screen").forEach(s=>s._play()), 250));
+</script>
+</body>
+</html>

@@ -16,6 +16,8 @@ public struct Settings: Codable, Equatable, Sendable {
     public var preBreakWarningSeconds: TimeInterval = 60     // the notification card
     public var preBreakCardVisibleSeconds: TimeInterval = 10  // how long the card stays before auto-hiding
     public var cursorCountdownSeconds: Int = 10               // the cursor-following pill
+    public var preBreakStyle: PreBreakStyle = .notch          // retained for compat; app always uses .notch
+    public var preBreakEnabled: Bool = true                   // show the pre-break notification at all
 
     // MARK: Enforcement
     public var enforcement: Enforcement = .balanced
@@ -76,10 +78,18 @@ public struct Settings: Codable, Equatable, Sendable {
         "Look away|Rest your eyes on something far away",
         "Blink a few times|Slowly, and let your eyes water",
         "Soften your focus|Let your eyes settle on nothing in particular",
+        "Look out a window|Find the furthest thing you can see",
+        "Unclench your jaw|And drop your shoulders while you're at it",
+        "Take a slow breath|In through the nose, out through the mouth",
+        "Rest your eyes|Close them for a few seconds",
     ]
     public var longBreakMessages: [String] = [
         "Stand up|Stretch, get some water, look out a window",
         "Step outside|Your screen will still be here when you get back",
+        "Go touch grass|Outside, shoes optional",
+        "Walk it off|A lap of the room, or the block",
+        "Step away fully|No screen — this one's a proper break",
+        "Move your body|Anything that isn't sitting",
     ]
     public var showCountdownOnAllDisplays: Bool = false
 

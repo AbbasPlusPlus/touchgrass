@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>TouchGrass — Dynamic Island reminder</title>
+<style>
+  :root {
+    --matcha:#8BA579; --pollen:#D8B45E; --ink:#F3F1E2; --ink2:#A9AC97; --accent:#7bd88f;
+    --shell-bg:#0a0b0d; --shell-panel:#131519; --shell-panel2:#1b1e24; --shell-stroke:#2a2e36; --shell-text:#e7e9ee; --shell-muted:#9aa0ab;
+    --wall: linear-gradient(160deg,#6b8a93 0%,#567680 30%,#45646a 62%,#38545a 100%);
+    --nb:#050605; --notchW:172px; --morph:900ms; --drain:6s;
+  }
+  * { box-sizing:border-box; }
+  html,body { margin:0; background:var(--shell-bg); color:var(--shell-text);
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Helvetica,Arial,sans-serif; -webkit-font-smoothing:antialiased; }
+
+  header { padding:30px 40px 6px; max-width:1200px; margin:0 auto; }
+  header h1 { margin:0 0 6px; font-size:22px; letter-spacing:-.02em; font-weight:650; }
+  header p { margin:0; color:var(--shell-muted); font-size:13.5px; line-height:1.55; max-width:760px; }
+  header .k { color:var(--accent); }
+
+  .toolbar { max-width:1200px; margin:16px auto 0; padding:0 40px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  .btn { appearance:none; border:1px solid var(--shell-stroke); background:var(--shell-panel2); color:var(--shell-text); font:inherit; font-size:13px; padding:8px 14px; border-radius:9px; cursor:pointer; }
+  .btn:hover { background:#262a31; border-color:#3a3f49; }
+  .btn.primary { background:var(--accent); color:#06210f; border-color:transparent; font-weight:600; }
+  .toolbar label { display:inline-flex; align-items:center; gap:7px; color:var(--shell-muted); font-size:13px; cursor:pointer; margin-left:6px; }
+
+  .stage { max-width:1200px; margin:22px auto 10px; padding:0 40px; }
+  .caption { color:var(--shell-muted); font-size:12px; margin:10px 2px 0; }
+
+  /* ---- big hero screen ---- */
+  .screen { position:relative; height:360px; border-radius:16px; background:var(--wall); overflow:hidden; border:1px solid #000; cursor:pointer; }
+  .menubar { position:absolute; inset:0 0 auto 0; height:30px; background:rgba(0,0,0,.22); backdrop-filter:blur(10px); display:flex; align-items:center; justify-content:space-between; padding:0 16px; font-size:12px; color:#eef3ee; z-index:30; }
+  .menubar .grass { color:#cfeecf; font-weight:600; }
+  .menubar .right { display:flex; gap:14px; opacity:.85; font-variant-numeric:tabular-nums; }
+
+  .notch { position:absolute; top:0; left:50%; transform:translateX(-50%); width:var(--notchW); height:32px; background:var(--nb); z-index:55; border-bottom-left-radius:14px; border-bottom-right-radius:14px; }
+  .notch::after { content:""; position:absolute; right:26px; top:12px; width:6px; height:6px; border-radius:50%; background:#0c1410; box-shadow:0 0 0 1px rgba(255,255,255,.05); }
+
+  /* ---- the morphing black seed ---- */
+  .seed { position:absolute; top:0; left:50%; margin-left:-86px; width:172px; height:32px; border-radius:0 0 14px 14px; background:var(--nb); z-index:44; opacity:0; }
+  .screen.play .seed { animation: seedDI var(--morph) cubic-bezier(.3,1.1,.3,1) both; }
+  @keyframes seedDI {
+    0%   { opacity:1; width:172px; margin-left:-86px;  height:32px;  border-radius:0 0 14px 14px; }
+    55%  { opacity:1; width:392px; margin-left:-196px; height:118px; border-radius:0 0 24px 24px; }
+    82%  { opacity:1; }
+    100% { opacity:0; width:392px; margin-left:-196px; height:118px; border-radius:0 0 24px 24px; }
+  }
+
+  /* ---- the resolved card ---- */
+  .card { position:absolute; top:32px; left:50%; width:392px; margin-left:-196px; height:114px; z-index:45;
+    background:var(--nb); color:var(--ink); border-radius:0 0 24px 24px; display:flex; overflow:hidden;
+    box-shadow:0 26px 54px -18px rgba(0,0,0,.75); opacity:0; }
+  .screen.play .card { animation: fade 360ms ease 480ms both; }
+  @keyframes fade { from{opacity:0;} to{opacity:1;} }
+  .screen:not(.play) .card, .screen:not(.play) .seed { opacity:0; }
+
+  .col-l { width:132px; flex:0 0 132px; display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:2px; border-right:1px solid rgba(255,255,255,.08); }
+  .col-l .lbl { font-size:9.5px; font-weight:700; letter-spacing:.9px; text-transform:uppercase; color:var(--matcha); }
+  .col-l .count { font-size:34px; font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums; letter-spacing:-.02em; line-height:1; }
+
+  .col-r { flex:1; padding:15px 18px 16px; display:flex; flex-direction:column; justify-content:center; gap:11px; min-width:0; }
+  .msg { color:var(--ink2); font-size:12.5px; line-height:1.3; }
+  .acts { display:flex; align-items:center; gap:7px; }
+  .sp { flex:1; }
+
+  .pill { border:.8px solid rgba(255,255,255,.13); background:rgba(255,255,255,.08); color:#e7ecdd;
+    font:inherit; font-size:12px; font-weight:600; padding:6px 11px; border-radius:999px; cursor:pointer; white-space:nowrap;
+    display:inline-flex; align-items:center; gap:5px; }
+  .pill:hover { background:rgba(255,255,255,.16); }
+  .pill.primary { background:var(--matcha); color:#10160c; border-color:transparent; padding:6px 14px; }
+  .pill.primary:hover { background:#9cb98a; }
+
+  /* the zzz snooze glyph (SF Symbol `zzz` in-app) */
+  .zzz { display:inline-flex; align-items:flex-end; gap:1px; line-height:1; color:var(--matcha); font-weight:800; font-style:italic; }
+  .zzz b { font-weight:800; }
+  .zzz .z1 { font-size:7px; } .zzz .z2 { font-size:9px; } .zzz .z3 { font-size:11px; }
+  .pill.primary .zzz { color:#10160c; }
+
+  /* ---- countdown that follows the left + bottom + right borders (curves) ---- */
+  .cd { position:absolute; inset:0; width:100%; height:100%; z-index:47; pointer-events:none; overflow:visible; }
+  .cd path { fill:none; stroke-linecap:round; }
+  .cd .track { stroke:rgba(255,255,255,.09); stroke-width:3; }
+  .cd .lit { stroke:url(#cg); stroke-width:3; stroke-dasharray:100; stroke-dashoffset:0; filter:drop-shadow(0 0 4px rgba(123,216,143,.55)); }
+  /* drains from both top corners down toward the bottom-centre */
+  .screen.play .cd .lit { animation: drain var(--drain) linear 900ms both; }
+  @keyframes drain { from{ stroke-dashoffset:0; } to{ stroke-dashoffset:100; } }
+
+  body.reduce .screen.play .seed { display:none; }
+  body.reduce .screen.play .card { animation: fade 240ms ease both; }
+  body.reduce .screen.play .cd .lit { animation-delay:260ms; }
+
+  footer { max-width:1200px; margin:0 auto; padding:14px 40px 50px; color:var(--shell-muted); font-size:12px; line-height:1.6; }
+  footer code { background:var(--shell-panel2); padding:1px 6px; border-radius:5px; color:#cdd2da; }
+</style>
+</head>
+<body>
+  <header>
+    <h1>TouchGrass — Dynamic Island reminder</h1>
+    <p><span class="k">The notch bulges, then the card resolves inside it.</span> Snooze uses the <strong>zzz</strong> glyph, and the
+    countdown lives as a draining bar along the <strong>bottom edge</strong>. Click the screen or Replay.</p>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn primary" id="replay">▶ Replay</button>
+    <button class="btn" id="loop">⟳ Loop: off</button>
+    <button class="btn" id="speed">⏩ Countdown: 6s</button>
+    <label><input type="checkbox" id="reduce"/> Reduce Motion</label>
+    <label><input type="checkbox" id="slow"/> Slow-mo morph</label>
+  </div>
+
+  <div class="stage">
+    <div class="screen" id="screen">
+      <div class="menubar"><div class="grass">🌱 TouchGrass</div><div class="right"><span>Wed 9:41</span><span>100%</span></div></div>
+      <div class="seed"></div>
+      <div class="card">
+        <div class="col-l"><div class="lbl">Break in</div><div class="count">0:58</div></div>
+        <div class="col-r">
+          <div class="msg">Almost time — a short break next. Find a stopping point.</div>
+          <div class="acts">
+            <button class="pill snooze"><span class="zzz"><b class="z1">z</b><b class="z2">z</b><b class="z3">z</b></span>1m</button>
+            <button class="pill snooze"><span class="zzz"><b class="z1">z</b><b class="z2">z</b><b class="z3">z</b></span>5m</button>
+            <button class="pill snooze"><span class="zzz"><b class="z1">z</b><b class="z2">z</b><b class="z3">z</b></span>15m</button>
+            <span class="sp"></span>
+            <button class="pill primary">Start</button>
+          </div>
+        </div>
+        <svg class="cd" viewBox="0 0 392 114" preserveAspectRatio="none">
+          <defs>
+            <linearGradient id="cg" x1="0" y1="1" x2="0" y2="0">
+              <stop offset="0" stop-color="#7bd88f"/><stop offset="1" stop-color="#D8B45E"/>
+            </linearGradient>
+          </defs>
+          <path class="track" d="M1.5 0 V90 Q1.5 112.5 24 112.5 L196 112.5 M390.5 0 V90 Q390.5 112.5 368 112.5 L196 112.5"/>
+          <path class="lit" pathLength="100" d="M1.5 0 V90 Q1.5 112.5 24 112.5 L196 112.5"/>
+          <path class="lit" pathLength="100" d="M390.5 0 V90 Q390.5 112.5 368 112.5 L196 112.5"/>
+        </svg>
+      </div>
+      <div class="notch"></div>
+    </div>
+    <div class="caption">Left: countdown block. Right: the pre-break copy + snooze (zzz) options and Start. The lit outline traces the left, bottom and right borders — following the curves — and drains from the two top corners down to the bottom centre as time runs out.</div>
+  </div>
+
+  <footer>
+    In-app the zzz mark is the SF Symbol <code>zzz</code>; the bottom bar drains over the real pre-break window (default 60s). The
+    black card sits behind the notch and the seed morph fuses the two. Tell me any tweaks — sizing, which snooze durations, bar
+    direction/colour — and I'll take it native.
+  </footer>
+
+<script>
+  const screen = document.getElementById("screen");
+  const play = ()=>{ screen.classList.remove("play"); void screen.offsetWidth; screen.classList.add("play"); };
+  screen.addEventListener("click", play);
+  document.getElementById("replay").addEventListener("click", play);
+
+  const reduce=document.getElementById("reduce");
+  reduce.addEventListener("change", ()=>{ document.body.classList.toggle("reduce", reduce.checked); play(); });
+  const slow=document.getElementById("slow");
+  slow.addEventListener("change", ()=>{ document.documentElement.style.setProperty("--morph", slow.checked?"2600ms":"900ms"); play(); });
+
+  const speeds=["6s","3s","10s","20s"]; let si=0;
+  const speed=document.getElementById("speed");
+  speed.addEventListener("click", ()=>{ si=(si+1)%speeds.length; document.documentElement.style.setProperty("--drain",speeds[si]); speed.textContent="⏩ Countdown: "+speeds[si]; play(); });
+
+  let loopOn=false,timer=null; const loopBtn=document.getElementById("loop");
+  loopBtn.addEventListener("click", ()=>{ loopOn=!loopOn; loopBtn.textContent="⟳ Loop: "+(loopOn?"on":"off");
+    if(loopOn){ play(); timer=setInterval(play, 3200);} else clearInterval(timer); });
+
+  window.addEventListener("load", ()=> setTimeout(play, 250));
+</script>
+</body>
+</html>

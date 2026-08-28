@@ -11,9 +11,14 @@ public final class PreBreakCard {
     public var onStart: () -> Void = {}
     public var onSnooze: (TimeInterval) -> Void = { _ in }
 
+    /// Corner card (default) or the notch banner. Set before `show`.
+    public var style: PreBreakStyle = .card
+
     private let model = PreBreakCardModel()
     private var panel: OverlayPanel?
+    private var builtStyle: PreBreakStyle?
     private var autoHide: Task<Void, Never>?
+    private let fakeNotch = ProcessInfo.processInfo.environment["TG_FAKE_NOTCH"] != nil
 
     public private(set) var isShowing = false
 
@@ -85,8 +90,14 @@ public final class PreBreakCard {
     // MARK: - Panel
 
     private func existingOrNewPanel() -> OverlayPanel {
-        let screen = ScreenID.screenUnderMouse() ?? NSScreen.main
-        let frame = Self.panelFrame(on: screen)
+        // A style change needs a fresh content view; drop the old panel first.
+        if let panel, builtStyle != style {
+            panel.orderOut(nil)
+            self.panel = nil
+        }
+
+        let root: RootView = (style == .notch) ? .notch : .card
+        let frame = root.frame
 
         if let panel {
             panel.setFrame(frame, display: false)
@@ -95,21 +106,50 @@ public final class PreBreakCard {
         }
 
         let panel = OverlayPanel(contentRect: frame, level: .floating, becomesKey: true)
-        let host = NSHostingView(rootView: PreBreakCardView(model: model))
+        let host = NSHostingView(rootView: root.view(model: model, fakeNotch: fakeNotch))
         host.frame = NSRect(origin: .zero, size: frame.size)
         host.autoresizingMask = [.width, .height]
         panel.contentView = host
         self.panel = panel
+        self.builtStyle = style
         return panel
     }
 
-    private static func panelFrame(on screen: NSScreen?) -> NSRect {
-        let visible = screen?.visibleFrame ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
-        let width = PreBreakCardView.width + PreBreakCardView.inset * 2
-        let height = PreBreakCardView.margin + PreBreakCardView.maxHeight + 48
-        return NSRect(x: visible.maxX - PreBreakCardView.margin - PreBreakCardView.width - PreBreakCardView.inset,
-                      y: visible.maxY - height,
-                      width: width,
-                      height: height)
+    /// Bundles the per-style screen choice, frame and SwiftUI root so `existingOrNewPanel`
+    /// stays a straight line.
+    private enum RootView {
+        case card, notch
+
+        @MainActor
+        var frame: NSRect {
+            switch self {
+            case .card:
+                let visible = (ScreenID.screenUnderMouse() ?? NSScreen.main)?.visibleFrame
+                    ?? NSRect(x: 0, y: 0, width: 1440, height: 900)
+                let width = PreBreakCardView.width + PreBreakCardView.inset * 2
+                let height = PreBreakCardView.margin + PreBreakCardView.maxHeight + 48
+                return NSRect(x: visible.maxX - PreBreakCardView.margin - PreBreakCardView.width - PreBreakCardView.inset,
+                              y: visible.maxY - height, width: width, height: height)
+            case .notch:
+                let screen = NotchGeometry.preferredScreen(under: ScreenID.screenUnderMouse())
+                let f = screen.frame
+                let width = NotchReminderView.panelWidth
+                let height = NotchReminderView.panelHeight
+                return NSRect(x: f.midX - width / 2, y: f.maxY - height, width: width, height: height)
+            }
+        }
+
+        @MainActor @ViewBuilder
+        func view(model: PreBreakCardModel, fakeNotch: Bool) -> some View {
+            switch self {
+            case .card:
+                PreBreakCardView(model: model)
+            case .notch:
+                let screen = NotchGeometry.preferredScreen(under: ScreenID.screenUnderMouse())
+                NotchReminderView(model: model,
+                                  metrics: NotchGeometry.metrics(for: screen),
+                                  drawFakeNotch: fakeNotch)
+            }
+        }
     }
 }

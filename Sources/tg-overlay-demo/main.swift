@@ -2,7 +2,12 @@
 //
 //   tg-overlay-demo break [short|long] [seconds] [casual|balanced|hardcore]
 //                         [blur|wallpaper|gradient:<name>|animated:<name>]
-//   tg-overlay-demo card | pill | blink | posture | custom [title] [symbol] | toast
+//   tg-overlay-demo card | notch | pill | blink | posture | custom [title] [symbol] | toast
+//
+// `notch` is the Dynamic-Island pre-break banner. It fuses to the physical notch, so to see it
+// off a notched display set TG_FAKE_NOTCH=1 to draw a stand-in. The panel is sharingType=.none
+// (kept out of screen recordings), so `screencapture` never shows it — use TG_SHOT for the
+// in-process bitmap instead.
 //
 // The wellness nudges are the sprout + word stack; a custom reminder's title and symbol pick
 // the sprout's motion:
@@ -83,6 +88,7 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
         switch args.first ?? "break" {
         case "break":    runBreak()
         case "card":     runCard()
+        case "notch":    runCard(style: .notch)
         case "pill":     runPill()
         case "blink":    runWellness(.blink)
         case "posture":  runWellness(.posture)
@@ -161,11 +167,15 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: Card
 
-    private func runCard() {
+    private func runCard(style: PreBreakStyle = .card) {
+        card.style = style
         card.onStart = { [weak self] in print("→ start now"); self?.finish() }
         card.onSnooze = { [weak self] s in print("→ snooze \(Int(s))s"); self?.finish() }
-        remaining = 45
-        card.show(kind: .short, secondsLeft: 45, snoozesRemaining: 3, visibleSeconds: 20)
+        // TG_VISIBLE=<seconds> holds the banner (and its countdown) for that long — handy for
+        // eyeballing the notch style: `TG_VISIBLE=180 tg-overlay-demo notch`.
+        let visible = TimeInterval(ProcessInfo.processInfo.environment["TG_VISIBLE"] ?? "") ?? 20
+        remaining = visible
+        card.show(kind: .short, secondsLeft: Int(visible), snoozesRemaining: 3, visibleSeconds: visible)
         ticker = Timer.scheduledTimer(withTimeInterval: 1, repeats: true) { [weak self] _ in
             MainActor.assumeIsolated {
                 guard let self else { return }
@@ -174,7 +184,7 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
                 if self.remaining <= 0 { self.finish() }
             }
         }
-        quit(after: 22)
+        quit(after: visible + 3)
     }
 
     // MARK: Pill

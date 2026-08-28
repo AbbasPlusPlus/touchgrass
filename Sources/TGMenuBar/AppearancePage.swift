@@ -11,6 +11,23 @@ struct AppearancePage: View {
     var body: some View {
         Form {
             Section {
+                BreakScreenPreview(
+                    background: settings.background,
+                    showClock: settings.showClock,
+                    showTitle: settings.showTitle,
+                    showSubtitle: settings.showSubtitle,
+                    title: previewTitle,
+                    subtitle: previewSubtitle
+                )
+                .padding(.vertical, 4)
+                .listRowBackground(Color.clear)
+            } header: {
+                Text("Preview")
+            } footer: {
+                Text("How a break looks with the choices below.")
+            }
+
+            Section {
                 BackgroundPicker(background: $store.settings.background)
             } header: {
                 Text("Break background")
@@ -42,6 +59,17 @@ struct AppearancePage: View {
             }
         }
         .formStyle(.grouped)
+    }
+
+    private var previewTitle: String {
+        let raw = settings.shortBreakMessages.first ?? "Time to touch grass"
+        let title = Settings.splitMessage(raw).title
+        return title.isEmpty ? "Time to touch grass" : title
+    }
+
+    private var previewSubtitle: String {
+        Settings.splitMessage(settings.shortBreakMessages.first ?? "").subtitle
+            ?? "Look far away and let your eyes rest."
     }
 
     private var backgroundSummary: String {

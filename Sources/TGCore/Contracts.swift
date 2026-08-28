@@ -147,6 +147,14 @@ public enum Enforcement: String, Codable, Sendable, Hashable, CaseIterable {
 
 // MARK: - Overlay appearance
 
+/// How the T-60s pre-break notification presents itself.
+public enum PreBreakStyle: String, Codable, Sendable, Hashable, CaseIterable {
+    /// The paper-glass card that springs down from the top-right corner.
+    case card
+    /// A black banner that grows out of the notch, Dynamic-Island style.
+    case notch
+}
+
 public enum BreakBackground: Codable, Sendable, Hashable {
     /// Frosts whatever is actually on screen (window-server behind-window blur, no capture).
     case screenBlur
