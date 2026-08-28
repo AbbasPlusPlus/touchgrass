@@ -13,7 +13,7 @@ public final class QuickPanel {
 
     /// Fixed width; the height comes from the SwiftUI layout, clamped to a sane range.
     /// Sized so a 15 pt summary row fits its label and its value without either truncating.
-    /// The height upper bound has to clear the Stats tab with every card open — the tallest
+    /// The height upper bound has to clear the Stats tab with app tracking on — the tallest
     /// thing the panel shows — and is clamped again to whatever the screen actually offers.
     public static let width: CGFloat = 376
     private static let heightRange: ClosedRange<CGFloat> = 200...790
@@ -59,18 +59,14 @@ public final class QuickPanel {
         isVisible ? close() : show(relativeTo: button)
     }
 
-    /// - Parameters:
-    ///   - tab: opens onto this tab instead of whichever was last used. `nil` leaves it alone.
-    ///   - showingCalendar: on the Stats tab, opens straight onto the month grid.
+    /// - Parameter tab: opens onto this tab instead of whichever was last used. `nil` leaves it
+    ///   alone.
     public func show(
         relativeTo button: NSStatusBarButton?,
-        selecting tab: QuickPanelTab? = nil,
-        showingCalendar: Bool = false
+        selecting tab: QuickPanelTab? = nil
     ) {
-        if let tab {
-            model.tab = tab
-            model.showingCalendar = showingCalendar
-        }
+        if let tab { model.tab = tab }
+        model.statsDaysBack = 0
         let panel = window ?? makeWindow()
         window = panel
 

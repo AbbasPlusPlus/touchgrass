@@ -1,6 +1,6 @@
 // TGCore — where the stats live: one JSON file, keyed by day.
 //
-// A file per day would mean ~365 stat() calls to draw one month of the calendar; a single
+// A file per day would mean a stat() call per day the panel can step back to; a single
 // `stats.json` holding a dayKey → DayStats map is a few kilobytes a year and loads in one read.
 //
 // Writes are coalesced. Screen time accrues every second, so saving on every mutation would
@@ -18,15 +18,9 @@ public final class StatsStore: ObservableObject {
     /// dayKey (`yyyy-MM-dd`) → that day's record. Read-only from outside; mutate via `mutate`.
     @Published public private(set) var days: [String: DayStats] = [:]
 
-    /// The statr needs the user's own break interval, so the store keeps a copy of settings and
-    /// restats every day when the interval changes — otherwise yesterday's gauge would still be
-    /// judged against yesterday's setting.
-    public var settings: Settings {
-        didSet {
-            guard oldValue.shortBreakInterval != settings.shortBreakInterval else { return }
-            restatAll()
-        }
-    }
+    /// The panel draws sessions against the user's own break interval and rest against their own
+    /// break lengths, so the store keeps a live copy of settings for its readers.
+    public var settings: Settings
 
     private let url: URL
     private var saveScheduled = false
@@ -35,7 +29,7 @@ public final class StatsStore: ObservableObject {
     /// means one small atomic write a minute-ish rather than hundreds. A crash costs the last
     /// half-minute of screen time; a clean exit costs nothing, because the app calls `flush()`.
     static let saveDebounce: TimeInterval = 30
-    /// Days older than this are dropped on load. A year of history is more than the UI shows.
+    /// Days older than this are dropped on load. A year of history is more than the UI walks back.
     static let retentionDays = 400
 
     // MARK: - Init
@@ -70,21 +64,26 @@ public final class StatsStore: ObservableObject {
     /// True when `date`'s day has anything worth drawing.
     public func hasData(for date: Date) -> Bool { stats(for: date).hasData }
 
+    /// The earliest day with anything recorded in it — how far back the panel's ‹ button goes.
+    /// `yyyy-MM-dd` sorts the way the days run, so the smallest key is the oldest day.
+    public var oldestRecordedDayKey: String? {
+        days.filter { $0.value.hasData }.keys.min()
+    }
+
     // MARK: - Writing
 
-    /// The single write path: mutate `date`'s record, restat it, and queue a save.
+    /// The single write path: mutate `date`'s record and queue a save.
     public func mutate(_ date: Date, _ body: (inout DayStats) -> Void) {
         let key = Self.dayKey(for: date)
         var day = days[key] ?? DayStats(dayKey: key)
         body(&day)
         day.dayKey = key
-        day.stats = Stats.stat(for: day, settings: settings)
         days[key] = day
         scheduleSave()
     }
 
-    /// Drops a whole record in place — used by the demo to seed a believable month and by
-    /// anything that needs to import history wholesale.
+    /// Drops a whole record in place — used by the demo to seed a believable day and by anything
+    /// that needs to import history wholesale.
     public func replace(_ stats: DayStats, for date: Date) {
         mutate(date) { $0 = stats }
     }
@@ -142,17 +141,6 @@ public final class StatsStore: ObservableObject {
         guard days.count > retentionDays else { return days }
         let keep = Set(days.keys.sorted().suffix(retentionDays))
         return days.filter { keep.contains($0.key) }
-    }
-
-    // MARK: - Scoring
-
-    private func restatAll() {
-        for (key, day) in days {
-            var updated = day
-            updated.stats = Stats.stat(for: day, settings: settings)
-            days[key] = updated
-        }
-        scheduleSave()
     }
 
     // MARK: - File format

@@ -55,6 +55,9 @@ enum TGType {
     static let eyebrow = Font.system(size: 12, weight: .heavy, design: .rounded)
     /// 0.14em at 12 pt — wide enough that eight caps read as a label rather than a word.
     static let eyebrowTracking: CGFloat = 1.68
+    /// The Stats tab's one number — the rest ratio. The same serif as the countdown, at the
+    /// size a figure reads as a headline rather than as a display.
+    static let statNumber = Font.custom("Fraunces", size: 36).monospacedDigit()
     /// The quiet half of a fact ("Focused").
     static let factLabel = Font.system(size: 13.5, weight: .medium, design: .rounded)
     /// The half you actually read ("8 mins").

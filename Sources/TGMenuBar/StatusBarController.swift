@@ -105,8 +105,8 @@ public final class StatusBarController: NSObject {
     }
 
     /// Drops the quick panel under the status item, optionally onto a particular tab.
-    public func showQuickPanel(selecting tab: QuickPanelTab? = nil, showingCalendar: Bool = false) {
-        quickPanel?.show(relativeTo: statusItem.button, selecting: tab, showingCalendar: showingCalendar)
+    public func showQuickPanel(selecting tab: QuickPanelTab? = nil) {
+        quickPanel?.show(relativeTo: statusItem.button, selecting: tab)
     }
 
     public func closeQuickPanel() { quickPanel?.close() }
@@ -150,7 +150,7 @@ public final class StatusBarController: NSObject {
                 // Hand edited settings to the engine. This is an assignment, not a command, so
                 // it's safe at any time; the engine picks the new values up on its next tick.
                 self.engine.settings = settings
-                // The statr judges sessions against the interval, so it needs the live value.
+                // The Stats tab draws sessions against the interval, so it needs the live value.
                 self.statsStore?.settings = settings
                 self.render(phase: self.engine.phase, force: true)
             }

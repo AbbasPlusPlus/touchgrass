@@ -6,8 +6,11 @@
 // Two jobs:
 //   1. Clock screen time. Seconds accrue while the engine is `.running` / `.preBreak` /
 //      `.waitingForActivityToStop` and stop dead while it's paused, in a break, or stopped.
-//   2. Count breaks — completed, skipped, natural (an away-reset), and snoozes.
-//   3. Attribute those seconds to whichever app was in front (`noteFrontmostApp`), when the
+//   2. Count breaks — completed, skipped, natural (an away-reset), and snoozes — and log where
+//      in the day each one landed.
+//   3. Record the spans the engine spent paused, so the timeline can draw the calls and the
+//      walks away as what they were: neither screen time nor rest.
+//   4. Attribute those seconds to whichever app was in front (`noteFrontmostApp`), when the
 //      user leaves `Settings.trackAppUsage` on. The frontmost app is public information, so
 //      this costs no permission and no poll — the host pushes changes as they happen.
 //
@@ -47,6 +50,11 @@ public final class StatsRecorder {
     private var sessionAccrued: TimeInterval = 0
     /// When the break on screen began, so its real length can be recorded when it ends.
     private var breakStartedAt: Date?
+    /// Start of the paused span in progress, `nil` when the engine isn't paused.
+    private var pauseStart: Date?
+    /// Why that span is paused. Kept beside `pauseStart` so a change of reason mid-pause closes
+    /// one span and opens another rather than mislabelling the whole thing.
+    private var pauseKind: PauseKind?
     /// The app currently in front, as last reported by the host. `nil` means "nobody we can
     /// name" — those seconds still count as screen time, they just belong to no app.
     private var frontmostBundleID: String?
@@ -87,6 +95,7 @@ public final class StatsRecorder {
         let now = clock.now()
         accrue(upTo: now)
         finalizeSession()
+        closePause(at: now)
         accruing = false
         running = false
         store.flush()
@@ -146,19 +155,25 @@ public final class StatsRecorder {
             finalizeSession()
             breakStartedAt = now
 
-        case .breakEnded(_, let completed):
+        case .breakEnded(let kind, let completed):
             // How long the break was actually on screen, not how long it was scheduled for —
             // "End break" early should not be able to claim the full three minutes.
-            let elapsed = breakStartedAt.map { max(0, now.timeIntervalSince($0)) } ?? 0
+            let startedAt = breakStartedAt
+            let elapsed = startedAt.map { max(0, now.timeIntervalSince($0)) } ?? 0
             breakStartedAt = nil
             guard completed else { return }   // skip / snooze are counted from their own events
-            store.mutate(now) { day in
+            let at = startedAt ?? now
+            store.mutate(at) { day in
                 day.breaksCompleted += 1
                 day.breakTime += elapsed
+                day.appendBreak(BreakRecord(at: at, kind: kind, outcome: .completed))
             }
 
-        case .skipped:
-            store.mutate(now) { $0.breaksSkipped += 1 }
+        case .skipped(let kind):
+            store.mutate(now) { day in
+                day.breaksSkipped += 1
+                day.appendBreak(BreakRecord(at: now, kind: kind, outcome: .skipped))
+            }
 
         case .snoozed:
             store.mutate(now) { $0.snoozesUsed += 1 }
@@ -171,9 +186,18 @@ public final class StatsRecorder {
             store.mutate(now) { day in
                 day.breaksNatural += 1
                 day.naturalBreakTime += awayFor
+                // Filed as short: what the user got was a rest, and the cadence of long breaks
+                // is TouchGrass's bookkeeping, not something a walk to the kettle belongs to.
+                day.appendBreak(BreakRecord(at: now, kind: .short, outcome: .natural))
             }
 
-        case .preBreakWarning, .preBreakCountdown, .breakTick, .paused, .resumed,
+        case .paused(let reasons):
+            openPause(at: now, kind: PauseKind.primary(of: reasons) ?? .other)
+
+        case .resumed:
+            closePause(at: now)
+
+        case .preBreakWarning, .preBreakCountdown, .breakTick,
              .wellnessReminder, .customReminder:
             break
         }
@@ -226,6 +250,42 @@ public final class StatsRecorder {
     private var trackedApp: (bundleID: String, name: String)? {
         guard store.settings.trackAppUsage, let bundleID = frontmostBundleID, !bundleID.isEmpty else { return nil }
         return (bundleID, frontmostName ?? bundleID)
+    }
+
+    // MARK: - Pauses
+
+    /// Opens a paused span, or re-labels the open one by closing it and starting another: the
+    /// engine re-emits `.paused` whenever the reason set changes, and a call that turns into a
+    /// walk away is two different facts about the day.
+    private func openPause(at date: Date, kind: PauseKind) {
+        guard pauseKind != kind else { return }
+        closePause(at: date)
+        pauseStart = date
+        pauseKind = kind
+    }
+
+    /// Banks the open span, splitting it at midnight the way screen time is split so a call that
+    /// runs past twelve lands in both days.
+    private func closePause(at end: Date) {
+        guard let start = pauseStart, let kind = pauseKind else { return }
+        pauseStart = nil
+        pauseKind = nil
+
+        var cursor = start
+        while cursor < end {
+            let dayStart = calendar.startOfDay(for: cursor)
+            let nextDay = calendar.date(byAdding: .day, value: 1, to: dayStart) ?? end
+            let chunkEnd = min(nextDay, end)
+            let delta = chunkEnd.timeIntervalSince(cursor)
+            guard delta > 0 else { break }
+            // A sub-second pause is a flicker between two detector updates, not a span of the
+            // day; recording it would only cost a slot in the capped array.
+            if delta >= 1 {
+                let record = IntervalRecord(start: cursor, duration: delta, kind: kind)
+                store.mutate(cursor) { $0.appendPause(record) }
+            }
+            cursor = chunkEnd
+        }
     }
 
     // MARK: - Sessions

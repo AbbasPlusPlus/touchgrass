@@ -49,7 +49,8 @@ Implement as a `TGPalette` (TGMenuBar) / `OverlayPalette` (TGOverlay) with dynam
 Now tab = **the ledger** (approved 2026-08-27).
 Everything left-aligned off one margin, no centred stack:
 - Eyebrow (12 pt, heavy, .14em tracking, ink2): `NEXT BREAK · SHORT · 30 SEC` / `PAUSED · MEETING`
-  / `ON BREAK` / `STOPPED`. The Stats tab reuses it (`TODAY · stats`).
+  / `ON BREAK` / `STOPPED`. The Stats tab reuses it, once per block
+  (`TODAY · REST` / `TODAY · RHYTHM` / `TODAY · WHERE THE TIME WENT`).
 - The time in Fraunces 64 (`TGType.ledgerTime`) in ink; when there's nothing to count down, the
   reason in synthesised Fraunces italic 28 (`ledgerReason`) instead.
 - Stone hairline, then facts on the left (label 13.5 ink2 over value 15 semibold ink — Focused /
@@ -57,7 +58,15 @@ Everything left-aligned off one margin, no centred stack:
 - Glass tinted paper. Primary pill = matcha fill with paper text; quiet pills = paper-glass with
   stone border, stretched to the column width. Only one delay (`+5 min`) and `Skip ›` — +1/+15
   and pausing live in the right-click menu.
-- Stats tab: gauge gradient becomes matcha→pollen (#D8B45E), stat number ink; calendar cells same.
+- Stats tab (approved 2026-08-28): three blocks, stone hairlines between, no grade anywhere.
+  **Rest** — a 78 pt breath ring (track ink 12%, fill matcha, 🌿 centred, never past full) beside
+  the ratio in Fraunces 36 (`TGType.statNumber`): minutes rested per hour on screen, with
+  "20-20-20 is about 1.0" as the one neutral reference. **Rhythm** — the day 6:00–24:00 on a 34 pt
+  track (ink 5%, radius 8): matcha bars are focus stretches, clay ones ran past the user's
+  interval, ink-hatched ones are calls/away, 3 pt ticks are breaks (ink taken, clay skipped), a
+  1.5 pt ink line marks now; legend and one factual sentence under it. **Where the time went** —
+  the app rows, with the provenance line as their footer. ‹ › on the first eyebrow step a day
+  back; the eyebrow reads `TODAY` / `YESTERDAY` / `MON 25 AUG`.
 - Menu chip: 🌿 + minutes (unchanged behavior).
 
 ## Settings & onboarding

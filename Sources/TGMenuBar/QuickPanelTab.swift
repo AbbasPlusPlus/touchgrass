@@ -1,7 +1,7 @@
 // TGMenuBar — the two faces of the quick panel.
 import SwiftUI
 
-/// "Now" is the countdown and the buttons; "Stats" is today's stats and the month.
+/// "Now" is the countdown and the buttons; "Stats" is rest, rhythm and where the time went.
 public enum QuickPanelTab: String, CaseIterable, Hashable, Sendable {
     case now
     case stats

@@ -36,7 +36,7 @@ Requires macOS 26 (Tahoe).
   office hours.
 - **Wellness nudges** — blink, posture, and custom reminders (water, stretch, …).
 - **Stats** — screen time, sessions, per-app time (frontmost app only, stays on your
-  Mac, can be turned off), and a daily stats.
+  Mac, can be turned off), a rest ratio and a day timeline.
 - **Self-updating** — checks a static appcast, verifies a SHA-256, swaps itself.
 
 ## Building from source

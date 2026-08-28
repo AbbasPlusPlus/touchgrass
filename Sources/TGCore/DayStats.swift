@@ -1,8 +1,8 @@
 // TGCore — the per-day statistics record persisted by StatsStore.
 //
 // Everything here is a *fact about a calendar day*, recorded as it happens by StatsRecorder.
-// Nothing is derived at read time except `stats`, which StatsStore caches on every write
-// so the UI can render a month of gauges without recomputing ninety stats per frame.
+// Nothing is derived at read time and nothing is graded: the panel draws these numbers, it
+// doesn't mark them.
 
 import Foundation
 
@@ -23,7 +23,8 @@ public struct SessionRecord: Codable, Equatable, Sendable, Hashable {
         self.duration = max(0, duration)
     }
 
-    /// Wall-clock end of the session. Only meaningful for display; the stat uses `duration`.
+    /// Wall-clock end of the session. Only meaningful for display — a session that spanned a
+    /// pause is shorter than its span, because a call is not screen time.
     public var end: Date { start.addingTimeInterval(duration) }
 }
 
@@ -59,10 +60,15 @@ public struct DayStats: Codable, Equatable, Sendable {
     /// "+1m / +5m / +15m" spent out of the snooze budget.
     public var snoozesUsed: Int = 0
 
-    // MARK: stat
-    /// 0–100, recomputed by `StatsStore` on every write. Cached rather than computed so the
-    /// calendar can draw a whole month without re-running the statr per cell per frame.
-    public var stats: Int = Stats.perfect
+    // MARK: Pauses
+    /// Spans the engine spent paused — calls, videos, fullscreen apps, time away. Neither screen
+    /// time nor rest; the timeline draws them hatched. Capped — see `maxPauses`.
+    public var pauses: [IntervalRecord] = []
+
+    // MARK: Break log
+    /// When today's breaks happened and how each ended. The counters above say how many; this
+    /// says where in the day. Capped — see `maxBreaks`.
+    public var breaks: [BreakRecord] = []
 
     // MARK: Apps
     /// bundle ID → how long that app was frontmost today. Empty unless `Settings.trackAppUsage`
@@ -93,14 +99,15 @@ public struct DayStats: Codable, Equatable, Sendable {
         breaksNatural = (try? c.decode(Int.self, forKey: .breaksNatural)) ?? 0
         naturalBreakTime = (try? c.decode(TimeInterval.self, forKey: .naturalBreakTime)) ?? 0
         snoozesUsed = (try? c.decode(Int.self, forKey: .snoozesUsed)) ?? 0
-        stats = (try? c.decode(Int.self, forKey: .stats)) ?? Stats.perfect
+        pauses = (try? c.decode([IntervalRecord].self, forKey: .pauses)) ?? []
+        breaks = (try? c.decode([BreakRecord].self, forKey: .breaks)) ?? []
         appUsage = (try? c.decode([String: AppUsage].self, forKey: .appUsage)) ?? [:]
     }
 
     // MARK: - Derived
 
-    /// A day the user actually spent at the machine. Days without data render as "--" rather
-    /// than as a perfect 100 they didn't earn.
+    /// A day the user actually spent at the machine. Days without data render as "—" rather
+    /// than as numbers nobody produced.
     public var hasData: Bool {
         totalScreenTime > 0 || breaksCompleted > 0 || breaksSkipped > 0 || breaksNatural > 0
     }
@@ -108,7 +115,7 @@ public struct DayStats: Codable, Equatable, Sendable {
     /// Breaks that count as rest: ones TouchGrass ran, plus ones the user took by walking away.
     public var breaksTaken: Int { breaksCompleted + breaksNatural }
 
-    /// Sessions that ran past the configured interval — the "you sat too long" count.
+    /// Sessions that ran past the configured interval — the ones the timeline draws in clay.
     public func sessionsOverrunning(_ interval: TimeInterval) -> Int {
         guard interval > 0 else { return 0 }
         return sessions.filter { $0.duration > interval }.count
@@ -134,7 +141,7 @@ public struct DayStats: Codable, Equatable, Sendable {
         sessions.removeAll { $0.start == start }
     }
 
-    /// Appends, evicting the *shortest* session when full: the stat is driven by long
+    /// Appends, evicting the *shortest* session when full: the timeline is carried by the long
     /// sessions, so the short ones are the ones we can afford to forget.
     public mutating func append(_ session: SessionRecord) {
         sessions.append(session)
@@ -143,4 +150,37 @@ public struct DayStats: Codable, Equatable, Sendable {
             sessions.remove(at: shortest)
         }
     }
+
+    // MARK: - Pause bookkeeping
+
+    /// Same reasoning as `maxSessions`: a day of flickering pause reasons is pathological, not
+    /// informative, and the aggregate counters live elsewhere.
+    public static let maxPauses = 200
+
+    /// Appends a paused span, evicting the *shortest* when full — the ones too small to draw.
+    public mutating func appendPause(_ pause: IntervalRecord) {
+        guard pause.duration > 0 else { return }
+        pauses.append(pause)
+        guard pauses.count > Self.maxPauses else { return }
+        if let shortest = pauses.indices.min(by: { pauses[$0].duration < pauses[$1].duration }) {
+            pauses.remove(at: shortest)
+        }
+    }
+
+    // MARK: - Break bookkeeping
+
+    public static let maxBreaks = 200
+
+    /// Appends a break, dropping the *oldest* when full: unlike sessions there is no length to
+    /// rank them by, and the recent end of the day is the half you're looking at.
+    public mutating func appendBreak(_ record: BreakRecord) {
+        breaks.append(record)
+        if breaks.count > Self.maxBreaks { breaks.removeFirst(breaks.count - Self.maxBreaks) }
+    }
+
+    /// Breaks that rested the user, oldest first.
+    public var restBreaks: [BreakRecord] { breaks.filter(\.isRest) }
+
+    /// Breaks the user skipped, oldest first.
+    public var skippedBreaks: [BreakRecord] { breaks.filter { $0.outcome == .skipped } }
 }

@@ -1,5 +1,5 @@
-// stats arithmetic, the stats store's day keying and persistence, and the recorder's
-// screen-time accounting (including the midnight split).
+// The rest ratio, the stats store's day keying and persistence, and the recorder's screen-time,
+// pause-span and break-log accounting (including the midnight split).
 
 import Foundation
 import Testing
@@ -77,75 +77,44 @@ private func settings(interval: TimeInterval) -> Settings {
     return s
 }
 
-// MARK: - stats
+// MARK: - Rest ratio
 
-@Test @MainActor func aDayWithNothingRecordedstatsPerfect() {
-    #expect(Stats.stat(for: day(), settings: settings(interval: 1200)) == 100)
+@Test @MainActor func restRatioIsMinutesRestedPerHourOnScreen() {
+    var stats = day(sessions: [3600])
+    stats.totalScreenTime = 2 * 3600
+    stats.breakTime = 180                       // three minutes of rest over two hours
+    let ratio = RestRatio.compute(for: stats, settings: settings(interval: 1200))
+    #expect(ratio.minutesPerHour == 1.5)
 }
 
-@Test @MainActor func aSessionAtTheIntervalKeepsFullDiscipline() {
-    let stats = day(sessions: [1200], completed: 1)
-    #expect(Stats.discipline(for: stats, settings: settings(interval: 1200)) == 60)
-    #expect(Stats.stat(for: stats, settings: settings(interval: 1200)) == 100)
+@Test @MainActor func aDayTooShortToDivideHasNoRatio() {
+    var stats = day()
+    stats.totalScreenTime = 10 * 60             // under the fifteen-minute floor
+    stats.breakTime = 60
+    #expect(RestRatio.compute(for: stats, settings: settings(interval: 1200)).minutesPerHour == nil)
+    #expect(RestRatio.compute(for: stats, settings: settings(interval: 1200)).progress == 0)
 }
 
-@Test @MainActor func aSessionAtTwiceTheIntervalForfeitsAllDiscipline() {
-    let stats = day(sessions: [2400])
-    #expect(Stats.discipline(for: stats, settings: settings(interval: 1200)) == 0)
-    // Nothing was skipped, so adherence is untouched: the whole loss is the long sit.
-    #expect(Stats.stat(for: stats, settings: settings(interval: 1200)) == 40)
+@Test @MainActor func aNaturalBreakCountsAsOneConfiguredShortBreak() {
+    var stats = day(natural: 2)
+    stats.totalScreenTime = 3600
+    stats.naturalBreakTime = 45 * 60            // a long lunch may not claim a perfect day
+    var s = settings(interval: 1200)
+    s.shortBreakDuration = 30
+    #expect(RestRatio.rest(for: stats, settings: s) == 60)
+    #expect(RestRatio.compute(for: stats, settings: s).minutesPerHour == 1)
 }
 
-@Test @MainActor func overshootIsWeightedBySessionLength() {
-    // One four-hour sit plus a ten-minute one. The short session shouldn't be able to average
-    // the marathon away.
-    let heavy = day(sessions: [3600, 600])
-    // The same two sessions with the weights reversed reads much better.
-    let light = day(sessions: [1300, 600])
-    let s = settings(interval: 1200)
-    #expect(Stats.stat(for: heavy, settings: s) < Stats.stat(for: light, settings: s))
-    #expect(Stats.discipline(for: heavy, settings: s) < 10)
-}
+@Test @MainActor func theRestRingFillsToOneAndNoFurther() {
+    var stats = day()
+    stats.totalScreenTime = 3600
+    stats.breakTime = 30
+    #expect(RestRatio.compute(for: stats, settings: settings(interval: 1200)).progress == 0.5)
 
-@Test @MainActor func disciplineIsJudgedAgainstTheUsersOwnInterval() {
-    let stats = day(sessions: [1800])
-    #expect(Stats.stat(for: stats, settings: settings(interval: 1200)) == 70)
-    // The same half-hour sit is exemplary if the user asked for hourly breaks.
-    #expect(Stats.stat(for: stats, settings: settings(interval: 3600)) == 100)
-}
-
-@Test @MainActor func skippingBreaksCostsAdherence() {
-    let stats = day(completed: 3, skipped: 1)
-    #expect(Stats.adherence(for: stats) == 30)
-    #expect(Stats.stat(for: stats, settings: settings(interval: 1200)) == 90)
-}
-
-@Test @MainActor func naturalBreaksCountAsBreaksTaken() {
-    let walked = day(completed: 0, skipped: 2, natural: 2)
-    let sat = day(completed: 0, skipped: 2, natural: 0)
-    #expect(Stats.adherence(for: walked) == 20)
-    #expect(Stats.adherence(for: sat) == 0)
-}
-
-@Test @MainActor func theSnoozePenaltyIsSmallAndCapped() {
-    #expect(Stats.adherence(for: day(snoozes: 1)) == 38)
-    #expect(Stats.adherence(for: day(snoozes: 4)) == 32)
-    // A tenth snooze can't cost more than the fourth did.
-    #expect(Stats.adherence(for: day(snoozes: 10)) == 32)
-}
-
-@Test @MainActor func thestatIsClampedToZeroAndAHundred() {
-    let awful = day(sessions: [8 * 3600], skipped: 20, snoozes: 30)
-    #expect(Stats.stat(for: awful, settings: settings(interval: 1200)) == 0)
-
-    let flawless = day(sessions: [600, 600], completed: 4, natural: 2)
-    #expect(Stats.stat(for: flawless, settings: settings(interval: 1200)) == 100)
-}
-
-@Test @MainActor func zeroLengthSessionsDoNotDragThestatDown() {
-    var stats = day(sessions: [1200])
-    stats.append(SessionRecord(start: Date(timeIntervalSince1970: 1), duration: 0))
-    #expect(Stats.discipline(for: stats, settings: settings(interval: 1200)) == 60)
+    stats.breakTime = 20 * 60                   // a day of walks is still just a full ring
+    let generous = RestRatio.compute(for: stats, settings: settings(interval: 1200))
+    #expect(generous.minutesPerHour == 20)
+    #expect(generous.progress == 1)
 }
 
 // MARK: - Store
@@ -161,22 +130,20 @@ private func settings(interval: TimeInterval) -> Settings {
     #expect(StatsStore.dayKey(for: date, calendar: calendar) == "2026-03-07")
 }
 
-@Test @MainActor func mutatingADayCachesItsstat() {
+@Test @MainActor func mutatingADayStampsItsKey() {
     let h = StatsHarness(settings(interval: 1200))
     h.store.mutate(h.clock.now()) { $0.append(SessionRecord(start: h.clock.now(), duration: 2400)) }
-    #expect(h.today.stats == 40)
+    #expect(h.today.dayKey == StatsStore.dayKey(for: h.clock.now()))
     #expect(h.today.hasData == false)   // sessions alone aren't screen time
 }
 
-@Test @MainActor func changingTheIntervalRestatsEveryDay() {
-    let h = StatsHarness(settings(interval: 1200))
-    h.store.mutate(h.clock.now()) { day in
-        day.totalScreenTime = 1800
-        day.append(SessionRecord(start: h.clock.now(), duration: 1800))
-    }
-    #expect(h.today.stats == 70)
-    h.store.settings = settings(interval: 3600)
-    #expect(h.today.stats == 100)
+@Test @MainActor func theOldestRecordedDayIsTheOneWithDataInIt() {
+    let h = StatsHarness()
+    let yesterday = h.clock.now().addingTimeInterval(-24 * 3600)
+    h.store.mutate(yesterday) { $0.totalScreenTime = 600 }
+    // A day that was touched but never worked in is not somewhere to walk back to.
+    h.store.mutate(yesterday.addingTimeInterval(-24 * 3600)) { $0.snoozesUsed = 1 }
+    #expect(h.store.oldestRecordedDayKey == StatsStore.dayKey(for: yesterday))
 }
 
 @Test @MainActor func statsSurviveAReload() {
@@ -196,7 +163,7 @@ private func settings(interval: TimeInterval) -> Settings {
         stats.append(SessionRecord(start: base.addingTimeInterval(Double(i)), duration: Double(i + 1)))
     }
     #expect(stats.sessions.count == DayStats.maxSessions)
-    // The longest sessions — the ones the stat cares about — are the ones that survive.
+    // The longest sessions — the ones the timeline is carried by — are the ones that survive.
     #expect(stats.sessions.contains { $0.duration == Double(DayStats.maxSessions + 21) })
     #expect(stats.sessions.contains { $0.duration == 1 } == false)
 }
@@ -399,11 +366,12 @@ private func settings(interval: TimeInterval) -> Settings {
 }
 
 @Test @MainActor func aDayWrittenBeforeAppTrackingStillDecodes() {
-    // Exactly what an older build wrote: no `appUsage` key at all.
+    // Exactly what an older build wrote: no `appUsage` key at all, and one counter this build
+    // has since retired — neither may cost the user their history.
     let json = #"{"version":1,"days":{"2026-01-01":{"dayKey":"2026-01-01","#
         + #""totalScreenTime":1200,"longestSession":1200,"sessions":[],"breaksCompleted":2,"#
         + #""breakTime":90,"breaksSkipped":1,"breaksNatural":0,"naturalBreakTime":0,"#
-        + #""snoozesUsed":0,"stats":88}}}"#
+        + #""snoozesUsed":0,"retiredCounter":88}}}"#
     let directory = FileManager.default.temporaryDirectory
         .appendingPathComponent("tg-stats-legacy-\(UUID().uuidString)", isDirectory: true)
     try? FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -470,4 +438,163 @@ private func settings(interval: TimeInterval) -> Settings {
     h.engine.endBreakEarly()
     #expect(h.today.breaksCompleted == 1)
     #expect(h.today.breakTime == 60)
+}
+
+// MARK: - Recorder: pause spans
+
+@Test @MainActor func aPauseIsRecordedAsASpanOfTheDay() {
+    let h = StatsHarness()
+    h.start()
+    h.run(10)
+    h.engine.updatePauseReasons([.zoomMeeting])
+    h.run(30)
+    h.engine.updatePauseReasons([])
+    h.run(5)
+
+    #expect(h.today.pauses.count == 1)
+    #expect(h.today.pauses.first?.duration == 30)
+    #expect(h.today.pauses.first?.kind == .meeting)
+    // The pause is not screen time, and it didn't end the session either.
+    #expect(h.today.totalScreenTime == 15)
+    #expect(h.today.sessions.count == 1)
+}
+
+@Test @MainActor func aChangeOfReasonClosesOneSpanAndOpensAnother() {
+    let h = StatsHarness()
+    h.start()
+    h.engine.updatePauseReasons([.zoomMeeting])
+    h.run(20)
+    h.engine.updatePauseReasons([.xcodeFullscreen])
+    h.run(10)
+    h.engine.updatePauseReasons([])
+
+    #expect(h.today.pauses.map(\.kind) == [.meeting, .fullscreen])
+    #expect(h.today.pauses.map(\.duration) == [20, 10])
+}
+
+@Test @MainActor func anOpenPauseIsBankedWhenTheRecorderStops() {
+    let h = StatsHarness()
+    h.start()
+    h.engine.updatePauseReasons([.youtubeVideo])
+    h.run(45)
+    h.recorder.stop()
+
+    #expect(h.today.pauses.count == 1)
+    #expect(h.today.pauses.first?.duration == 45)
+    #expect(h.today.pauses.first?.kind == .video)
+}
+
+@Test @MainActor func aPauseSplitsAtMidnight() {
+    var s = Settings()
+    s.shortBreakInterval = 100_000   // nothing may interrupt the run
+    s.deferWhileTyping = false
+    let elevenPM = Calendar.current
+        .startOfDay(for: Date(timeIntervalSince1970: 1_756_000_000))
+        .addingTimeInterval(23 * 3600)
+    let h = StatsHarness(s, clock: FakeClock(elevenPM))
+    h.start()
+    h.engine.updatePauseReasons([.zoomMeeting])
+    h.run(2 * 3600, step: 60)
+    h.engine.updatePauseReasons([])
+
+    let firstDay = h.store.stats(for: elevenPM)
+    let secondDay = h.store.stats(for: elevenPM.addingTimeInterval(2 * 3600))
+    #expect(firstDay.pauses.count == 1)
+    #expect(secondDay.pauses.count == 1)
+    #expect(firstDay.pauses.first?.duration == 3600)
+    #expect(secondDay.pauses.first?.duration == 3600)
+    #expect(secondDay.pauses.first?.start == Calendar.current.startOfDay(for: secondDay.pauses[0].start))
+}
+
+@Test @MainActor func theHighestPriorityReasonNamesTheSpan() {
+    #expect(PauseKind.primary(of: [.zoomMeeting, .xcodeFullscreen]) == .meeting)
+    #expect(PauseKind.primary(of: [.xcodeFullscreen, .idle]) == .fullscreen)
+    #expect(PauseKind.primary(of: [.screenLocked]) == .other)
+    #expect(PauseKind.primary(of: []) == nil)
+}
+
+// MARK: - Recorder: the break log
+
+@Test @MainActor func aCompletedBreakIsLoggedWhereItHappened() {
+    let h = StatsHarness()   // .fast(): 100 s interval, 10 s short break
+    let start = h.clock.now()
+    h.start()
+    h.run(100)               // the break fires exactly here
+    h.run(10)                // and runs to completion
+
+    #expect(h.today.breaks.count == 1)
+    #expect(h.today.breaks.first?.outcome == .completed)
+    #expect(h.today.breaks.first?.kind == .short)
+    #expect(h.today.breaks.first?.at == start.addingTimeInterval(100))
+}
+
+@Test @MainActor func aSkippedBreakIsLoggedAsSkipped() {
+    var s = Settings.fast()
+    s.enforcement = .casual          // balanced would still be counting out its skip delay
+    let h = StatsHarness(s)
+    h.start()
+    h.run(100)               // the break is on screen
+    h.engine.skipBreak()
+
+    #expect(h.today.breaksSkipped == 1)
+    #expect(h.today.breaks.map(\.outcome) == [.skipped])
+}
+
+@Test @MainActor func anAwayResetIsLoggedAsANaturalBreak() {
+    var s = Settings.fast()
+    s.shortBreakInterval = 100_000   // the away decision is the only thing that may fire
+    let h = StatsHarness(s)
+    h.start()
+    h.run(120)
+    h.engine.updateIdleSeconds(120)
+    h.clock.advance(400)             // total away 520 s, past idleResetAfter
+    h.engine.updateIdleSeconds(0)
+
+    #expect(h.today.breaksNatural == 1)
+    #expect(h.today.breaks.map(\.outcome) == [.natural])
+    #expect(h.today.breaks.first?.kind == .short)
+}
+
+// MARK: - The capped arrays
+
+@Test @MainActor func thePauseListIsCappedAndDropsTheShortest() {
+    var stats = DayStats(dayKey: "2026-01-01")
+    let base = Date(timeIntervalSince1970: 0)
+    for i in 0...(DayStats.maxPauses + 10) {
+        stats.appendPause(IntervalRecord(start: base.addingTimeInterval(Double(i)),
+                                         duration: Double(i + 1),
+                                         kind: .meeting))
+    }
+    #expect(stats.pauses.count == DayStats.maxPauses)
+    #expect(stats.pauses.contains { $0.duration == Double(DayStats.maxPauses + 11) })
+    #expect(stats.pauses.contains { $0.duration == 1 } == false)
+    // A zero-length span is a detector flicker, not a fact about the day.
+    stats.appendPause(IntervalRecord(start: base, duration: 0, kind: .idle))
+    #expect(stats.pauses.count == DayStats.maxPauses)
+}
+
+@Test @MainActor func theBreakListIsCappedAndDropsTheOldest() {
+    var stats = DayStats(dayKey: "2026-01-01")
+    let base = Date(timeIntervalSince1970: 0)
+    for i in 0...(DayStats.maxBreaks + 5) {
+        stats.appendBreak(BreakRecord(at: base.addingTimeInterval(Double(i)),
+                                      kind: .short,
+                                      outcome: i.isMultiple(of: 2) ? .completed : .skipped))
+    }
+    #expect(stats.breaks.count == DayStats.maxBreaks)
+    #expect(stats.breaks.first?.at == base.addingTimeInterval(6))
+    #expect(stats.restBreaks.count + stats.skippedBreaks.count == DayStats.maxBreaks)
+}
+
+@Test @MainActor func aRecordWrittenByAnOlderBuildStillDecodes() throws {
+    // No `pauses` and no `breaks` keys, plus a counter this build no longer knows: exactly what
+    // a 1.0.2 stats.json looks like from here.
+    let json = Data("""
+    {"dayKey":"2026-01-01","totalScreenTime":600,"breaksCompleted":2,"retiredCounter":62}
+    """.utf8)
+    let decoded = try JSONDecoder().decode(DayStats.self, from: json)
+    #expect(decoded.totalScreenTime == 600)
+    #expect(decoded.breaksCompleted == 2)
+    #expect(decoded.pauses.isEmpty)
+    #expect(decoded.breaks.isEmpty)
 }

@@ -3,8 +3,8 @@ import SwiftUI
 import TGCore
 
 /// Two tabs behind one header. "Now" is the glance — one number, one obvious action, three
-/// facts. "Stats" is the look back — today's stats and, behind the calendar button,
-/// the month.
+/// facts. "Stats" is the look back — rest, rhythm, and where the time went, for today or for
+/// any day the ‹ › buttons walk back to.
 ///
 /// The Now tab is set like a ledger: an uppercase eyebrow, the time in a big serif, a hairline,
 /// then facts on the left and actions on the right. Everything is left-aligned on purpose —
@@ -65,7 +65,8 @@ struct QuickPanelView: View {
         // panel never has dead space at the bottom just because there is nothing to count down.
         .frame(width: QuickPanel.width, alignment: .top)
         .onChange(of: model.tab) { _, _ in requestResize() }
-        .onChange(of: model.showingCalendar) { _, _ in requestResize() }
+        // Days differ in height — a day with two apps is shorter than one with five.
+        .onChange(of: model.statsDaysBack) { _, _ in requestResize() }
     }
 
     private var presentation: StatusPresentation {
@@ -75,13 +76,12 @@ struct QuickPanelView: View {
     // MARK: - Top bar
 
     /// The Now/Stats control on the left margin — the same margin the eyebrow, the time and the
-    /// facts start from — with the gear, and on the Stats tab the calendar toggle, on the right.
-    /// A centred control over a left-aligned page is the one thing that would give the ledger away.
+    /// facts start from — with the gear on the right. A centred control over a left-aligned page
+    /// is the one thing that would give the ledger away.
     private var topBar: some View {
         HStack(spacing: 10) {
             tabControl
             Spacer(minLength: 8)
-            trailingSlot
             settingsButton
                 .frame(width: Self.sideWidth, alignment: .trailing)
         }
@@ -99,19 +99,6 @@ struct QuickPanelView: View {
                 .accessibilityAddTraits(.isHeader)
         } else {
             QuickPanelTabControl(tab: $model.tab)
-        }
-    }
-
-    @ViewBuilder
-    private var trailingSlot: some View {
-        if model.tab == .stats, model.showingCalendar {
-            iconButton(symbol: "arrow.left", label: "Back to today", size: 13) {
-                model.showingCalendar = false
-            }
-        } else if model.tab == .stats {
-            iconButton(symbol: "calendar", label: "Show the month", size: 13) {
-                model.showingCalendar = true
-            }
         }
     }
 
@@ -185,11 +172,7 @@ struct QuickPanelView: View {
     @ViewBuilder
     private var statsTab: some View {
         if let stats {
-            if model.showingCalendar {
-                StatsCalendarView(stats: stats)
-            } else {
-                StatsView(stats: stats, settingsStore: store)
-            }
+            StatsView(stats: stats, settingsStore: store, daysBack: $model.statsDaysBack)
         }
     }
 
@@ -359,8 +342,10 @@ struct QuickPanelView: View {
         let day = stats.stats(for: Date())
         let taken = day.breaksTaken
         let breaks = "\(taken) break\(taken == 1 ? "" : "s")"
-        // The stat of a day with nothing in it is an unearned 100; don't claim it.
-        return ("Today", day.hasData ? "\(breaks) \u{B7} stat \(day.stats)" : breaks)
+        // Screen time alongside the count, so the fact says what the day cost as well as what
+        // it gave back. A day with nothing in it just says the count.
+        guard day.hasData, day.totalScreenTime >= 60 else { return ("Today", breaks) }
+        return ("Today", "\(breaks) \u{B7} \(TGFormat.compactElapsed(day.totalScreenTime)) on screen")
     }
 
     /// "Blink in 4 min". Named only when a single kind of nudge is switched on — the host hands

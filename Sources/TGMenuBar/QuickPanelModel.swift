@@ -7,6 +7,7 @@ import Combine
 @MainActor
 final class QuickPanelModel: ObservableObject {
     @Published var tab: QuickPanelTab = .now
-    /// Only meaningful on the Stats tab: false is today, true is the month grid.
-    @Published var showingCalendar = false
+    /// Only meaningful on the Stats tab: how many days back the ‹ › buttons have walked. Reset
+    /// to today whenever the panel is shown — reopening it should not resume last week.
+    @Published var statsDaysBack = 0
 }

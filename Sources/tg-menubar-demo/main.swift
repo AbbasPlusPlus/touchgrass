@@ -2,8 +2,9 @@
 //
 //   swift run tg-menubar-demo            # status item only
 //   swift run tg-menubar-demo panel      # + quick panel (Now)
-//   swift run tg-menubar-demo stats      # + quick panel (Stats), seeded with a fake month
-//   swift run tg-menubar-demo calendar   # + quick panel (Stats → month grid)
+//   swift run tg-menubar-demo stats      # + quick panel (Stats), seeded with a fake day
+//                                        # (TG_DEMO_STATS=empty for the blank-day state,
+//                                        #  TG_DEMO_DAY_END=16.75 for a whole day's timeline)
 //   swift run tg-menubar-demo settings   # + settings window
 //   swift run tg-menubar-demo onboarding # + first-run flow
 //
@@ -39,7 +40,13 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
             settings: store.settings,
             url: directory.appendingPathComponent("stats-demo.json")
         )
-        DemoStats.seed(into: stats)
+        // TG_DEMO_STATS=empty leaves the store untouched, so the Stats tab's "nothing recorded"
+        // state can be reviewed without waiting for a fresh machine.
+        if ProcessInfo.processInfo.environment["TG_DEMO_STATS"] != "empty" {
+            DemoStats.seed(into: stats)
+        } else {
+            stats.removeAll()
+        }
 
         // TG_DEMO_WELLNESS=<seconds> fakes a pending blink nudge so the panel's wellness fact
         // can be reviewed; the demo doesn't run a real WellnessScheduler.
@@ -111,12 +118,11 @@ final class DemoDelegate: NSObject, NSApplicationDelegate {
             statusBar.showSettings()
         case "onboarding":
             statusBar.showOnboarding()
-        case "panel", "stats", "calendar":
+        case "panel", "stats":
             let tab: QuickPanelTab = surface == "panel" ? .now : .stats
-            let calendar = surface == "calendar"
             // Give the status item a run-loop turn to land in the menu bar first.
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
-                self?.statusBar.showQuickPanel(selecting: tab, showingCalendar: calendar)
+                self?.statusBar.showQuickPanel(selecting: tab)
             }
         default:
             break
