@@ -18,9 +18,9 @@ enum TGType {
     /// The one big number: the quick panel countdown.
     static let hero = Font.custom("Fraunces", size: 48).weight(.semibold).monospacedDigit()
     /// Onboarding's per-step heading.
-    static let display = Font.system(size: 28, weight: .bold, design: .rounded)
+    static let display = Font.custom("Fraunces", size: 30).weight(.semibold)
     /// The app's own name, on the About page.
-    static let heading = Font.system(size: 22, weight: .semibold, design: .rounded)
+    static let heading = Font.custom("Fraunces", size: 22).weight(.semibold)
     /// Card and page headings, and the panel's "no countdown" fallback line.
     static let title = Font.system(size: 17, weight: .semibold, design: .rounded)
     /// Running prose — onboarding copy, the panel's "Break starts in".
