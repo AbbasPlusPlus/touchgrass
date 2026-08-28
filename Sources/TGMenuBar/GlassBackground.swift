@@ -52,8 +52,8 @@ enum GlassBackground {
         return paper
     }
 
-    /// `NSGlassEffectView` is macOS 26+. The package's deployment target is 26.0, but the
-    /// availability check keeps this honest if that ever moves back.
+    /// `NSGlassEffectView` is macOS 26+; the package deploys to 15.0, so on Sequoia this
+    /// returns nil and the caller falls through to the `.popover` visual-effect view.
     private static func makeGlass(cornerRadius: CGFloat, content: NSView) -> NSView? {
         guard #available(macOS 26.0, *) else { return nil }
         let glass = NSGlassEffectView()

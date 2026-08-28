@@ -37,8 +37,14 @@ kill:
 run: kill install
 	open /Applications/$(APP).app
 
+# The app ships for macOS 15+, but the swift-testing that comes with the Homebrew toolchain is
+# itself built for macOS 26 and refuses to be imported by a package targeting anything lower.
+# Tests only cover TGCore/TGDetection/TGUpdate — none of which has a single availability branch —
+# so compiling them at 26 exercises exactly the same code. Nothing here is shipped.
+TEST_TARGET := arm64-apple-macosx26.0
+
 test:
-	$(SWIFT) test
+	$(SWIFT) test -Xswiftc -target -Xswiftc $(TEST_TARGET)
 
 install: bundle
 	rm -rf /Applications/$(APP).app

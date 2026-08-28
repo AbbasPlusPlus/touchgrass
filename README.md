@@ -21,7 +21,7 @@ curl -fsSL https://raw.githubusercontent.com/AbbasPlusPlus/touchgrass-releases/m
 ```
 
 The app updates itself from the [release feed](https://github.com/AbbasPlusPlus/touchgrass-releases).
-Requires macOS 26 (Tahoe).
+Requires macOS 15 (Sequoia) or newer, Apple silicon.
 
 ## What it does
 

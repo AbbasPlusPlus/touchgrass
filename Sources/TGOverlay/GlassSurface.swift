@@ -19,16 +19,16 @@ struct GlassSurface<S: InsettableShape>: ViewModifier {
 
     @ViewBuilder
     private func base(_ content: Content) -> some View {
-        if OverlayMotion.reduceTransparency {
-            // One-for-one swap: flat paper2 where the glass would have been.
-            content.background(OverlayPalette.glassFallback, in: shape)
-        } else {
+        if LiquidGlass.isUsable {
             // The wash goes on *before* `.glassEffect`, which puts its material underneath —
             // so the wash lands on top of the glass and tints it toward paper. Without it the
             // material picks up whatever is behind the window and reads gray.
             content
                 .background(OverlayPalette.glassWash, in: shape)
-                .glassEffect(.regular, in: shape)
+                .liquidGlass(in: shape)
+        } else {
+            // One-for-one swap: flat paper2 where the glass would have been.
+            content.background(OverlayPalette.glassFallback, in: shape)
         }
     }
 }

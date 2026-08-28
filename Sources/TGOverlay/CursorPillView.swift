@@ -41,12 +41,12 @@ struct CursorPillView: View {
     private var chrome: some View {
         let shape = RoundedRectangle(cornerRadius: Self.corner, style: .continuous)
         Group {
-            if OverlayMotion.reduceTransparency {
-                shape.fill(Color.tg(OverlayPalette.Hex.paperDark, opacity: 0.98))
-            } else {
+            if LiquidGlass.isUsable {
                 shape
                     .fill(Color.tg(OverlayPalette.Hex.paperDark, opacity: 0.62))
-                    .glassEffect(.regular, in: shape)
+                    .liquidGlass(in: shape)
+            } else {
+                shape.fill(Color.tg(OverlayPalette.Hex.paperDark, opacity: 0.98))
             }
         }
         .overlay(shape.strokeBorder(Color.tg(OverlayPalette.Hex.inkDark, opacity: 0.16), lineWidth: 0.8))

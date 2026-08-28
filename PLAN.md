@@ -1,6 +1,6 @@
 # TouchGrass — build plan
 
-A native macOS 26 menu-bar break reminder whose breaks never become the interruption.
+A native macOS 15+ menu-bar break reminder whose breaks never become the interruption.
 Swift 5 mode, SwiftPM only (no Xcode), AppKit + SwiftUI, ad-hoc signed, direct install to /Applications.
 
 Research: `research/03-macos-tech-landscape.md`.

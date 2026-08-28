@@ -3,7 +3,7 @@ import PackageDescription
 
 let package = Package(
     name: "TouchGrass",
-    platforms: [.macOS("26.0")],
+    platforms: [.macOS("15.0")],
     targets: [
         // Pure-Swift domain: settings, break engine state machine. No AppKit. Fully unit-tested.
         .target(name: "TGCore"),

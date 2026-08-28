@@ -1,5 +1,6 @@
 // TGOverlay — the one button in the app: a paper-glass capsule.
-// Liquid Glass washed toward paper on macOS 26, flat paper2 when Reduce Transparency is on.
+// Liquid Glass washed toward paper on macOS 26; flat paper2 below that, and whenever Reduce
+// Transparency is on.
 // The prominent tier is a matcha fill with paper type — the single loud thing on a screen
 // whose whole job is to be quiet. Hover brightens over 120 ms.
 
@@ -110,19 +111,19 @@ private struct GlassPillBody: View {
             // Prominent: a flat matcha capsule. No glass — the accent has to hold its hue, and
             // tinted glass pulls the whole scene into a separate compositing pass to do it.
             content.background(tone.primaryFill, in: Capsule())
-        } else if OverlayMotion.reduceTransparency {
-            content
-                .background(tone.pillFallback, in: Capsule())
-                .overlay(Capsule().strokeBorder(tone.pillBorder, lineWidth: 1))
-        } else {
+        } else if LiquidGlass.isUsable {
             // Glass on the background shape only — wrapping the label in the glass effect
             // refracts the text through the material and it renders soft on screen.
             content
                 .background {
                     Capsule(style: .continuous)
                         .fill(tone.pillWash)
-                        .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+                        .liquidGlass(in: Capsule(style: .continuous), interactive: true)
                 }
+                .overlay(Capsule().strokeBorder(tone.pillBorder, lineWidth: 1))
+        } else {
+            content
+                .background(tone.pillFallback, in: Capsule())
                 .overlay(Capsule().strokeBorder(tone.pillBorder, lineWidth: 1))
         }
     }

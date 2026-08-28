@@ -299,12 +299,12 @@ public struct BreakView: View {
 
     @ViewBuilder
     private var capsuleChrome: some View {
-        if OverlayMotion.reduceTransparency {
-            Capsule(style: .continuous).fill(tone.pillFallback)
-        } else {
+        if LiquidGlass.isUsable {
             Capsule(style: .continuous)
                 .fill(tone.pillWash)
-                .glassEffect(.regular.interactive(), in: Capsule(style: .continuous))
+                .liquidGlass(in: Capsule(style: .continuous), interactive: true)
+        } else {
+            Capsule(style: .continuous).fill(tone.pillFallback)
         }
     }
 

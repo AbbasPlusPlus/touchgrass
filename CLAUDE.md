@@ -1,6 +1,6 @@
 # TouchGrass — agent instructions
 
-Native macOS 26 menu-bar break reminder. SwiftPM only, **no Xcode**. Swift 5 language mode. AppKit + SwiftUI.
+Native macOS 15+ menu-bar break reminder (Apple silicon). SwiftPM only, **no Xcode**. Swift 5 language mode. AppKit + SwiftUI.
 
 ## Build
 - `make build` — `swift build -c release` (use `make CONFIG=debug build` while iterating)
