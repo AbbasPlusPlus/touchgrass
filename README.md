@@ -6,7 +6,7 @@ TouchGrass counts your focused screen time and gently frosts the screen when
 it's time to rest your eyes — but it never interrupts a call, a film, or a
 fullscreen game. No accounts, no telemetry, no permission prompts.
 
-**Website / download:** https://touchgrass-landing.vercel.app
+**Website / download:** https://grass.mohammadabbas.com
 
 ## Install
 
