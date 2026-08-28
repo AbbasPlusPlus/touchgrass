@@ -4,7 +4,7 @@
 // at screensaver/assistive levels (verified live on macOS 26; the window leaves with the outgoing
 // Space's composite and pops back after). The only way to hold a window truly still is for it not
 // to live in a user Space at all: create a private CGS space at a high absolute level, move the
-// windows there, and show it. This is the technique  ships for the same problem.
+// windows there, and show it. Commercial break apps ship the same technique for this problem.
 //
 // This is private SkyLight API — the ONE deliberate exception to the project's no-private-API rule
 // (user-approved). Every symbol is dlsym-guarded: if any lookup fails, `pin` returns nil and the

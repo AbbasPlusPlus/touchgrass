@@ -1,6 +1,6 @@
 # TouchGrass — build plan
 
-A native macOS 26 menu-bar break reminder in the spirit of : breaks that never become the interruption.
+A native macOS 26 menu-bar break reminder whose breaks never become the interruption.
 Swift 5 mode, SwiftPM only (no Xcode), AppKit + SwiftUI, ad-hoc signed, direct install to /Applications.
 
 Research: `research/03-macos-tech-landscape.md`.
@@ -24,7 +24,7 @@ TouchGrass   main.swift: wires store → engine ← monitor; engine.events → o
 
 Data flow: detectors publish signals → `BreakEngine.update*()` → engine `phase` (@Published) + `events` (PassthroughSubject) → UI/audio react. The engine never imports AppKit. UI never computes timing.
 
-## Key design rules (from 's bugs)
+## Key design rules (learned from the bugs of other apps in this category)
 
 1. **Never activate the app.** Overlays are `.nonactivatingPanel`, shown with `orderFrontRegardless()`. Activating steals focus across Spaces.
 2. **One panel per NSScreen**, keyed by display UUID, rebuilt on debounced `didChangeScreenParameters`.
@@ -53,7 +53,7 @@ Package.swift, Makefile (`make run` builds, bundles, signs, launches), Info.plis
 Wire main.swift, 1 Hz tick, engine.events → overlay/audio, monitor → engine, app icon, `make install`. Run live on this Mac.
 
 ### Phase 3 — polish & hardening (2–3 agents, review-driven)
-Multi-display hot-plug torture, sleep/wake, lock/unlock, Spaces/fullscreen, Reduce Motion, sound tuning, animation timing, memory (no growth per break), CPU <1% idle. Design review pass on every surface against  screenshots.
+Multi-display hot-plug torture, sleep/wake, lock/unlock, Spaces/fullscreen, Reduce Motion, sound tuning, animation timing, memory (no growth per break), CPU <1% idle. Design review pass on every surface.
 
 ## Build & run
 ```
@@ -65,5 +65,5 @@ make install    # copies to /Applications
 ## v1.1 queue (agreed 2026-08-27)
 In flight: typography pass (agent/typography), Stats + stats (agent/stats), self-updater + release flow (agent/updater, public feed repo AbbasPlusPlus/touchgrass-releases), quick-panel first-paint corner fix (agent/corners).
 Next wave (after the above merge; they share TGCore/TGMenuBar files): office hours · custom wellness reminders (water/stretch/eye drops, custom text) · custom sound upload row · advance skips + per-day skip limits · dictation-aware typing deferral end-to-end check.
-Design: moving OFF the -clone look to an own identity — whimsical, nature/healing/greenery.
+Design: moving off the generic dark-glass look to an own identity — whimsical, nature/healing/greenery.
 Out (user decision): calendar, Apple Watch, iOS mirror, Focus-mode detection, screen-share detection, Pomodoro, settings sync, localization.

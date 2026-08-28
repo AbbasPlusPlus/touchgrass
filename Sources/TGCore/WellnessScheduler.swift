@@ -5,7 +5,7 @@
 //   * Wellness timing measures **real time** — a meeting or a video doesn't stop you from blinking,
 //     so the nudges keep coming. The one exception is a break that's actually on screen: a nudge on
 //     top of a break overlay is noise, so the counters hold while `isInBreak` is true.
-// ( users routinely trip over this difference; the split is intentional.)
+// (users of similar apps routinely trip over this difference; the split is intentional.)
 //
 // Custom reminders (water / stretch / eye drops, `Settings.customReminders`) run on exactly the
 // same real-time cadence as blink and posture, freeze during a break the same way, and are reset

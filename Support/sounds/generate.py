@@ -16,7 +16,7 @@ Design rules (these are the audible contract, keep them):
   * peak <= -3 dBFS, and the two "ambient" events (preBreak, wellness) sit
     deliberately quieter so they never startle.
   * 5 ms raised-cosine fade-in and 50 ms fade-out on every file, plus a DC
-    blocker, so nothing can click. ( shipped a crackle bug here.)
+    blocker, so nothing can click. (a competing app shipped a crackle bug here.)
   * gentle low-pass on every style so partials never get glassy (sparkle is
     capped at 9 kHz, which is where a glockenspiel stops being cheerful).
 

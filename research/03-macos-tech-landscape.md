@@ -22,7 +22,7 @@ Claims marked ✔ were measured with compiled probes, in and out of the App Sand
 - Don't use `.maximumWindow` (above cursor level → cursor hidden). `CGShieldingWindowLevel` covers VoiceOver.
 - `NSVisualEffectView` incompatible with window `alphaValue` fades → fade a child overlay view, or fade the whole panel with a solid/wallpaper background instead.
 - Reduce Transparency kills blur → design flat fallback.
-- Capture exclusion: `NSWindow.sharingType = .none` ignored by ScreenCaptureKit on 15+;  uses SkyLight SPI `CGSSetWindowCaptureExcludeShape`.
+- Capture exclusion: `NSWindow.sharingType = .none` ignored by ScreenCaptureKit on 15+; commercial break apps use SkyLight SPI `CGSSetWindowCaptureExcludeShape`.
 - Strict mode: `presentationOptions` only apply while app is active; swallowing Cmd-Tab/Esc needs `CGEventTap` (Accessibility + Input Monitoring, not sandbox). Handle `kCGEventTapDisabledByTimeout` after lock/sleep.
 - Mouse click-through regressions on 15.3 and 26.3 — test per OS release.
 
@@ -48,7 +48,7 @@ Bugs: Bluetooth mics (AirPods!) report always 0 (Apple-acknowledged bug). Aggreg
 - During a break hold our own `IOPMAssertionCreateWithName(kIOPMAssertionTypePreventUserIdleDisplaySleep…)` ✔.
 - Fullscreen heuristic: `CGWindowListCopyWindowInfo` (✔ no permission for metadata; `kCGWindowName` withheld, don't need it) → `kCGWindowLayer == 0 && IsOnscreen && bounds ≈ CGDisplayBounds(display)` (±40 pt). Trigger on `NSWorkspace.didActivateApplicationNotification`. `CGSGetActiveSpace` ✔ broken on 26. `frame == visibleFrame` is a bad heuristic.
 - `NSWorkspace.frontmostApplication`, `menuBarOwningApplication`, `runningApplications` free.
-- 's bundle lists: us.zoom.xos, com.microsoft.teams(2), com.cisco.webex*, com.tinyspeck.slackmacgap, com.apple.FaceTime, com.discordapp.Discord, com.skype.skype, com.apple.avconferenced, + ~30 browsers, + dictation denylist (superwhisper, Wispr Flow, Aqua Voice, VoiceInk), + caffeinators.
+- Known conferencing/dictation bundle IDs: us.zoom.xos, com.microsoft.teams(2), com.cisco.webex*, com.tinyspeck.slackmacgap, com.apple.FaceTime, com.discordapp.Discord, com.skype.skype, com.apple.avconferenced, + ~30 browsers, + dictation denylist (superwhisper, Wispr Flow, Aqua Voice, VoiceInk), + caffeinators.
 
 ### Recommended detection policy (from OpenOats spec)
 camera on → pause immediately; mic on + known meeting app running → pause after 5 s; mic alone → don't pause (dictation); 3 s hysteresis on camera-off; resume only when all clear. Per-device + per-app opt-outs.
@@ -57,7 +57,7 @@ camera on → pause immediately; mic on + known meeting app running → pause af
 `INFocusStatusCenter.default.focusStatus.isFocused` with entitlements `com.apple.developer.focus-status` + `com.apple.developer.usernotifications.communication`, `NSFocusStatusUsageDescription`. Poll 10–15 s. Ref: bartreardon/infocus. Also offer `SetFocusFilterIntent`.
 
 ### Screen sharing
-No public API.  dlopens SkyLight `CGSIsScreenWatcherPresent` + `CGSRegisterNotifyProc`. Public substitute: capture-app bundle list + power assertions + Zoom share toolbar window.
+No public API. Commercial break apps dlopen SkyLight `CGSIsScreenWatcherPresent` + `CGSRegisterNotifyProc`. Public substitute: capture-app bundle list + power assertions + Zoom share toolbar window.
 
 ## Idle / sleep / lock
 - `CGEventSource.secondsSinceLastEventType(.combinedSessionState, eventType: CGEventType(rawValue: ~0)!)` ✔ no permission; can separate keyDown vs mouseMoved idle (typing detection without Accessibility!).

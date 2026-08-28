@@ -208,7 +208,7 @@ public final class StatusBarController: NSObject {
 
     // MARK: - Right-click menu
 
-    /// Ordered the way  orders it: what's queued, then the four things you can do to
+    /// Ordered by immediacy: what's queued, then the four things you can do to
     /// it, then the app-level items. Verbs first, housekeeping last.
     private func buildMenu() -> NSMenu {
         let menu = NSMenu()

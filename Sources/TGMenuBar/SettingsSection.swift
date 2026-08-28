@@ -1,7 +1,7 @@
 // TGMenuBar — the settings sidebar's table of contents.
 import SwiftUI
 
-/// One page of the settings window. Grouped exactly like  (and System Settings):
+/// One page of the settings window. Grouped like System Settings:
 /// what the app does to you, then how it behaves, then the housekeeping.
 public enum SettingsSection: String, CaseIterable, Identifiable, Hashable, Sendable {
     case screenBreaks

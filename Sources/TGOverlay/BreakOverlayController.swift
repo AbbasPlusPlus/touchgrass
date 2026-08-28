@@ -122,7 +122,7 @@ public final class BreakOverlayController {
     private func makePanel(for screen: NSScreen, id: String) -> OverlayPanel {
         // .screenSaver (1000) windows slide away with Space-swipe transitions and reappear after —
         // jarring mid-break. The assistive band (1500, where VoiceOver panels live) is composited
-        // statically across Space transitions, which is exactly the  behavior: the swipe
+        // statically across Space transitions: the swipe
         // still switches the Space underneath, but the break screen never leaves.
         let breakLevel = NSWindow.Level(rawValue: NSWindow.Level.screenSaver.rawValue + 500)
         let panel = OverlayPanel(contentRect: screen.frame, level: breakLevel, becomesKey: true)

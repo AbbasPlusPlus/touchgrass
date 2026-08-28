@@ -15,7 +15,7 @@
 //     maximised    layer  0 @ 0,39 1800x1130   ← and nothing above layer 0
 // So a window inset by the menu-bar strip must additionally own that overlay to count.
 //
-// Being fullscreen is *not* on its own a reason to pause. Matching : fullscreen auto-pause
+// Being fullscreen is *not* on its own a reason to pause. By design: fullscreen auto-pause
 // fires only for fullscreen **games** (`LSApplicationCategoryType` in the games family, or a known
 // launcher/wrapper from `KnownBundles.gameApps`). An editor or browser in fullscreen is ordinary
 // work — the user has to add it to Deep Focus Apps if they want it to pause. `fullscreen` itself is

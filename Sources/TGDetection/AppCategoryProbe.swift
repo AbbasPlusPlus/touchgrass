@@ -29,7 +29,7 @@ public enum AppCategoryProbe {
         return value
     }
 
-    ///  parity: fullscreen auto-pause is for *games*. Everything else the user must add to
+    /// Fullscreen auto-pause is for *games* only. Everything else the user must add to
     /// Deep Focus Apps explicitly.
     public static func isGame(pid: pid_t, bundleID: String?) -> Bool {
         KnownBundles.isGame(bundleID: bundleID, category: category(pid: pid, bundleID: bundleID))

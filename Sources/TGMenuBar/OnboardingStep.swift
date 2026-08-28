@@ -1,7 +1,7 @@
 // TGMenuBar — the three questions of first run.
 import Foundation
 
-///  asks three things and then gets out of the way. So do we.
+/// Ask three things, then get out of the way.
 enum OnboardingStep: Int, CaseIterable, Identifiable {
     case welcome
     case duration

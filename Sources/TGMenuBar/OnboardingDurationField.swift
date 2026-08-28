@@ -4,7 +4,7 @@ import SwiftUI
 /// A row of preset chips plus a "Custom…" chip that reveals a stepper underneath.
 ///
 /// Onboarding used to be presets-only, which quietly told anyone who wanted a 12-minute
-/// interval that the app wasn't for them.  lets you set any duration during setup;
+/// interval that the app wasn't for them. Any duration should be settable during setup;
 /// so does this. The common case is still one click.
 struct OnboardingDurationField: View {
 
