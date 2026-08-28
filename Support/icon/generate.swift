@@ -381,83 +381,21 @@ enum Mark {
 
 // MARK: - Composition
 
-/// Paper (#F2EEDE), a whisper of grain, and the mark with ~12 % of the body left as margin.
+/// Full-bleed white with the mark centred. macOS 26 masks and frames app icons itself, so any
+/// hand-drawn tile (squircle, shadow, rim) ends up double-bordered inside the system's frame —
+/// the canvas must simply be the background, edge to edge.
 func drawIcon(into ctx: CGContext, size S: CGFloat) {
     ctx.setAllowsAntialiasing(true)
     ctx.interpolationQuality = .high
 
-    // Standard macOS icon grid: 824/1024 body centred in the canvas.
-    let inset = S * (100.0 / 1024.0)
-    let body = CGRect(x: inset, y: inset, width: S - inset * 2, height: S - inset * 2)
-    let radius = body.width * 0.225
-    let shape = squirclePath(in: body, cornerRadius: radius)
+    ctx.setFillColor(rgb(0xFFFFFF))
+    ctx.fill(CGRect(x: 0, y: 0, width: S, height: S))
 
-    // ---- Paper ------------------------------------------------------------
-    ctx.saveGState()
-    ctx.addPath(shape)
-    ctx.clip()
-
-    // Not a flat fill: a barely-there vertical lift keeps 1024 px of beige from looking dead.
-    ctx.drawLinearGradient(
-        gradient([(rgb(0xEDE8D6), 0.0), (rgb(0xF2EEDE), 0.45), (rgb(0xFAF7EC), 1.0)]),
-        start: CGPoint(x: body.midX, y: body.minY),
-        end: CGPoint(x: body.midX, y: body.maxY),
-        options: []
-    )
-
-    if S >= 128 { drawGrain(ctx, rect: body, alpha: 0.045) }
-
-    // A soft warm shade under where the mark sits, so the disc has something to sit *on*.
-    ctx.drawRadialGradient(
-        gradient([(rgb(0x8A8460, 0.10), 0.0), (rgb(0x8A8460, 0.0), 1.0)]),
-        startCenter: CGPoint(x: body.midX, y: body.minY + body.height * 0.40),
-        startRadius: 0,
-        endCenter: CGPoint(x: body.midX, y: body.minY + body.height * 0.40),
-        endRadius: body.width * 0.56,
-        options: []
-    )
-    ctx.restoreGState()
-
-    // ---- The mark ---------------------------------------------------------
-    // 12 % margin on each side leaves the mark 76 % of the body. Below 64 px it grows a little
-    // to buy back some pixels — but not to 6 %, which puts the blade tips into the squircle's
-    // corners and leaves the tile reading as a green square instead of a disc of grass.
-    //
-    // Every one of the 46 paths is drawn at every size. Rendering 16 px and 32 px against a
-    // version with the 33 hairline seam-fillers dropped differs by at most 2/255 on 16 of the
-    // 16 px tile's subpixels, so there is nothing to gain by simplifying.
-    let margin = body.width * (S >= 64 ? 0.12 : 0.10)
-    let markRect = CGRect(x: body.minX + margin, y: body.minY + margin,
-                          width: body.width - margin * 2, height: body.height - margin * 2)
-
-    ctx.saveGState()
-    ctx.addPath(shape)
-    ctx.clip()
-    if S >= 64 {
-        ctx.setShadow(offset: CGSize(width: 0, height: -S * 0.010),
-                      blur: S * 0.030,
-                      color: rgb(0x3A3A22, 0.22))
-        ctx.beginTransparencyLayer(auxiliaryInfo: nil)
-    }
+    // The system's squircle crop eats into the edges, so keep the mark clear of them:
+    // 18 % margin at normal sizes leaves the blade tips inside the visible area.
+    let margin = S * (S >= 64 ? 0.18 : 0.16)
+    let markRect = CGRect(x: margin, y: margin, width: S - margin * 2, height: S - margin * 2)
     Mark.draw(into: ctx, in: markRect)
-    if S >= 64 { ctx.endTransparencyLayer() }
-    ctx.restoreGState()
-
-    // ---- Inner rim light along the top edge ------------------------------
-    ctx.saveGState()
-    ctx.addPath(shape)
-    ctx.clip()
-    ctx.addPath(shape)
-    ctx.setLineWidth(max(0.75, S * 0.0045) * 2)   // half of it is clipped away
-    ctx.replacePathWithStrokedPath()
-    ctx.clip()
-    ctx.drawLinearGradient(
-        gradient([(rgb(0x8A8460, 0.14), 0.0), (rgb(0xFFFFFF, 0.0), 0.45), (rgb(0xFFFFFF, 0.28), 1.0)]),
-        start: CGPoint(x: body.midX, y: body.minY),
-        end: CGPoint(x: body.midX, y: body.maxY),
-        options: []
-    )
-    ctx.restoreGState()
 }
 
 /// Deterministic low-amplitude grain so large renders don't look plasticky.
