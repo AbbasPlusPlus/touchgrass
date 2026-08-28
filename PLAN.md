@@ -3,7 +3,7 @@
 A native macOS 26 menu-bar break reminder in the spirit of : breaks that never become the interruption.
 Swift 5 mode, SwiftPM only (no Xcode), AppKit + SwiftUI, ad-hoc signed, direct install to /Applications.
 
-Research: `research/01--features.md`, `research/02--user-feedback.md`, `research/03-macos-tech-landscape.md`.
+Research: `research/03-macos-tech-landscape.md`.
 
 ## v1 scope
 
