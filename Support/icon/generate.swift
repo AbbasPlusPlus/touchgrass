@@ -381,19 +381,15 @@ enum Mark {
 
 // MARK: - Composition
 
-/// Full-bleed white with the mark centred. macOS 26 masks and frames app icons itself, so any
-/// hand-drawn tile (squircle, shadow, rim) ends up double-bordered inside the system's frame —
-/// the canvas must simply be the background, edge to edge.
+/// Transparent canvas, mark centred. Pre-26 macOS shows icons as-is (a painted square read as a
+/// white tile there), and macOS 26 frames whatever it's given — so the artwork alone is the
+/// right source on both.
 func drawIcon(into ctx: CGContext, size S: CGFloat) {
     ctx.setAllowsAntialiasing(true)
     ctx.interpolationQuality = .high
+    ctx.clear(CGRect(x: 0, y: 0, width: S, height: S))
 
-    ctx.setFillColor(rgb(0xFFFFFF))
-    ctx.fill(CGRect(x: 0, y: 0, width: S, height: S))
-
-    // The system's squircle crop eats into the edges, so keep the mark clear of them:
-    // 18 % margin at normal sizes leaves the blade tips inside the visible area.
-    let margin = S * (S >= 64 ? 0.18 : 0.16)
+    let margin = S * (S >= 64 ? 0.08 : 0.05)
     let markRect = CGRect(x: margin, y: margin, width: S - margin * 2, height: S - margin * 2)
     Mark.draw(into: ctx, in: markRect)
 }
