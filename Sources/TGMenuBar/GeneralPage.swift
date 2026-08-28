@@ -51,6 +51,15 @@ struct GeneralPage: View {
 
             UpdatesSection(store: store, updates: UpdateChecker.shared)
 
+            Section("Help") {
+                Link(destination: URL(string: "https://github.com/AbbasPlusPlus/touchgrass/issues/new")!) {
+                    Label("Report an issue", systemImage: "exclamationmark.bubble")
+                }
+                Link(destination: URL(string: "https://github.com/AbbasPlusPlus/touchgrass/discussions")!) {
+                    Label("Ask a question or suggest a feature", systemImage: "lightbulb")
+                }
+            }
+
             Section("Getting started") {
                 LabeledContent("Setup") {
                     Button("Show onboarding again", action: onShowOnboarding)

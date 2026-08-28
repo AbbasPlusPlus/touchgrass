@@ -12,7 +12,7 @@ BIN      := $(BUILD)/$(CONFIG)/$(APP)
 APPDIR   := build.noindex/$(APP).app
 CONTENTS := $(APPDIR)/Contents
 
-.PHONY: all build bundle run test clean debug kill install release release-dry
+.PHONY: all build bundle run test clean debug kill install release release-dry downloads
 
 all: bundle
 
@@ -67,3 +67,10 @@ release-dry:
 
 clean:
 	rm -rf $(BUILD) build build.noindex dist
+
+# Download counts straight from the GitHub release assets (zip, curl installer and Homebrew all
+# fetch the same asset, so this is the whole picture — no telemetry in the app).
+downloads:
+	@gh api repos/AbbasPlusPlus/touchgrass-releases/releases \
+	  --jq '.[] | "\(.tag_name)\t\(.assets[0].download_count // 0)\t\(.published_at[:10])"' | column -t
+	@printf 'total\t%s\n' "$$(gh api repos/AbbasPlusPlus/touchgrass-releases/releases --jq '[.[].assets[0].download_count // 0] | add')"

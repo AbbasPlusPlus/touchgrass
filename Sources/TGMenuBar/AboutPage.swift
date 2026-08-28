@@ -25,6 +25,11 @@ struct AboutPage: View {
                 .padding(.vertical, 6)
             }
 
+
+            Section("Help") {
+                link("Report an issue", "https://github.com/AbbasPlusPlus/touchgrass/issues/new", symbol: "exclamationmark.bubble")
+                link("Source on GitHub", "https://github.com/AbbasPlusPlus/touchgrass", symbol: "chevron.left.forwardslash.chevron.right")
+            }
         }
         .formStyle(.grouped)
     }
