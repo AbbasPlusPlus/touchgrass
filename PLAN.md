@@ -65,5 +65,5 @@ make install    # copies to /Applications
 ## v1.1 queue (agreed 2026-08-27)
 In flight: typography pass (agent/typography), Stats + stats (agent/stats), self-updater + release flow (agent/updater, public feed repo AbbasPlusPlus/touchgrass-releases), quick-panel first-paint corner fix (agent/corners).
 Next wave (after the above merge; they share TGCore/TGMenuBar files): office hours · custom wellness reminders (water/stretch/eye drops, custom text) · custom sound upload row · advance skips + per-day skip limits · dictation-aware typing deferral end-to-end check.
-Design: moving OFF the -clone look to an own identity — whimsical, nature/healing/greenery. Direction artifact: Support/design/directions.html; chosen direction to be applied across all surfaces.
+Design: moving OFF the -clone look to an own identity — whimsical, nature/healing/greenery.
 Out (user decision): calendar, Apple Watch, iOS mirror, Focus-mode detection, screen-share detection, Pomodoro, settings sync, localization.

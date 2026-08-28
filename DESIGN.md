@@ -1,6 +1,6 @@
 # TouchGrass design system — "Paper Garden" (approved 2026-08-27)
 
-Reference mockups: `Support/design/directions.html` (final revision). This file is the spec for code.
+This file is the spec for code.
 
 ## Concept
 Paper is the canvas, glass is the chrome. Warm paper tints everywhere, matcha green as the single
@@ -46,7 +46,7 @@ Implement as a `TGPalette` (TGMenuBar) / `OverlayPalette` (TGOverlay) with dynam
 - Esc keycap hint unchanged.
 
 ## Quick panel
-Now tab = **the ledger** (option B of `Support/design/panel-layouts.html`, approved 2026-08-27).
+Now tab = **the ledger** (approved 2026-08-27).
 Everything left-aligned off one margin, no centred stack:
 - Eyebrow (12 pt, heavy, .14em tracking, ink2): `NEXT BREAK · SHORT · 30 SEC` / `PAUSED · MEETING`
   / `ON BREAK` / `STOPPED`. The Stats tab reuses it (`TODAY · stats`).
