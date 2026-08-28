@@ -1,7 +1,11 @@
 APP      := TouchGrass
 # System CLT SwiftPM is broken on this machine; use Homebrew toolchain.
 SWIFT    ?= $(shell brew --prefix swift 2>/dev/null)/bin/swift
-BUILD    := .build
+# Release builds set SCRATCH to a path outside $HOME (see release.sh) so SwiftPM's generated
+# resource accessors don't bake a personal filesystem path into the shipped binary.
+SCRATCH  ?=
+BUILD    := $(if $(SCRATCH),$(SCRATCH),.build)
+SCRATCHFLAG := $(if $(SCRATCH),--scratch-path $(SCRATCH),)
 CONFIG   ?= release
 BIN      := $(BUILD)/$(CONFIG)/$(APP)
 # .noindex keeps Spotlight from listing the build artifact as a second copy of the app
@@ -13,7 +17,7 @@ CONTENTS := $(APPDIR)/Contents
 all: bundle
 
 build:
-	$(SWIFT) build -c $(CONFIG)
+	$(SWIFT) build -c $(CONFIG) $(SCRATCHFLAG)
 
 debug:
 	$(MAKE) CONFIG=debug bundle

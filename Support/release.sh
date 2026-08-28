@@ -88,6 +88,7 @@ step "$APP $VERSION (build $BUILD)"
 
 # ---------------------------------------------------------------- build
 
+export SCRATCH=/private/tmp/touchgrass-build
 step "Building a clean release bundle"
 rm -rf "$ROOT/build" "$DIST"
 mkdir -p "$DIST"
