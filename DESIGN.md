@@ -66,11 +66,10 @@ Everything left-aligned off one margin, no centred stack:
   re-drawn with palette gradients. Onboarding hero uses paper + grass strokes, matcha primary button.
 
 ## Icon & sounds
-- **The logo is `Support/logo/touchgrass-mark.svg`** (user-approved recreation): five flat paths
-  clipped to a disc — light crescent #A6C84D, blade #78AF43, blade #4F8D3C, dark mass #27521F,
-  leaf #93C04C. App icon: re-cut `Support/icon/generate.swift` to draw exactly these paths
-  (translate the SVG path data to CGPath) centered on a paper squircle (light paper #F2EEDE with
-  subtle grain; keep ~12% margin around the disc). The mark is also the About-screen logo.
+- **The logo is `Support/logo/touchgrass-mark.svg`** (46 flat paths, designer artwork).
+  `Support/logo/svg2swift.py` regenerates the embedded LogoMarkData; `Support/icon/generate.swift`
+  reads the SVG at run time to cut the app icon on a paper squircle. The mark is also the
+  About-screen and onboarding logo, the status item, and the cursor-pill badge.
 - Sounds unchanged for now.
 
 ## Hover audit (part of the re-skin)
