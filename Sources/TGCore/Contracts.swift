@@ -170,6 +170,8 @@ public enum GradientPreset: String, Codable, Sendable, Hashable, CaseIterable {
 
 public enum AnimatedPreset: String, Codable, Sendable, Hashable, CaseIterable {
     case slipstream, fireflies, topography, aurora
+    // Added after the original four; appended so existing stored values keep decoding.
+    case bokeh, rain, ripple, lanterns
 }
 
 public enum SoundStyle: String, Codable, Sendable, Hashable, CaseIterable {
@@ -182,6 +184,7 @@ public enum SoundStyle: String, Codable, Sendable, Hashable, CaseIterable {
     case kalimba
     case sparkle
     case pop
+    case meow
     case none
 
     public var title: String {
@@ -193,6 +196,7 @@ public enum SoundStyle: String, Codable, Sendable, Hashable, CaseIterable {
         case .kalimba: return "Kalimba"
         case .sparkle: return "Sparkle"
         case .pop: return "Pop"
+        case .meow: return "Meow"
         case .none: return "None"
         }
     }
@@ -208,6 +212,7 @@ public enum SoundStyle: String, Codable, Sendable, Hashable, CaseIterable {
         case .kalimba: return "Cheerful pluck"
         case .sparkle: return "Quick ascending shimmer"
         case .pop: return "Clean, snappy"
+        case .meow: return "A friendly cat"
         case .none: return "Silent"
         }
     }

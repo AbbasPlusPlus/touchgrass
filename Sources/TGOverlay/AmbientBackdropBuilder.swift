@@ -27,6 +27,14 @@ enum AmbientBackdropBuilder {
             return topography(size: size, animated: animated)
         case .animated(.aurora):
             return aurora(size: size, animated: animated)
+        case .animated(.bokeh):
+            return bokeh(size: size, animated: animated)
+        case .animated(.rain):
+            return rain(size: size, animated: animated)
+        case .animated(.ripple):
+            return ripple(size: size, animated: animated)
+        case .animated(.lanterns):
+            return lanterns(size: size, animated: animated)
         }
     }
 
@@ -371,6 +379,246 @@ enum AmbientBackdropBuilder {
         layer.contents = ctx.makeImage()
         layer.contentsGravity = .resize
         return layer
+    }
+
+    // MARK: - Bokeh
+
+    /// Large, soft, out-of-focus light discs that drift and breathe. Warm-neutral, to balance
+    /// a scene set that otherwise leans cool. Each disc is one radial layer in screen blend, so
+    /// the compositor moves a handful of textures and this process stays idle.
+    private static func bokeh(size: CGSize, animated: Bool) -> [CALayer] {
+        let w = size.width, h = size.height
+        var layers: [CALayer] = [axial([.tg(0x0E0C10), .tg(0x161219), .tg(0x1E1922)],
+                                       frame: CGRect(origin: .zero, size: size))]
+
+        var rng = SeededRandom(seed: 0xB0EC_A417)
+        let palette: [UInt32] = [0xE8B27A, 0xE59A8C, 0x7FB8B0, 0xF0CE93, 0xB49BC8]
+
+        for _ in 0..<9 {
+            let x = CGFloat.random(in: 0.05...0.95, using: &rng)
+            let y = CGFloat.random(in: 0.08...0.92, using: &rng)
+            let dx = CGFloat.random(in: -0.09...0.09, using: &rng)
+            let dy = CGFloat.random(in: -0.07...0.07, using: &rng)
+            let diameter = min(w, h) * CGFloat.random(in: 0.28...0.58, using: &rng)
+            let hex = palette[Int.random(in: 0..<palette.count, using: &rng)]
+            let alpha = Double.random(in: 0.16...0.30, using: &rng)
+            let period = Double.random(in: 34...58, using: &rng)
+            let scaleTo = CGFloat.random(in: 1.06...1.18, using: &rng)
+
+            let disc = radial(.tg(hex, opacity: alpha), diameter: diameter)
+            disc.opacity = animated ? 1.0 : 0.85
+            // `drift` sets the position from the normalised start point and, when animated,
+            // adds the drifting-plus-breathing pair. Distinct periods keep them out of lockstep.
+            drift(disc, size: size,
+                  from: CGPoint(x: x, y: y), to: CGPoint(x: x + dx, y: y + dy),
+                  scale: (1.0, scaleTo), duration: period, animated: animated)
+            layers.append(disc)
+        }
+        return layers
+    }
+
+    // MARK: - Rain
+
+    /// Gentle translucent streaks sliding down a deep-blue night. Each streak is one soft-baked
+    /// texture with a single linear `position.y` animation; staggered start offsets scatter them.
+    private static func rain(size: CGSize, animated: Bool) -> [CALayer] {
+        let w = size.width, h = size.height
+        var layers: [CALayer] = [axial([.tg(0x060A16), .tg(0x0A1222), .tg(0x0F1B30)],
+                                       frame: CGRect(origin: .zero, size: size))]
+
+        // Faint glow along the bottom edge, where the rain "lands".
+        let mist = radial(.tg(0x2A4A6E, opacity: 0.5), diameter: max(w, h) * 1.4)
+        mist.position = CGPoint(x: w * 0.5, y: h * 1.04)
+        layers.append(mist)
+
+        var rng = SeededRandom(seed: 0x4A1F_9C3D)
+        for _ in 0..<48 {
+            let streakH = h * CGFloat.random(in: 0.12...0.24, using: &rng)
+            let thickness = CGFloat.random(in: 1.6...3.4, using: &rng)
+            let x = CGFloat.random(in: -0.02...1.02, using: &rng)
+            let alpha = Double.random(in: 0.08...0.22, using: &rng)
+            let speed = Double.random(in: 3.6...8.5, using: &rng)   // seconds, top to bottom
+            let blur = CGFloat.random(in: 2.5...5.0, using: &rng)
+            let pad = blur * 3
+
+            let boxW = thickness + pad * 2, boxH = streakH + pad * 2
+            let streak = CALayer()
+            streak.bounds = CGRect(x: 0, y: 0, width: boxW, height: boxH)
+            streak.contentsGravity = .resize
+            streak.compositingFilter = "screenBlendMode"
+            streak.contents = softImage(size: CGSize(width: boxW, height: boxH),
+                                        scale: 1.0, blur: blur) { ctx in
+                guard let gradient = CGGradient(colorsSpace: CGColorSpaceCreateDeviceRGB(),
+                                                colors: [CGColor.tg(0xAECBE6, opacity: 0),
+                                                         CGColor.tg(0xAECBE6, opacity: alpha),
+                                                         CGColor.tg(0xAECBE6, opacity: 0)] as CFArray,
+                                                locations: [0, 0.72, 1]) else { return }
+                let rect = CGRect(x: pad, y: pad, width: thickness, height: streakH)
+                ctx.saveGState()
+                ctx.clip(to: rect)
+                ctx.drawLinearGradient(gradient,
+                                       start: CGPoint(x: rect.midX, y: rect.minY),
+                                       end: CGPoint(x: rect.midX, y: rect.maxY), options: [])
+                ctx.restoreGState()
+            }
+
+            let topY = -boxH / 2, bottomY = h + boxH / 2
+            if animated {
+                streak.position = CGPoint(x: x * w, y: topY)
+                let fall = CABasicAnimation(keyPath: "position.y")
+                fall.fromValue = topY
+                fall.toValue = bottomY
+                fall.duration = speed
+                fall.repeatCount = .infinity
+                fall.timingFunction = CAMediaTimingFunction(name: .linear)
+                fall.timeOffset = Double.random(in: 0...speed, using: &rng)
+                streak.add(fall, forKey: "fall")
+            } else {
+                // Frozen pose: scatter the streaks down the height instead of stacking at the top.
+                streak.position = CGPoint(x: x * w, y: CGFloat.random(in: 0...h, using: &rng))
+            }
+            layers.append(streak)
+        }
+        return layers
+    }
+
+    // MARK: - Ripple
+
+    /// Concentric rings that expand and fade from a few still points — rain on a dark pond.
+    /// Each origin stacks several ring layers, staggered in time, so it emits continuously.
+    private static func ripple(size: CGSize, animated: Bool) -> [CALayer] {
+        let w = size.width, h = size.height
+        var layers: [CALayer] = [axial([.tg(0x05080C), .tg(0x0A0F16), .tg(0x0E141C)],
+                                       frame: CGRect(origin: .zero, size: size))]
+
+        let origins: [CGPoint] = [
+            CGPoint(x: 0.30, y: 0.34), CGPoint(x: 0.68, y: 0.28),
+            CGPoint(x: 0.52, y: 0.66), CGPoint(x: 0.18, y: 0.74),
+        ]
+        let ringsPerOrigin = 4
+        let maxDiameter = min(w, h) * 0.9
+
+        for (index, origin) in origins.enumerated() {
+            let period = 7.0 + Double(index) * 1.3        // slightly detuned per origin
+            for r in 0..<ringsPerOrigin {
+                let phase = Double(r) / Double(ringsPerOrigin)
+
+                let ring = CAShapeLayer()
+                ring.bounds = CGRect(x: 0, y: 0, width: maxDiameter, height: maxDiameter)
+                ring.position = CGPoint(x: origin.x * w, y: origin.y * h)
+                ring.path = CGPath(ellipseIn: ring.bounds, transform: nil)
+                ring.fillColor = nil
+                ring.lineWidth = 1.6
+                ring.strokeColor = .tg(0xBCD6E6, opacity: 0.42)
+
+                if animated {
+                    let grow = CABasicAnimation(keyPath: "transform.scale")
+                    grow.fromValue = 0.12
+                    grow.toValue = 1.0
+                    let fade = CABasicAnimation(keyPath: "opacity")
+                    fade.fromValue = 0.55
+                    fade.toValue = 0.0
+                    let group = CAAnimationGroup()
+                    group.animations = [grow, fade]
+                    group.duration = period
+                    group.repeatCount = .infinity
+                    group.timingFunction = CAMediaTimingFunction(name: .easeOut)
+                    group.timeOffset = phase * period
+                    ring.add(group, forKey: "ripple")
+                } else {
+                    // Frozen pose: spread the rings across their radius so a still frame reads as rings.
+                    let t = CGFloat(phase)
+                    ring.transform = CATransform3DMakeScale(0.12 + 0.88 * t, 0.12 + 0.88 * t, 1)
+                    ring.opacity = Float(0.55 * (1 - Double(t)))
+                }
+                layers.append(ring)
+            }
+        }
+        return layers
+    }
+
+    // MARK: - Lanterns
+
+    /// Warm orbs rising slowly against a dusk sky — the warm counterpart to `fireflies`.
+    /// A rising `position.y` (looped) carries each orb; opacity keyframes fade it in low and out
+    /// high so the loop's snap-back happens while it is invisible.
+    private static func lanterns(size: CGSize, animated: Bool) -> [CALayer] {
+        let w = size.width, h = size.height
+        var layers: [CALayer] = [axial([.tg(0x1A1030), .tg(0x2A1840), .tg(0x3A2440)],
+                                       frame: CGRect(origin: .zero, size: size))]
+
+        // Warm horizon glow near the bottom, where the lanterns lift off.
+        let glow = radial(.tg(0x7A3C2E, opacity: 0.55), diameter: max(w, h) * 1.5)
+        glow.position = CGPoint(x: w * 0.5, y: h * 1.02)
+        layers.append(glow)
+
+        var rng = SeededRandom(seed: 0x1A47_E9C0)
+        let palette: [UInt32] = [0xFFC97A, 0xFFB25E, 0xF0A050, 0xFFD98C]
+
+        for _ in 0..<14 {
+            let x = CGFloat.random(in: 0.04...0.96, using: &rng)
+            let sway = CGFloat.random(in: 0.015...0.045, using: &rng)
+            let dot = CGFloat.random(in: 5.0...11.0, using: &rng)
+            let rise = Double.random(in: 34...62, using: &rng)   // seconds, bottom to top
+            let bob = Double.random(in: 6...12, using: &rng)
+            let hex = palette[Int.random(in: 0..<palette.count, using: &rng)]
+            let peak = Double.random(in: 0.55...0.95, using: &rng)
+
+            let lantern = CALayer()
+            lantern.frame = CGRect(x: 0, y: 0, width: dot * 9, height: dot * 9)
+            lantern.compositingFilter = "screenBlendMode"
+
+            let halo = radial(.tg(hex, opacity: 0.40), diameter: dot * 9)
+            halo.position = CGPoint(x: dot * 4.5, y: dot * 4.5)
+            lantern.addSublayer(halo)
+
+            let core = CALayer()
+            core.bounds = CGRect(x: 0, y: 0, width: dot, height: dot)
+            core.position = CGPoint(x: dot * 4.5, y: dot * 4.5)
+            core.cornerRadius = dot / 2
+            core.backgroundColor = .tg(hex, opacity: 0.95)
+            lantern.addSublayer(core)
+
+            let bottomY = h * 1.05, topY = -h * 0.05
+            if animated {
+                lantern.position = CGPoint(x: x * w, y: bottomY)
+                lantern.opacity = 0
+
+                let ascend = CABasicAnimation(keyPath: "position.y")
+                ascend.fromValue = bottomY
+                ascend.toValue = topY
+                ascend.duration = rise
+                ascend.repeatCount = .infinity
+                ascend.timingFunction = CAMediaTimingFunction(name: .linear)
+                let offset = Double.random(in: 0...rise, using: &rng)
+                ascend.timeOffset = offset
+                lantern.add(ascend, forKey: "ascend")
+
+                let breathe = CAKeyframeAnimation(keyPath: "opacity")
+                breathe.values = [0, peak, peak, 0]
+                breathe.keyTimes = [0, 0.18, 0.82, 1]
+                breathe.duration = rise
+                breathe.repeatCount = .infinity
+                breathe.timeOffset = offset
+                lantern.add(breathe, forKey: "fade")
+
+                let drift = CABasicAnimation(keyPath: "position.x")
+                drift.fromValue = (x - sway) * w
+                drift.toValue = (x + sway) * w
+                drift.duration = bob
+                drift.autoreverses = true
+                drift.repeatCount = .infinity
+                drift.timingFunction = CAMediaTimingFunction(name: .easeInEaseOut)
+                drift.timeOffset = Double.random(in: 0...bob, using: &rng)
+                lantern.add(drift, forKey: "sway")
+            } else {
+                // Frozen pose: scatter the orbs up the sky at their full brightness.
+                lantern.position = CGPoint(x: x * w, y: CGFloat.random(in: topY...bottomY, using: &rng))
+                lantern.opacity = Float(peak)
+            }
+            layers.append(lantern)
+        }
+        return layers
     }
 
     // MARK: - Primitives

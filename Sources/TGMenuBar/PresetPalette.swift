@@ -26,6 +26,10 @@ enum PresetPalette {
         case .fireflies:  return [.tg(0x14201C), .tg(0xE6F0AE)]
         case .topography: return [.tg(0x1D2432), .tg(0xAEC8EA)]
         case .aurora:     return [.tg(0x111C2E), .tg(0x66E0A8)]
+        case .bokeh:      return [.tg(0x1E1922), .tg(0xE8B27A)]
+        case .rain:       return [.tg(0x0F1B30), .tg(0xAECBE6)]
+        case .ripple:     return [.tg(0x0E141C), .tg(0xBCD6E6)]
+        case .lanterns:   return [.tg(0x2A1840), .tg(0xFFC97A)]
         }
     }
 

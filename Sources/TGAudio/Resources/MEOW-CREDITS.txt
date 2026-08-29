@@ -1,0 +1,9 @@
+TouchGrass "Meow" sound style — audio credit
+=============================================
+
+All meow-*.m4a files are the same recording, resampled (mono, 48 kHz AAC)
+and loudness-normalised to −20 LUFS to match the other TouchGrass sounds.
+
+  Source : "Meow.ogg" by Dcrosby (English Wikipedia)
+  License: CC BY-SA 3.0  (https://creativecommons.org/licenses/by-sa/3.0/)
+  URL    : https://commons.wikimedia.org/wiki/File:Meow.ogg
