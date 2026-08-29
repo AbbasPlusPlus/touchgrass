@@ -20,6 +20,9 @@ or, without Homebrew:
 curl -fsSL https://raw.githubusercontent.com/AbbasPlusPlus/touchgrass-releases/main/install.sh | sh
 ```
 
+Never opened a Terminal? The [website](https://grass.mohammadabbas.com/#install) walks
+through it step by step.
+
 The app updates itself from the [release feed](https://github.com/AbbasPlusPlus/touchgrass-releases).
 Requires macOS 15 (Sequoia) or newer, Apple silicon.
 
