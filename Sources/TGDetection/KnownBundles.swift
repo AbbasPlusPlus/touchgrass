@@ -139,7 +139,6 @@ public enum KnownBundles {
         "org.softwarebysteve.caffeinated",
         "com.dmitriyvasilyev.mousejigglerapp",
         "com.jiggler.jiggler",
-        "com.mysticalbits.",        // another break app holding assertions
         "com.apple.screensaver",
     ]
 

@@ -66,8 +66,6 @@ Read `CLAUDE.md` and `PLAN.md` for the architecture and the project's rules, and
   degrading silently if the symbols disappear: pinning the break overlay outside
   the Spaces system (so swipes don't move it), and `SACLockScreenImmediate` for the
   Lock Screen button. Everything else is public API.
-- Heavily inspired by [](https://.app) — if you want a more mature,
-  supported app in this category, buy that one.
 
 ## Licenses
 
