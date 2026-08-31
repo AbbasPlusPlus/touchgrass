@@ -117,6 +117,9 @@ public final class VideoDetector {
                     ignored = "our own assertion"
                 } else if KnownBundles.isCaffeinator(bundleID: bundleID, processName: processName ?? identity.processName) {
                     ignored = "caffeinator denylist"
+                } else if KnownBundles.isScreenRecorder(bundleID: bundleID, processName: processName ?? identity.processName) {
+                    // ScreenRecorderDetector claims these — capturing the screen isn't watching a video.
+                    ignored = "screen recorder"
                 } else if BundleMatch.matches(bundleID, anyOf: settings.videoExcludedApps) {
                     ignored = "videoExcludedApps"
                 } else if settings.videoFrontmostOnly && !isFrontmost {

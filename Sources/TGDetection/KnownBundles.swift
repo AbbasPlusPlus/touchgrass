@@ -165,6 +165,35 @@ public enum KnownBundles {
         "com.riotgames.leagueoflegends",
     ]
 
+    /// Dedicated screen-recorder apps. Counted only while the app shows *recording evidence*
+    /// (a display-sleep assertion or the microphone) — a menu-bar-resident Cap or CleanShot
+    /// that isn't recording holds neither, so being on this list never pauses by itself.
+    public static let screenRecorders: Set<String> = [
+        "so.cap.desktop",                   // Cap — verified on this machine
+        "com.obsproject.obs-studio",
+        "com.wulkano.kap",
+        "com.loom.desktop",
+        "com.descript.beachcube",           // Descript
+        "com.timpler.screenstudio",         // Screen Studio
+        "pl.maciejsarnowski.cleanshotx",    // CleanShot X
+    ]
+
+    /// Vendors with versioned or many bundle IDs — matched by substring.
+    public static let screenRecorderNeedles: [String] = [
+        "screenstudio",
+        "screenflow",       // net.telestream.screenflow10, 11…
+        "camtasia",         // com.techsmith.camtasia2023…
+        "snagit",
+        "cleanshot",
+        "obsproject",
+    ]
+
+    /// Matched against the assertion's `Process Name` — the Cmd-Shift-5 system recorder runs as
+    /// `screencapture` with no bundle ID.
+    public static let screenRecorderProcessNames: Set<String> = [
+        "screencapture",
+    ]
+
     /// Matched against the assertion's `Process Name` (CLI tools have no bundle ID).
     public static let caffeinatorProcessNames: Set<String> = [
         "caffeinate",
@@ -209,6 +238,14 @@ public enum KnownBundles {
     /// The full "is this a game?" rule: an App Store games category, or a known game bundle.
     public static func isGame(bundleID: String?, category: String?) -> Bool {
         isGameCategory(category) || isGameBundle(bundleID)
+    }
+
+    /// Evidence held by these apps means "the screen is being recorded", not "a video is playing".
+    public static func isScreenRecorder(bundleID: String?, processName: String?) -> Bool {
+        if BundleMatch.matches(bundleID, anyOf: screenRecorders) { return true }
+        if BundleMatch.contains(bundleID, anyOf: screenRecorderNeedles) { return true }
+        guard let name = processName?.lowercased(), !name.isEmpty else { return false }
+        return screenRecorderProcessNames.contains(name)
     }
 
     public static func isCaffeinator(bundleID: String?, processName: String?) -> Bool {

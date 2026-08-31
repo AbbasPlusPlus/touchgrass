@@ -11,10 +11,10 @@ import Foundation
 // MARK: - PauseReason helpers (internal — Contracts.swift stays untouched)
 
 extension PauseReason {
-    /// Meeting / video end abruptly; give the user `cooldownAfterActivity` before a break can fire.
+    /// Meeting / video / recording end abruptly; give `cooldownAfterActivity` before a break can fire.
     var needsCooldown: Bool {
         switch self {
-        case .meeting, .video: return true
+        case .meeting, .video, .screenRecording: return true
         default: return false
         }
     }

@@ -21,6 +21,8 @@ public enum PauseKind: String, Codable, Sendable, Hashable, CaseIterable {
     case idle
     case manual
     case other
+    /// Appended after v1.3 (screen-recording pause); older stats.json files decode it as `.other`.
+    case recording
 
     // MARK: Mapping
 
@@ -32,6 +34,7 @@ public enum PauseKind: String, Codable, Sendable, Hashable, CaseIterable {
         case .deepFocusApp: self = .deepFocus
         case .idle: self = .idle
         case .manual: self = .manual
+        case .screenRecording: self = .recording
         case .focusMode, .screenLocked, .outsideOfficeHours: self = .other
         }
     }
@@ -40,7 +43,7 @@ public enum PauseKind: String, Codable, Sendable, Hashable, CaseIterable {
     /// call explains a pause better than the fullscreen window the call is in.
     public static func primary(of reasons: Set<PauseReason>) -> PauseKind? {
         let kinds = Set(reasons.map(PauseKind.init))
-        let order: [PauseKind] = [.meeting, .video, .deepFocus, .fullscreen, .manual, .idle, .other]
+        let order: [PauseKind] = [.meeting, .recording, .video, .deepFocus, .fullscreen, .manual, .idle, .other]
         return order.first { kinds.contains($0) }
     }
 
@@ -54,6 +57,7 @@ public enum PauseKind: String, Codable, Sendable, Hashable, CaseIterable {
         case .idle: return "Away"
         case .manual: return "Paused"
         case .other: return "Paused"
+        case .recording: return "Recording"
         }
     }
 }

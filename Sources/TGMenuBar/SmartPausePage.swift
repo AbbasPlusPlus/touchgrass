@@ -12,6 +12,7 @@ struct SmartPausePage: View {
         Form {
             meetingsSection
             videoSection
+            recordingSection
             appsSection
             idleSection
             activitySection
@@ -73,6 +74,26 @@ struct SmartPausePage: View {
                     bundleIDs: $store.settings.videoExcludedApps
                 )
             }
+        }
+    }
+
+    // MARK: - Screen recording
+
+    private var recordingSection: some View {
+        Section {
+            Toggle("Pause while the screen is being recorded", isOn: $store.settings.pauseOnScreenRecording)
+            if settings.pauseOnScreenRecording {
+                AppListEditor(
+                    title: "Never treat as recording",
+                    footnote: "Recorder apps whose captures shouldn't pause breaks.",
+                    emptyMessage: "Every known recorder pauses breaks while it captures.",
+                    bundleIDs: $store.settings.screenRecordingExcludedApps
+                )
+            }
+        } header: {
+            Text("Screen recording")
+        } footer: {
+            Text("Detected when a known recorder — Cap, OBS, Screen Studio, the ⌘⇧5 recorder and friends — is actively capturing. A recorder that is merely open pauses nothing.")
         }
     }
 

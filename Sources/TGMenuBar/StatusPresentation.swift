@@ -120,14 +120,16 @@ public struct StatusPresentation: Equatable {
         switch reason {
         case .manual: return 0
         case .meeting: return 1
-        case .video: return 2
-        case .deepFocusApp: return 3
-        case .fullscreenApp: return 4
-        case .screenLocked: return 5
-        case .focusMode: return 6
+        // A recording explains a pause better than the video assertion the recorder also holds.
+        case .screenRecording: return 2
+        case .video: return 3
+        case .deepFocusApp: return 4
+        case .fullscreenApp: return 5
+        case .screenLocked: return 6
+        case .focusMode: return 7
         // Off hours outranks idle: at 7pm "Off hours" explains the state, "Away" merely restates it.
-        case .outsideOfficeHours: return 7
-        case .idle: return 8
+        case .outsideOfficeHours: return 8
+        case .idle: return 9
         }
     }
 }

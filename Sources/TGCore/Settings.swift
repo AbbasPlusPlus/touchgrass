@@ -152,6 +152,12 @@ public struct Settings: Codable, Equatable, Sendable {
     /// never URLs — and it never leaves this Mac.
     public var trackAppUsage: Bool = true
 
+    /// Pause while a known screen-recorder app shows recording evidence (a display-sleep
+    /// assertion or the microphone). Merely having Cap or CleanShot resident never pauses.
+    public var pauseOnScreenRecording: Bool = true
+    /// Bundle IDs that should never count as screen recording.
+    public var screenRecordingExcludedApps: [String] = []
+
     /// `customSoundPath` as a file URL, or nil when unset/blank.
     public var customSoundURL: URL? {
         guard let path = customSoundPath?.trimmingCharacters(in: .whitespacesAndNewlines),

@@ -46,6 +46,7 @@ public final class ActivityMonitor: ObservableObject {
     public let microphone = MicrophoneDetector()
     public let meeting: MeetingPolicy
     public let video: VideoDetector
+    public let screenRecorder: ScreenRecorderDetector
     public let fullscreen: FullscreenDetector
     public let deepFocus: DeepFocusDetector
     public let idle = IdleDetector()
@@ -64,6 +65,7 @@ public final class ActivityMonitor: ObservableObject {
         self.settings = settings
         self.meeting = MeetingPolicy(settings: settings)
         self.video = VideoDetector(settings: settings)
+        self.screenRecorder = ScreenRecorderDetector(settings: settings)
         let fullscreen = FullscreenDetector(settings: settings)
         self.fullscreen = fullscreen
         self.deepFocus = DeepFocusDetector(settings: settings) { [weak fullscreen] bundleID in
@@ -81,10 +83,17 @@ public final class ActivityMonitor: ObservableObject {
         microphone.onChange = { [weak self] in
             guard let self else { return }
             self.meeting.update(microphone: self.microphone)
+            self.screenRecorder.update(micUsers: self.microphone.recordingProcesses)
             self.scheduleRecompute()
         }
         meeting.onChange = { [weak self] in self?.scheduleRecompute() }
-        video.onChange = { [weak self] in self?.scheduleRecompute() }
+        video.onChange = { [weak self] in
+            guard let self else { return }
+            // The recorder policy rides video's 3 s assertion poll rather than polling again.
+            self.screenRecorder.update(assertions: self.video.assertions)
+            self.scheduleRecompute()
+        }
+        screenRecorder.onChange = { [weak self] in self?.scheduleRecompute() }
         fullscreen.onChange = { [weak self] in
             // Deep focus in `foregroundAndFullscreen` mode depends on the fullscreen verdict.
             self?.deepFocus.refresh()
@@ -121,6 +130,8 @@ public final class ActivityMonitor: ObservableObject {
         frontmost.start()
         meeting.update(camera: camera)
         meeting.update(microphone: microphone)
+        screenRecorder.update(assertions: video.assertions)
+        screenRecorder.update(micUsers: microphone.recordingProcesses)
         recompute()
     }
 
@@ -132,6 +143,7 @@ public final class ActivityMonitor: ObservableObject {
         microphone.stop()
         meeting.stop()
         video.stop()
+        screenRecorder.stop()
         fullscreen.stop()
         deepFocus.stop()
         idle.stop()
@@ -169,6 +181,7 @@ public final class ActivityMonitor: ObservableObject {
         microphone.excludedUIDs = settings.excludedDeviceUIDs
         meeting.settings = settings
         video.settings = settings
+        screenRecorder.settings = settings
         fullscreen.settings = settings
         deepFocus.settings = settings
         idle.idlePauseAfter = settings.idlePauseAfter
@@ -186,6 +199,7 @@ public final class ActivityMonitor: ObservableObject {
 
         if settings.pauseOnMeeting, let meetingReason = meeting.reason { reasons.insert(meetingReason) }
         if settings.pauseOnVideo, let videoReason = video.reason { reasons.insert(videoReason) }
+        if settings.pauseOnScreenRecording, let recordingReason = screenRecorder.reason { reasons.insert(recordingReason) }
         if settings.pauseOnFullscreen, let fullscreenReason = fullscreen.reason { reasons.insert(fullscreenReason) }
         if !settings.deepFocusApps.isEmpty, let deepFocusReason = deepFocus.reason { reasons.insert(deepFocusReason) }
         if idle.idleSeconds >= settings.idlePauseAfter { reasons.insert(.idle) }
@@ -244,13 +258,15 @@ public final class ActivityMonitor: ObservableObject {
         lines.append(microphone.debugDescription())
         lines.append(meeting.debugDescription())
         lines.append(video.debugDescription())
+        lines.append(screenRecorder.debugDescription())
         lines.append(fullscreen.debugDescription())
         lines.append(deepFocus.debugDescription())
         lines.append(idle.debugDescription())
         lines.append(input.debugDescription())
         lines.append(frontmost.debugDescription())
         lines.append("settings: meeting=\(settings.pauseOnMeeting)(cam=\(settings.meetingUsesCamera),mic=\(settings.meetingUsesMicrophone))"
-                     + " video=\(settings.pauseOnVideo) fullscreen=\(settings.pauseOnFullscreen)"
+                     + " video=\(settings.pauseOnVideo) recording=\(settings.pauseOnScreenRecording)"
+                     + " fullscreen=\(settings.pauseOnFullscreen)"
                      + " deferWhileTyping=\(settings.deferWhileTyping)"
                      + " idlePauseAfter=\(Int(settings.idlePauseAfter))s")
         return lines.joined(separator: "\n")
