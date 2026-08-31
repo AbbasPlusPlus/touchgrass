@@ -152,6 +152,10 @@ public final class OverlayCoordinator {
             break
 
         case .awayDecision(let resetTimer, let awayFor):
+            // After a long absence (lunch, overnight) the reset is self-evident and nobody wants
+            // to undo it — greeting them with a toast is noise. The toast only exists for the
+            // debatable case: an away just over the reset threshold, where "Undo" earns its place.
+            guard awayFor < Self.awayToastCutoff else { break }
             let text = resetTimer
                 ? "Timer reset — you were away \(Self.minutesLabel(awayFor))"
                 : "Welcome back — picking up where you left off"
@@ -199,6 +203,10 @@ public final class OverlayCoordinator {
     }
 
     // MARK: - Helpers
+
+    /// Away this long or more ⇒ no toast on return. The engine still emits `.awayDecision`
+    /// (stats depend on it); only the surface is skipped.
+    private static let awayToastCutoff: TimeInterval = 30 * 60
 
     private var snoozesRemaining: Int {
         min(engine.snoozesRemainingToday, engine.snoozesRemainingThisSession)
