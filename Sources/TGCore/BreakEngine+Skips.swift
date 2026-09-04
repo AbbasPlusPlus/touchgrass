@@ -43,14 +43,15 @@ extension BreakEngine {
     }
 
     /// Throw away the upcoming break before it ever shows: the interval restarts immediately,
-    /// exactly as if the break had appeared and been skipped. Like `skipBreak()` it does not
-    /// advance the long-break cadence — a skipped long break is still owed.
+    /// exactly as if the break had appeared and been skipped. Like `skipBreak()`, a skipped long
+    /// break satisfies the long-break cadence, so the next break comes back as a short one.
     public func skipNextBreak() {
         guard canAdvanceSkip else { return }
         advanceSkipsUsedToday += 1
         let kind = nextKind
+        if kind == .long { shortBreaksSinceLong = 0 }
         emit(.skipped(kind: kind))
-        restartInterval(recomputeKind: false)
+        restartInterval(recomputeKind: true)
         syncPhase()
     }
 }

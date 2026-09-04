@@ -107,7 +107,7 @@ private func advanceSettings(perDay: Int = 2) -> Settings {
     #expect(h.engine.remainingUntilBreak == 100)
 }
 
-@Test @MainActor func advanceSkippingALongBreakStillOwesIt() {
+@Test @MainActor func advanceSkippingALongBreakMakesTheNextBreakShort() {
     var s = advanceSettings()
     s.longBreakEvery = 2
     let h = Harness(s)
@@ -116,8 +116,9 @@ private func advanceSettings(perDay: Int = 2) -> Settings {
     #expect(h.engine.nextBreakKind == .long)
     h.run(10)
     h.engine.skipNextBreak()
-    #expect(h.engine.nextBreakKind == .long)      // the long break is still due
-    #expect(h.engine.shortBreaksSinceLong == 1)
+    // Skipping the long break satisfies the cadence: the next break is short, not another long.
+    #expect(h.engine.nextBreakKind == .short)
+    #expect(h.engine.shortBreaksSinceLong == 0)
 }
 
 // MARK: - Ordinary skip budget

@@ -111,7 +111,9 @@ public struct BreakView: View {
     }
 
     private var quietCountdown: some View {
-        Text(model.countdownText)
+        TimelineView(.periodic(from: .now, by: 0.25)) { context in
+            Text(model.countdownText(asOf: context.date))
+        }
             .font(OverlayType.quietCountdown)
             .foregroundStyle(tone.numerals.opacity(0.42))
             .kerning(1)
@@ -147,7 +149,9 @@ public struct BreakView: View {
                 .padding(.top, 34)
                 .rise(index: 3, appeared: appeared)
 
-            Text(model.countdownText)
+            TimelineView(.periodic(from: .now, by: 0.25)) { context in
+                Text(model.countdownText(asOf: context.date))
+            }
                 .font(OverlayType.breakCountdown)
                 .foregroundStyle(tone.numerals)
                 .kerning(1.5)

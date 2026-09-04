@@ -187,7 +187,7 @@ import Testing
     #expect(h.engine.remainingUntilBreak == 100)
 }
 
-@Test @MainActor func skippingALongBreakLeavesTheNextBreakLong() {
+@Test @MainActor func skippingALongBreakMakesTheNextBreakShort() {
     var s = Settings.fast()
     s.enforcement = .casual
     s.longBreakEvery = 2
@@ -197,9 +197,10 @@ import Testing
     #expect(h.engine.nextBreakKind == .long)
     h.run(100)                                    // long break starts
     h.engine.skipBreak()
-    #expect(h.engine.nextBreakKind == .long)
-    #expect(h.engine.shortBreaksSinceLong == 1)
-    #expect(h.engine.phase == .running(nextBreak: .long, remaining: 100))
+    // A skipped long break still satisfies the cadence: the next break is short, not another long.
+    #expect(h.engine.nextBreakKind == .short)
+    #expect(h.engine.shortBreaksSinceLong == 0)
+    #expect(h.engine.phase == .running(nextBreak: .short, remaining: 100))
 }
 
 @Test @MainActor func skippingDoesNotRefundSessionSnoozes() {

@@ -17,6 +17,12 @@ public final class BreakViewModel: ObservableObject {
     @Published public private(set) var remaining: TimeInterval = 0
     @Published public private(set) var total: TimeInterval = 1
 
+    /// Wall-clock instant the countdown reaches zero. Re-synced from the engine on every tick, but
+    /// stable enough between ticks that a display-rate `TimelineView` can read it for a countdown
+    /// that steps down evenly — instead of aliasing the fractional `remaining` against ~1 Hz ticks
+    /// (which made a number stick for two seconds, then jump one).
+    @Published public private(set) var deadline: Date = .distantPast
+
     // MARK: - Rules
 
     @Published public private(set) var enforcement: Enforcement = .balanced
@@ -48,8 +54,10 @@ public final class BreakViewModel: ObservableObject {
     public var skipEnabled: Bool { enforcement == .casual || skipUnlocked }
     public var showsSnoozes: Bool { snoozesRemaining > 0 }
 
-    public var countdownText: String {
-        let clamped = max(0, remaining.rounded(.up))
+    /// mm:ss remaining as of `now`, read from `deadline` so a display-rate timer can call it many
+    /// times a second and get an even, non-juddering countdown.
+    public func countdownText(asOf now: Date = Date()) -> String {
+        let clamped = max(0, deadline.timeIntervalSince(now).rounded(.up))
         let minutes = Int(clamped) / 60
         let seconds = Int(clamped) % 60
         return String(format: "%02d:%02d", minutes, seconds)
@@ -94,6 +102,7 @@ public final class BreakViewModel: ObservableObject {
         self.kind = kind
         self.total = max(total, 1)
         self.remaining = total
+        self.deadline = Date().addingTimeInterval(max(0, total))
         self.enforcement = settings.enforcement
         self.snoozesRemaining = max(0, snoozesRemaining)
         self.canEndEarly = false
@@ -117,6 +126,7 @@ public final class BreakViewModel: ObservableObject {
     /// Called on every engine tick.
     public func update(remaining: TimeInterval, snoozesRemaining: Int) {
         self.remaining = max(0, remaining)
+        self.deadline = Date().addingTimeInterval(self.remaining)
         self.snoozesRemaining = max(0, snoozesRemaining)
         let elapsedFraction = total > 0 ? (total - self.remaining) / total : 0
         // "End break early" is a long-break courtesy: short breaks are over before it would matter.

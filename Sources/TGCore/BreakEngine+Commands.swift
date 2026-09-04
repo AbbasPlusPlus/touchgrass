@@ -53,7 +53,8 @@ extension BreakEngine {
 
     /// Drop this break entirely. Gated by `canSkipNow` (enforcement level, how long the break has
     /// run, and the daily skip budget when `Settings.skipsPerDay` sets one).
-    /// Skipping does *not* advance the long-break cadence: a skipped long break is still owed.
+    /// A skipped long break still satisfies the long-break cadence, so the next break is a short
+    /// one — skipping a long break must not leave another long break owed right behind it.
     public func skipBreak() {
         guard started, canSkipNow else { return }
         skipsUsedToday += 1
@@ -62,9 +63,9 @@ extension BreakEngine {
             emit(.breakEnded(kind: kind, completed: false))
             clearBreakState()
         }
-        nextKind = kind
+        if kind == .long { shortBreaksSinceLong = 0 }
         emit(.skipped(kind: kind))
-        restartInterval(recomputeKind: false)
+        restartInterval(recomputeKind: true)
         syncPhase()
     }
 

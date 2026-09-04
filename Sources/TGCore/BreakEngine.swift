@@ -262,8 +262,9 @@ public final class BreakEngine: ObservableObject {
         restartInterval(recomputeKind: true)
     }
 
-    /// Put a fresh focus interval on the clock. `recomputeKind: false` keeps the same next break kind
-    /// (used by skip, so skipping a long break means the next one is still long).
+    /// Put a fresh focus interval on the clock. `recomputeKind: false` keeps the same next break
+    /// kind — used where the pending break is merely deferred (snooze, an office-hours reset), so
+    /// the kind that was coming up is still the kind that's owed.
     func restartInterval(recomputeKind: Bool) {
         remaining = settings.shortBreakInterval
         if recomputeKind { nextKind = computeNextKind() }
